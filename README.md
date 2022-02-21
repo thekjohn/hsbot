@@ -1,1 +1,1 @@
-# hsbot
+# HsBot
