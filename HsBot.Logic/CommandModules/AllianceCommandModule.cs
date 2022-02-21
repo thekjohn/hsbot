@@ -16,7 +16,7 @@
 
             if (!CurrentUser.Roles.Any(x => x.Permissions.Administrator))
             {
-                await ReplyAsync("only administrators can use this command");
+                await ReplyAsync("Only administrators can use this command!");
                 return;
             }
 
@@ -36,7 +36,7 @@
         {
             if (!CurrentUser.Roles.Any(x => x.Permissions.Administrator))
             {
-                await ReplyAsync("only administrators can use this command");
+                await ReplyAsync("Only administrators can use this command!");
                 return;
             }
 
@@ -64,13 +64,13 @@
         {
             if (!CurrentUser.Roles.Any(x => x.Permissions.ManageChannels))
             {
-                await ReplyAsync("only members with 'manage channels' role can use this command");
+                await ReplyAsync("Only members with 'manage channels' role can use this command!");
                 return;
             }
 
             if (!CurrentUser.Roles.Any(x => x.Id == role.Id))
             {
-                await ReplyAsync("only members within the specified corp can use this command");
+                await ReplyAsync("Only members within the specified corp can use this command!");
                 return;
             }
 
@@ -98,7 +98,7 @@
             var currentUser = CurrentUser;
             if (!CurrentUser.Roles.Any(x => x.Permissions.Administrator))
             {
-                await ReplyAsync("only administrators can use this command");
+                await ReplyAsync("Only administrators can use this command!");
                 return;
             }
 

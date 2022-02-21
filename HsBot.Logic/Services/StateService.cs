@@ -13,6 +13,21 @@
             Folder = @"c:\HsBot";
         }
 
+        public string[] ListIds(ulong guildId, string idPrefix)
+        {
+            var folder = Path.Combine(Folder, guildId.ToStr());
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
+
+            var prefix = "state-";
+            var prefixLength = prefix.Length;
+
+            return Directory
+                .EnumerateFiles(folder, prefix + idPrefix + "*.txt")
+                .Select(fn => Path.GetFileNameWithoutExtension(fn)[prefixLength..])
+                .ToArray();
+        }
+
         public T Get<T>(ulong guildId, string id)
         {
             var fn = GetFileName(guildId, id);
@@ -27,7 +42,11 @@
 
         private string GetFileName(ulong guildId, string id)
         {
-            return Path.Combine(Folder, guildId.ToStr(), "state-" + id + ".txt");
+            var folder = Path.Combine(Folder, guildId.ToStr());
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
+
+            return Path.Combine(folder, "state-" + id + ".txt");
         }
 
         public void Set<T>(ulong guildId, string id, T value)
