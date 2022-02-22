@@ -5,7 +5,7 @@
     using Discord.Commands;
 
     [Summary("wiki")]
-    public class WikiCommandModule : BaseModule
+    public class Wiki : BaseModule
     {
         private Embed FormatEntry(WikiEntry entry)
         {
@@ -17,7 +17,7 @@
 
         [Command("wiki")]
         [Summary("wiki|query wiki pages")]
-        public async Task Wiki(string code = null)
+        public async Task GetWiki(string code = null)
         {
             await Context.Message.DeleteAsync();
 

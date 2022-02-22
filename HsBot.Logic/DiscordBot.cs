@@ -79,9 +79,9 @@
             await Discord.StartAsync();
 
             await Commands.AddModuleAsync(typeof(HelpCommandModule), null);
-            await Commands.AddModuleAsync(typeof(RsBotCommandModule), null);
-            await Commands.AddModuleAsync(typeof(WikiCommandModule), null);
-            await Commands.AddModuleAsync(typeof(AllianceCommandModule), null);
+            await Commands.AddModuleAsync(typeof(RsBot), null);
+            await Commands.AddModuleAsync(typeof(Wiki), null);
+            await Commands.AddModuleAsync(typeof(Alliance), null);
 
             await Task.Delay(Timeout.Infinite);
         }

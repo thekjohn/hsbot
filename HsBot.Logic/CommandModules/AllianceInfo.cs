@@ -6,7 +6,7 @@
     using Discord.WebSocket;
 
     [Summary("management")]
-    public class AllianceCommandModule : BaseModule
+    public class Alliance : BaseModule
     {
         [Command("setalliance")]
         [Summary("setalliance|set the main parameters of the alliance -  requires admin role")]
@@ -147,18 +147,18 @@
             await ReplyAsync(embed: msg.Build());
         }
 
-        public static Alliance GetAlliance(ulong guildId)
+        public static AllianceInfo GetAlliance(ulong guildId)
         {
-            return Services.State.Get<Alliance>(guildId, "alliance")
-                ?? new Alliance();
+            return Services.State.Get<AllianceInfo>(guildId, "alliance")
+                ?? new AllianceInfo();
         }
 
-        private void SaveAlliance(Alliance alliance)
+        private void SaveAlliance(AllianceInfo alliance)
         {
             Services.State.Set(Context.Guild.Id, "alliance", alliance);
         }
 
-        public class Alliance
+        public class AllianceInfo
         {
             public ulong RoleId { get; set; }
             public string Abbreviation { get; set; }

@@ -6,7 +6,7 @@
     using Discord.WebSocket;
 
     [Summary("RS bot")]
-    public class RsBotCommandModule : BaseModule
+    public class RsBot : BaseModule
     {
         [Command("start")]
         [Summary("start level|force start on a queue")]
@@ -22,7 +22,7 @@
             await Context.Message.DeleteAsync();
 
             var found = false;
-            for (var i = 1; i <= 11; i++)
+            for (var i = 1; i <= 12; i++)
             {
                 if (level != null && i != level.Value)
                     continue;
@@ -54,10 +54,11 @@
         [Summary("out level|dequeue. if level is empty, then it is decided based on the user's role")]
         public async Task Out(int? level = null)
         {
-            await RemoveQueue(level, CurrentUser);
+            await Context.Message.DeleteAsync();
+            await RemoveQueue(level, CurrentUser, null);
         }
 
-        [Command("in")]
+        /*[Command("in")]
         [Summary("in level user|debug only")]
         public async Task I(int level, SocketGuildUser targetUser)
         {
@@ -75,7 +76,7 @@
         public async Task O(int level, SocketGuildUser targetUser)
         {
             await RemoveQueue(level, targetUser);
-        }
+        }*/
 
         private async Task AddQueue(int? level, SocketGuildUser user)
         {
@@ -102,6 +103,11 @@
             }
 
             var role = Context.Guild.Roles.FirstOrDefault(x => x.Name == "RS" + selectedLevel.ToStr());
+            if (role == null)
+            {
+                await ReplyAsync("There is no role for RS" + selectedLevel.ToStr() + ".");
+                return;
+            }
 
             var queueStateId = Services.State.GetId("rs-queue", Context.Guild.Id, Context.Channel.Id, (ulong)selectedLevel);
 
@@ -128,6 +134,22 @@
             var roleMentionStateId = Services.State.GetId("rs-queue-last-role-mention", role.Id);
             var lastRsMention = Services.State.Get<DateTime?>(Context.Guild.Id, roleMentionStateId);
 
+            if (queue.Users.Count == 4)
+            {
+                foreach (var userId in queue.Users)
+                {
+                    var runCountStateId = Services.State.GetId("rs-run-count", userId, (ulong)queue.Level);
+                    var cnt = Services.State.Get<int>(Context.Guild.Id, runCountStateId);
+                    cnt++;
+                    Services.State.Set(Context.Guild.Id, runCountStateId, cnt);
+                }
+
+                foreach (var userId in queue.Users)
+                {
+                    await RemoveQueue(null, Context.Guild.GetUser(userId), level);
+                }
+            }
+
             string response;
             if (lastRsMention == null || DateTime.UtcNow > lastRsMention.Value.AddMinutes(5))
             {
@@ -141,23 +163,11 @@
             }
 
             response += " (" + queue.Users.Count.ToStr() + "/4), " + user.Mention + " joined.";
-
             await ReplyAsync(response);
-
-            if (queue.Users.Count == 4)
-            {
-                foreach (var userId in queue.Users)
-                {
-                    var runCountStateId = Services.State.GetId("rs-run-count", userId, (ulong)queue.Level);
-                    var cnt = Services.State.Get<int>(Context.Guild.Id, runCountStateId);
-                    cnt++;
-                    Services.State.Set(Context.Guild.Id, runCountStateId, cnt);
-                }
-            }
 
             await RefreshQueue(selectedLevel, queue.Users.Count == 4);
 
-            var alliance = AllianceCommandModule.GetAlliance(Context.Guild.Id);
+            var alliance = Alliance.GetAlliance(Context.Guild.Id);
 
             if (queue.Users.Count == 4)
             {
@@ -178,8 +188,6 @@
         {
             await Context.Message.DeleteAsync();
 
-            var role = Context.Guild.Roles.FirstOrDefault(x => x.Name == "RS" + level.ToStr());
-
             var queueStateId = Services.State.GetId("rs-queue", Context.Guild.Id, Context.Channel.Id, (ulong)level);
 
             var queue = Services.State.Get<RsQueue>(Context.Guild.Id, queueStateId);
@@ -197,12 +205,14 @@
                 var cnt = Services.State.Get<int>(Context.Guild.Id, runCountStateId);
                 cnt++;
                 Services.State.Set(Context.Guild.Id, runCountStateId, cnt);
+
+                await RemoveQueue(null, Context.Guild.GetUser(userId), level);
             }
 
             await RefreshQueue(level, true);
-
-            var alliance = AllianceCommandModule.GetAlliance(Context.Guild.Id);
             Services.State.Delete(Context.Guild.Id, queueStateId);
+
+            var alliance = Alliance.GetAlliance(Context.Guild.Id);
 
             var response = "RS" + level.ToStr() + " ready! Meet where? (" + queue.Users.Count.ToStr() + "/" + queue.Users.Count.ToStr() + ")"
                 + "\n" + string.Join(" ", queue.Users.Select(x =>
@@ -216,7 +226,7 @@
 
         private async Task RefreshQueue(int level, bool started)
         {
-            var alliance = AllianceCommandModule.GetAlliance(Context.Guild.Id);
+            var alliance = Alliance.GetAlliance(Context.Guild.Id);
 
             var queueStateId = Services.State.GetId("rs-queue", Context.Guild.Id, Context.Channel.Id, (ulong)level);
             var queue = Services.State.Get<RsQueue>(Context.Guild.Id, queueStateId);
@@ -230,6 +240,11 @@
                 await Context.Channel.DeleteMessageAsync(queue.MessageId);
 
             var role = Context.Guild.Roles.FirstOrDefault(x => x.Name == "RS" + queue.Level.ToStr());
+            if (role == null)
+            {
+                await ReplyAsync("There is no role for RS" + level.ToStr() + ".");
+                return;
+            }
 
             var roleMentionStateId = Services.State.GetId("rs-queue-last-role-mention", role.Id);
             var lastRsMention = Services.State.Get<DateTime?>(Context.Guild.Id, roleMentionStateId);
@@ -263,65 +278,79 @@
             Services.State.Set(Context.Guild.Id, queueStateId, queue);
         }
 
-        private async Task RemoveQueue(int? level, SocketGuildUser user)
+        private async Task RemoveQueue(int? specificLevel, SocketGuildUser user, int? exceptLevel)
         {
-            if (user == null)
-                return;
+            var nonEmptyQueuesLeft = new List<int>();
 
-            await Context.Message.DeleteAsync();
-
-            int selectedLevel;
-            if (level == null)
+            for (var level = 1; level <= 12; level++)
             {
-                var highestRsRoleNumber = user.GetHighestRsRoleNumber();
-                if (highestRsRoleNumber == null)
+                var queueStateId = Services.State.GetId("rs-queue", Context.Guild.Id, Context.Channel.Id, (ulong)level);
+
+                if (specificLevel != null && specificLevel.Value != level)
+                    continue;
+
+                if (exceptLevel == level)
+                    continue;
+
+                var queue = Services.State.Get<RsQueue>(Context.Guild.Id, queueStateId);
+                if (queue == null)
                 {
-                    await ReplyAsync("RS role of " + user.Mention + " cannot be determined: " + user.Nickname);
-                    return;
+                    if (specificLevel != null)
+                    {
+                        Services.Cleanup.RegisterForDeletion(10,
+                            await ReplyAsync("RS" + level.ToStr() + " queue was already empty..."));
+
+                        return;
+                    }
+
+                    continue;
                 }
 
-                selectedLevel = highestRsRoleNumber.Value;
+                if (!queue.Users.Contains(user.Id))
+                {
+                    if (specificLevel != null)
+                    {
+                        Services.Cleanup.RegisterForDeletion(10,
+                            await ReplyAsync(user.Mention + " wasn't even in RS" + level.ToStr() + " queue..."));
+
+                        return;
+                    }
+
+                    continue;
+                }
+
+                queue.Users.Remove(user.Id);
+                if (queue.Users.Count > 0)
+                {
+                    Services.State.Set(Context.Guild.Id, queueStateId, queue);
+                }
+                else
+                {
+                    if (queue.MessageId != 0)
+                        await Context.Channel.DeleteMessageAsync(queue.MessageId);
+
+                    Services.State.Delete(Context.Guild.Id, queueStateId);
+                }
+
+                var msg = ":x: " + user.Mention + " left RS" + queue.Level.ToStr() + " queue (" + queue.Users.Count.ToStr() + "/4)";
+                await ReplyAsync(msg);
+
+                if (queue.Users.Count > 0)
+                    nonEmptyQueuesLeft.Add(level);
             }
-            else
+
+            foreach (var level in nonEmptyQueuesLeft)
             {
-                selectedLevel = level.Value;
+                await RefreshQueue(level, false);
             }
+        }
 
-            var queueStateId = Services.State.GetId("rs-queue", Context.Guild.Id, Context.Channel.Id, (ulong)selectedLevel);
-
-            var queue = Services.State.Get<RsQueue>(Context.Guild.Id, queueStateId);
-
-            if (queue == null)
-            {
-                Services.Cleanup.RegisterForDeletion(10,
-                    await ReplyAsync("RS" + selectedLevel.ToStr() + " queue was already empty..."));
-
-                return;
-            }
-
-            if (!queue.Users.Contains(user.Id))
-            {
-                Services.Cleanup.RegisterForDeletion(10,
-                    await ReplyAsync(user.Mention + " wasn't even in RS" + selectedLevel.ToStr() + " queue..."));
-
-                return;
-            }
-
-            queue.Users.Remove(user.Id);
-            if (queue.Users.Count > 0)
-            {
-                Services.State.Set(Context.Guild.Id, queueStateId, queue);
-            }
-            else
-            {
-                Services.State.Delete(Context.Guild.Id, queueStateId);
-            }
-
-            var msg = ":x: " + user.Mention + " left RS" + queue.Level.ToStr() + " queue (" + queue.Users.Count.ToStr() + "/4)";
-            await ReplyAsync(msg);
-
-            if (queue.Users.Count > 0)
-                await RefreshQueue(selectedLevel, false);
+        internal class RsQueue
+        {
+            public int Level { get; init; }
+            public List<ulong> Users { get; init; } = new();
+            public DateTime StartedOn { get; init; }
+            public ulong MessageId { get; set; }
         }
     }
 }
