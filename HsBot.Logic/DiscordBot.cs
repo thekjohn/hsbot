@@ -15,8 +15,6 @@
 
         public static char CommandPrefix { get; private set; }
 
-        private static Thread cleanupThread;
-
         public DiscordBot()
         {
             var config = new DiscordSocketConfig()
@@ -41,11 +39,11 @@
 
         private async Task OnReady()
         {
-            cleanupThread = new Thread(CleanupThreadWorker);
-            cleanupThread.Start();
+            new Thread(MessageCleanupThreadWorker).Start();
+            new Thread(RsCleanupThreadWorker).Start();
         }
 
-        private async void CleanupThreadWorker()
+        private async void MessageCleanupThreadWorker()
         {
             while (true)
             {
@@ -60,6 +58,67 @@
                 }
 
                 Thread.Sleep(100);
+            }
+        }
+
+        private async void RsCleanupThreadWorker()
+        {
+            while (true)
+            {
+                var now = DateTime.UtcNow;
+
+                foreach (var guild in Discord.Guilds)
+                {
+                    for (var level = 1; level <= 12; level++)
+                    {
+                        var timeoutStateId = Services.State.GetId("rs-queue-timout", (ulong)level);
+                        var timeoutMinutes = Services.State.Get<int>(guild.Id, timeoutStateId);
+                        if (timeoutMinutes == 0)
+                            timeoutMinutes = 10;
+
+                        var queueStateId = Services.State.GetId("rs-queue", (ulong)level);
+                        var queue = Services.State.Get<RsQueue.RsQueueEntry>(guild.Id, queueStateId);
+                        if (queue == null)
+                            continue;
+
+                        var channel = guild.GetTextChannel(queue.ChannelId);
+                        if (channel == null)
+                            continue;
+
+                        foreach (var userId in queue.Users.ToList())
+                        {
+                            var userActivityStateId = "rs-queue-activity-" + userId.ToStr() + "-" + level.ToStr();
+                            var userActivity = Services.State.Get<DateTime>(guild.Id, userActivityStateId);
+                            if (userActivity.Year == 0)
+                                continue;
+
+                            if (userActivity.AddMinutes(timeoutMinutes) < now)
+                            {
+                                var user = guild.GetUser(userId);
+                                if (user != null)
+                                {
+                                    var userActivityConfirmationAskedStateId = userActivityStateId + "-asked";
+                                    if (Services.State.Exists(guild.Id, userActivityConfirmationAskedStateId))
+                                    {
+                                        var askedOn = Services.State.Get<DateTime>(guild.Id, userActivityConfirmationAskedStateId);
+                                        if (askedOn.AddMinutes(2) < now)
+                                        {
+                                            await RsQueue.RemoveQueue(guild, channel, level, user, null);
+                                            break; // skip the check and removal of other users until next cycle
+                                        }
+
+                                        continue;
+                                    }
+
+                                    Services.State.Set(guild.Id, userActivityConfirmationAskedStateId, DateTime.UtcNow);
+                                    await channel.SendMessageAsync(user.Mention + ", still in for RS" + level.ToStr() + "? Type `!in " + level.ToStr() + "` to confirm within the next 2 minutes.");
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Thread.Sleep(5000);
             }
         }
 
@@ -81,7 +140,7 @@
             await Commands.AddModuleAsync(typeof(HelpCommandModule), null);
             await Commands.AddModuleAsync(typeof(RsQueue), null);
             await Commands.AddModuleAsync(typeof(Wiki), null);
-            await Commands.AddModuleAsync(typeof(Alliance), null);
+            await Commands.AddModuleAsync(typeof(Admin), null);
 
             await Task.Delay(Timeout.Infinite);
         }

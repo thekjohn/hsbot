@@ -122,6 +122,19 @@
             }
         }
 
+        public void Rename(ulong guildId, string oldId, string newId)
+        {
+            lock (_lock)
+            {
+                var oldFn = GetFileName(guildId, oldId);
+                if (File.Exists(oldFn))
+                {
+                    var newFn = GetFileName(guildId, newId);
+                    File.Move(oldFn, newFn, true);
+                }
+            }
+        }
+
         public bool Exists(ulong guildId, string id)
         {
             lock (_lock)
@@ -134,7 +147,7 @@
         public string GetId(string prefix, params ulong[] parts)
         {
             return (prefix != null ? prefix + "-" : string.Empty)
-                + string.Join('.', parts.Select(x => x.ToString("D", CultureInfo.InvariantCulture)));
+                + string.Join('-', parts.Select(x => x.ToString("D", CultureInfo.InvariantCulture)));
         }
     }
 }
