@@ -83,7 +83,7 @@
         [Summary("out level user|debug only")]
         public async Task O(int level, SocketGuildUser targetUser)
         {
-            await RemoveQueue(level, targetUser);
+            await RemoveQueue(Context.Guild, Context.Channel, level, targetUser, null);
         }*/
 
         private static async Task Ping(SocketGuild guild, ISocketMessageChannel channel, int level)
@@ -302,7 +302,15 @@
             }
 
             if (queue.MessageId != 0)
-                await channel.DeleteMessageAsync(queue.MessageId);
+            {
+                try
+                {
+                    await guild.GetTextChannel(queue.ChannelId).DeleteMessageAsync(queue.MessageId);
+                }
+                catch (Exception)
+                {
+                }
+            }
 
             var roleMentionStateId = Services.State.GetId("rs-queue-last-role-mention", role.Id);
             var lastRsMention = Services.State.Get<DateTime?>(guild.Id, roleMentionStateId);
@@ -342,6 +350,7 @@
                 msg.WithFooter("Run started after " + queue.StartedOn.GetAgoString() + ".");
             }
 
+            queue.ChannelId = channel.Id;
             queue.MessageId = (await channel.SendMessageAsync(embed: msg.Build())).Id;
             Services.State.Set(guild.Id, queueStateId, queue);
         }
@@ -398,7 +407,7 @@
                     {
                         try
                         {
-                            await channel.DeleteMessageAsync(queue.MessageId);
+                            await guild.GetTextChannel(queue.ChannelId).DeleteMessageAsync(queue.MessageId);
                         }
                         catch (Exception)
                         {
@@ -423,10 +432,10 @@
 
         internal class RsQueueEntry
         {
-            public ulong ChannelId { get; init; }
             public int Level { get; init; }
             public List<ulong> Users { get; init; } = new();
             public DateTime StartedOn { get; init; }
+            public ulong ChannelId { get; set; }
             public ulong MessageId { get; set; }
             public int? RunId { get; set; }
         }

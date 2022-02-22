@@ -23,11 +23,17 @@
 
             public List<Corp> Corporations { get; set; } = new List<Corp>();
 
+            public ulong AllyRoleId { get; set; }
+            public string AllyIcon { get; set; }
+
             public string GetUserCorpIcon(SocketGuildUser user)
             {
                 var corp = Corporations.Find(c => user.Roles.Any(r => r.Id == c.RoleId));
                 if (corp != null && !string.IsNullOrEmpty(corp.IconMention))
                     return corp.IconMention;
+
+                if (user.Roles.Any(r => r.Id == AllyRoleId))
+                    return AllyIcon;
 
                 return null;
             }
