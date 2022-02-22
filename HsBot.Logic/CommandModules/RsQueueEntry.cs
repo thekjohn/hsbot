@@ -6,7 +6,7 @@
     using Discord.WebSocket;
 
     [Summary("RS bot")]
-    public class RsBot : BaseModule
+    public class RsQueue : BaseModule
     {
         [Command("start")]
         [Summary("start level|force start on a queue")]
@@ -111,8 +111,8 @@
 
             var queueStateId = Services.State.GetId("rs-queue", Context.Guild.Id, Context.Channel.Id, (ulong)selectedLevel);
 
-            var queue = Services.State.Get<RsQueue>(Context.Guild.Id, queueStateId)
-                ?? new RsQueue()
+            var queue = Services.State.Get<RsQueueEntry>(Context.Guild.Id, queueStateId)
+                ?? new RsQueueEntry()
                 {
                     Level = selectedLevel,
                     StartedOn = DateTime.UtcNow,
@@ -190,7 +190,7 @@
 
             var queueStateId = Services.State.GetId("rs-queue", Context.Guild.Id, Context.Channel.Id, (ulong)level);
 
-            var queue = Services.State.Get<RsQueue>(Context.Guild.Id, queueStateId);
+            var queue = Services.State.Get<RsQueueEntry>(Context.Guild.Id, queueStateId);
             if (queue == null)
             {
                 Services.Cleanup.RegisterForDeletion(10,
@@ -229,7 +229,7 @@
             var alliance = Alliance.GetAlliance(Context.Guild.Id);
 
             var queueStateId = Services.State.GetId("rs-queue", Context.Guild.Id, Context.Channel.Id, (ulong)level);
-            var queue = Services.State.Get<RsQueue>(Context.Guild.Id, queueStateId);
+            var queue = Services.State.Get<RsQueueEntry>(Context.Guild.Id, queueStateId);
             if (queue == null)
             {
                 await ReplyAsync("There's nobody in the RS" + level.ToStr() + " queue just now.");
@@ -292,7 +292,7 @@
                 if (exceptLevel == level)
                     continue;
 
-                var queue = Services.State.Get<RsQueue>(Context.Guild.Id, queueStateId);
+                var queue = Services.State.Get<RsQueueEntry>(Context.Guild.Id, queueStateId);
                 if (queue == null)
                 {
                     if (specificLevel != null)
@@ -345,7 +345,7 @@
             }
         }
 
-        internal class RsQueue
+        internal class RsQueueEntry
         {
             public int Level { get; init; }
             public List<ulong> Users { get; init; } = new();
