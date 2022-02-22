@@ -8,9 +8,9 @@
     [Summary("White Stars")]
     public class Ws : BaseModule
     {
-        [Command("signup")]
-        [Summary("signup|show active signup form(s)")]
-        public async Task Signup()
+        [Command("wssignup")]
+        [Summary("wssignup|show active signup form(s)")]
+        public async Task ShowSignup()
         {
             await Context.Message.DeleteAsync();
             await RepostSignups(Context.Guild, Context.Channel);
@@ -128,7 +128,7 @@
 
             var embedBuilder = new EmbedBuilder()
                 .WithTitle("WS signup - " + signup.StartedOn.ToString("yyyy MMMM dd. HH:mm:ss", CultureInfo.InvariantCulture) + " UTC")
-                .AddField("Please express your commitment level during this White Star event. Your team will count on you, so please choose wisely!", '\u200b', false)
+                .AddField("Please express your MINIMUM commitment level during this White Star event. Your team will count on you, so please choose wisely!", "Do not forget: based on the draft, the only thing guaranteed is you don't get into a stronger team than your commitment level, but you can still end up in a lower commitment level team.", false)
                 .AddField("Competitive 💪", comp, true)
                 .AddField("Casual 👍", casual, true)
                 .AddField("Inactive 😴", inactive, true);
