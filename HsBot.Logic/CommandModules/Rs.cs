@@ -5,8 +5,8 @@
     using Discord.Commands;
     using Discord.WebSocket;
 
-    [Summary("RS queue")]
-    public class RsQueue : BaseModule
+    [Summary("Red Stars")]
+    public class Rs : BaseModule
     {
         [Command("in")]
         [Alias("i")]
@@ -37,11 +37,20 @@
         [Summary("start <level>|force start on a queue")]
         public async Task Start(int level)
         {
+            await Context.Message.DeleteAsync();
             await StartQueue(level);
         }
 
-        [Command("qq")]
-        [Summary("qq|query active queues")]
+        [Command("rsmod")]
+        [Summary("rsmod|allow setting RS queue related mods")]
+        public async Task RsMod()
+        {
+            await Context.Message.DeleteAsync();
+            await ShowRsMod(Context.Guild, Context.Channel);
+        }
+
+        [Command("q")]
+        [Summary("q|query active queues")]
         public async Task QueryQueues(int? level = null)
         {
             await Context.Message.DeleteAsync();
@@ -233,8 +242,6 @@
 
         private async Task StartQueue(int level)
         {
-            await Context.Message.DeleteAsync();
-
             var queueStateId = Services.State.GetId("rs-queue", (ulong)level);
 
             var queue = Services.State.Get<RsQueueEntry>(Context.Guild.Id, queueStateId);
@@ -273,7 +280,7 @@
             }
 
             response += " (" + queue.Users.Count.ToStr() + "/" + queue.Users.Count.ToStr() + ")"
-                + " " + string.Join(" ", queue.Users.Select(x =>
+                + "\n" + string.Join(" ", queue.Users.Select(x =>
                 {
                     var user = Context.Guild.GetUser(x);
                     return alliance.GetUserCorpIcon(user) + " " + user.Mention;
@@ -330,9 +337,29 @@
                     {
                         var user = guild.GetUser(userId);
                         var runCountStateId = Services.State.GetId("rs-run-count", userId, (ulong)queue.Level);
+                        var runCount = Services.State.Get<int>(guild.Id, runCountStateId);
+
+                        var modList = "";
+                        var mods = Services.State.Get<UserRsMod>(guild.Id, Services.State.GetId("rs-mod", user.Id));
+                        if (mods != null)
+                        {
+                            if (mods.Rse)
+                                modList += guild.Emotes.FirstOrDefault(x => x.Name == "rse").GetReference();
+                            if (mods.NoSanc)
+                                modList += guild.Emotes.FirstOrDefault(x => x.Name == "nosanc").GetReference();
+                            if (mods.NoTele)
+                                modList += guild.Emotes.FirstOrDefault(x => x.Name == "notele").GetReference();
+                            if (mods.Dart)
+                                modList += guild.Emotes.FirstOrDefault(x => x.Name == "dart").GetReference();
+                            if (mods.Vengeance)
+                                modList += guild.Emotes.FirstOrDefault(x => x.Name == "vengeance").GetReference();
+                            if (mods.Strong)
+                                modList += "💪";
+                        }
 
                         return alliance.GetUserCorpIcon(user) + " " + user.Nickname
-                            + " [" + Services.State.Get<int>(guild.Id, runCountStateId) + " runs]"
+                            + modList
+                            + " [" + runCount + " runs]"
                             + " :watch: " + Services.State.Get<DateTime>(guild.Id, "rs-queue-activity-" + userId.ToStr() + "-" + queue.Level.ToStr())
                                     .GetAgoString();
                     }
@@ -430,6 +457,108 @@
             }
         }
 
+        private async Task ShowRsMod(SocketGuild guild, ISocketMessageChannel channel)
+        {
+            var rsModStateId = "rs-mod-state";
+            var rsMod = Services.State.Get<RsModState>(guild.Id, rsModStateId);
+            if (rsMod != null)
+            {
+                try
+                {
+                    await guild.GetTextChannel(rsMod.ChannelId).DeleteMessageAsync(rsMod.MessageId);
+                }
+                catch (Exception)
+                {
+                }
+            }
+
+            var embedBuilder = new EmbedBuilder()
+                .WithTitle("RS Mod Editor")
+                .WithDescription("Please react according to your preferences in the RS queue.");
+
+            var sent = await channel.SendMessageAsync(embed: embedBuilder.Build());
+            await sent.AddReactionsAsync(new IEmote[]
+            {
+                guild.Emotes.FirstOrDefault(x =>x.Name == "rse"),
+                guild.Emotes.FirstOrDefault(x =>x.Name == "nosanc"),
+                guild.Emotes.FirstOrDefault(x =>x.Name == "notele"),
+                guild.Emotes.FirstOrDefault(x =>x.Name == "dart"),
+                guild.Emotes.FirstOrDefault(x =>x.Name == "vengeance"),
+                new Emoji("💪"),
+            });
+
+            rsMod = new RsModState()
+            {
+                ChannelId = channel.Id,
+                MessageId = sent.Id,
+                LastShown = DateTime.UtcNow,
+            };
+
+            Services.State.Set(guild.Id, rsModStateId, rsMod);
+        }
+
+        internal static async Task HandleReactions(SocketReaction reaction, bool added)
+        {
+            if (reaction.User.Value.IsBot)
+                return;
+
+            var channel = reaction.Channel as SocketGuildChannel;
+
+            var rsModStateId = "rs-mod-state";
+            var rsMod = Services.State.Get<RsModState>(channel.Guild.Id, rsModStateId);
+            if (rsMod == null)
+                return;
+
+            var userStateId = Services.State.GetId("rs-mod", reaction.UserId);
+            var userState = Services.State.Get<UserRsMod>(channel.Guild.Id, userStateId)
+                ?? new UserRsMod()
+                {
+                    UserID = reaction.UserId,
+                };
+
+            switch (reaction.Emote.Name)
+            {
+                case "rse":
+                    userState.Rse = added;
+                    break;
+                case "nosanc":
+                    userState.NoSanc = added;
+                    break;
+                case "notele":
+                    userState.NoTele = added;
+                    break;
+                case "dart":
+                    userState.Dart = added;
+                    break;
+                case "veng":
+                    userState.Vengeance = added;
+                    break;
+                case "💪":
+                    userState.Strong = added;
+                    break;
+            }
+
+            Services.State.Set(channel.Guild.Id, userStateId, userState);
+        }
+
+        internal class RsModState
+        {
+            public ulong ChannelId { get; set; }
+            public ulong MessageId { get; init; }
+            public DateTime LastShown { get; set; }
+        }
+
+        internal class UserRsMod
+        {
+            public ulong UserID { get; set; }
+            public bool NoSanc { get; set; }
+            public bool NoTele { get; set; }
+            public bool Rse { get; set; }
+            public bool Strong { get; set; }
+            public bool Vengeance { get; set; }
+            public bool Dart { get; set; }
+        }
+
         internal class RsQueueEntry
         {
             public int Level { get; init; }
@@ -438,6 +567,7 @@
             public ulong ChannelId { get; set; }
             public ulong MessageId { get; set; }
             public int? RunId { get; set; }
+            public DateTime? FalseStart { get; set; }
         }
     }
 }

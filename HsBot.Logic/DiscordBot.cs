@@ -27,6 +27,12 @@
             Discord.MessageReceived += OnMessageReceived;
             Discord.Ready += OnReady;
 
+            Discord.ReactionAdded += (message, channel, reaction) => Rs.HandleReactions(reaction, true);
+            Discord.ReactionRemoved += (message, channel, reaction) => Rs.HandleReactions(reaction, false);
+
+            Discord.ReactionAdded += (message, channel, reaction) => Ws.HandleReactions(reaction, true);
+            Discord.ReactionRemoved += (message, channel, reaction) => Ws.HandleReactions(reaction, false);
+
             Services.Log.Log(null, "folder: " + Services.State.Folder, ConsoleColor.Magenta);
 
             Commands = new CommandService();
@@ -41,6 +47,9 @@
         {
             new Thread(MessageCleanupThreadWorker).Start();
             new Thread(RsCleanupThreadWorker).Start();
+
+            //var msg = await Discord.Guilds.First().GetTextChannel(830622786396618772).GetMessageAsync(943863908253438002);
+
         }
 
         private async void MessageCleanupThreadWorker()
@@ -71,13 +80,13 @@
                 {
                     for (var level = 1; level <= 12; level++)
                     {
-                        var timeoutStateId = Services.State.GetId("rs-queue-timout", (ulong)level);
+                        var timeoutStateId = Services.State.GetId("rs-queue-timeout", (ulong)level);
                         var timeoutMinutes = Services.State.Get<int>(guild.Id, timeoutStateId);
                         if (timeoutMinutes == 0)
                             timeoutMinutes = 10;
 
                         var queueStateId = Services.State.GetId("rs-queue", (ulong)level);
-                        var queue = Services.State.Get<RsQueue.RsQueueEntry>(guild.Id, queueStateId);
+                        var queue = Services.State.Get<Rs.RsQueueEntry>(guild.Id, queueStateId);
                         if (queue == null)
                             continue;
 
@@ -103,7 +112,7 @@
                                         var askedOn = Services.State.Get<DateTime>(guild.Id, userActivityConfirmationAskedStateId);
                                         if (askedOn.AddMinutes(2) < now)
                                         {
-                                            await RsQueue.RemoveQueue(guild, channel, level, user, null);
+                                            await Rs.RemoveQueue(guild, channel, level, user, null);
                                             break; // skip the check and removal of other users until next cycle
                                         }
 
@@ -138,7 +147,8 @@
             await Discord.StartAsync();
 
             await Commands.AddModuleAsync(typeof(HelpCommandModule), null);
-            await Commands.AddModuleAsync(typeof(RsQueue), null);
+            await Commands.AddModuleAsync(typeof(Rs), null);
+            await Commands.AddModuleAsync(typeof(Ws), null);
             await Commands.AddModuleAsync(typeof(Wiki), null);
             await Commands.AddModuleAsync(typeof(Admin), null);
 

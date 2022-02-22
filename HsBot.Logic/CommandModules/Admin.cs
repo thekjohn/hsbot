@@ -1,5 +1,6 @@
 ﻿namespace HsBot.Logic
 {
+    using System.Globalization;
     using System.Threading.Tasks;
     using Discord;
     using Discord.Commands;
@@ -100,13 +101,13 @@
         }
 
         [Command("setrstimeout")]
-        [Summary("setrstimeout <level> <minutes>|change the activity timout of a specific RS queue")]
+        [Summary("setrstimeout <level> <minutes>|change the activity timeout of a specific RS queue")]
         [RequireUserPermission(GuildPermission.ManageChannels)]
         public async Task SetRsTimeout(int level, int minutes)
         {
             await Context.Message.DeleteAsync();
 
-            var stateId = Services.State.GetId("rs-queue-timout", (ulong)level);
+            var stateId = Services.State.GetId("rs-queue-timeout", (ulong)level);
             var currentValue = Services.State.Get<int>(Context.Guild.Id, stateId);
 
             Services.State.Set(Context.Guild.Id, stateId, minutes);
@@ -115,7 +116,7 @@
         }
 
         [Command("setrstimeout")]
-        [Summary("setrstimeout <minutes>|change the activity timout of a all RS queues")]
+        [Summary("setrstimeout <minutes>|change the activity timeout of a all RS queues")]
         [RequireUserPermission(GuildPermission.ManageChannels)]
         public async Task SetRsTimeout(int minutes)
         {
@@ -123,7 +124,7 @@
 
             for (var level = 1; level <= 12; level++)
             {
-                var stateId = Services.State.GetId("rs-queue-timout", (ulong)level);
+                var stateId = Services.State.GetId("rs-queue-timeout", (ulong)level);
                 var currentValue = Services.State.Get<int>(Context.Guild.Id, stateId);
                 if (currentValue != minutes)
                 {
@@ -148,6 +149,56 @@
             Alliance.SaveAlliance(Context.Guild.Id, alliance);
 
             await ReplyAsync("ally data successfully changed: " + role.Name);
+        }
+
+        [Command("falsestart")]
+        [Summary("falsestart <runNumber>|invalidate an RS run")]
+        [RequireUserPermission(GuildPermission.ManageChannels)]
+        public async Task FalseStartRun(int runNumber)
+        {
+            await Context.Message.DeleteAsync();
+            await FalseStartRun(Context.Guild, Context.Channel, runNumber);
+        }
+
+        private static async Task FalseStartRun(SocketGuild guild, ISocketMessageChannel channel, int runNumber)
+        {
+            var queueStateId = Services.State.GetId("rs-log", (ulong)runNumber);
+            var queue = Services.State.Get<Rs.RsQueueEntry>(guild.Id, queueStateId);
+            if (queue == null)
+            {
+                await channel.SendMessageAsync("Can't find run #" + runNumber.ToStr());
+                return;
+            }
+
+            foreach (var userId in queue.Users)
+            {
+                var runCountStateId = Services.State.GetId("rs-run-count", userId, (ulong)queue.Level);
+                var runCount = Services.State.Get<int>(guild.Id, runCountStateId);
+                runCount--;
+                Services.State.Set(guild.Id, runCountStateId, runCount);
+            }
+
+            queue.FalseStart = DateTime.UtcNow;
+            Services.State.Set(guild.Id, queueStateId, queue);
+
+            await channel.SendMessageAsync("Run #" + runNumber.ToStr() + " is successfuly reset.");
+        }
+
+        [Command("startwssignup")]
+        [Summary("startwssignup|start a new WS signup")]
+        public async Task StartWsSignup()
+        {
+            var now = DateTime.UtcNow;
+            var signup = new Ws.WsSignup()
+            {
+                StartedOn = now,
+                ChannelId = Context.Channel.Id,
+                MessageId = 0,
+            };
+
+            var signupStateId = "ws-signup-active-" + now.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
+            Services.State.Set(Context.Guild.Id, signupStateId, signup);
+            await Ws.RepostSignups(Context.Guild, Context.Channel);
         }
     }
 }
