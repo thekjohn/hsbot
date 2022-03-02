@@ -120,7 +120,7 @@
                                     }
 
                                     Services.State.Set(guild.Id, userActivityConfirmationAskedStateId, DateTime.UtcNow);
-                                    await channel.SendMessageAsync(user.Mention + ", still in for RS" + level.ToStr() + "? Type `!in " + level.ToStr() + "` to confirm within the next 2 minutes.");
+                                    await channel.SendMessageAsync(user.Mention + ", still in for RS" + level.ToStr() + "? Type `" + DiscordBot.CommandPrefix + "in " + level.ToStr() + "` to confirm within the next 2 minutes.");
                                 }
                             }
                         }

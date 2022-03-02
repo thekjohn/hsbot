@@ -211,11 +211,11 @@
             {
                 lastRsMention = DateTime.UtcNow;
                 Services.State.Set(Context.Guild.Id, roleMentionStateId, lastRsMention);
-                response = role.Mention;
+                response = ":white_check_mark: " + role.Mention;
             }
             else
             {
-                response = role.Name;
+                response = ":white_check_mark: " + role.Name;
             }
 
             response += " (" + queue.Users.Count.ToStr() + "/4), " + user.Mention + " joined.";
