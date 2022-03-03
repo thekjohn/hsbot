@@ -25,5 +25,42 @@
 
             return result;
         }
+
+        public static DateTime AddToNow(this string hourMinuteNotation)
+        {
+            var days = GetNotationPart(hourMinuteNotation, 'd');
+            var hours = GetNotationPart(hourMinuteNotation, 'h');
+            var minutes = GetNotationPart(hourMinuteNotation, 'm');
+            var seconds = GetNotationPart(hourMinuteNotation, 's');
+
+            return DateTime.UtcNow
+                .AddDays(days)
+                .AddHours(hours)
+                .AddMinutes(minutes)
+                .AddSeconds(seconds);
+        }
+
+        private static int GetNotationPart(string input, char kind)
+        {
+            var idx = input.IndexOf(kind);
+            if (idx == -1)
+                return 0;
+
+            idx--;
+            var value = 0;
+            var pos = 1;
+            while (idx >= 0)
+            {
+                var c = input.Substring(idx, 1);
+                if (!int.TryParse(c, out var v))
+                    break;
+
+                value += pos * v;
+                idx--;
+                pos *= 10;
+            }
+
+            return value;
+        }
     }
 }

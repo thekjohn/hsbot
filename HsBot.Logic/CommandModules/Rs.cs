@@ -223,7 +223,7 @@
 
             await RefreshQueue(Context.Guild, Context.Channel, selectedLevel);
 
-            var alliance = Alliance.GetAlliance(Context.Guild.Id);
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
 
             if (queue.Users.Count == 4)
             {
@@ -271,7 +271,7 @@
             await RefreshQueue(Context.Guild, Context.Channel, level);
             Services.State.Rename(Context.Guild.Id, queueStateId, "rs-log-" + queue.RunId.Value.ToStr());
 
-            var alliance = Alliance.GetAlliance(Context.Guild.Id);
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
 
             var response = "RS" + level.ToStr() + " force started!";
             if (queue.Users.Count > 1)
@@ -291,7 +291,7 @@
 
         private static async Task RefreshQueue(SocketGuild guild, ISocketMessageChannel channel, int level)
         {
-            var alliance = Alliance.GetAlliance(guild.Id);
+            var alliance = AllianceLogic.GetAlliance(guild.Id);
 
             var role = guild.Roles.FirstOrDefault(x => x.Name == "RS" + level.ToStr());
             if (role == null)

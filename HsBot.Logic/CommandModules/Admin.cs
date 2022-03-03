@@ -9,6 +9,36 @@
     [Summary("admin")]
     public class Admin : BaseModule
     {
+        [Command("alts")]
+        [Summary("alts [user]|display alts")]
+        [RequireUserPermission(GuildPermission.ChangeNickname)]
+        public async Task Alts(string user = null)
+        {
+            await Context.Message.DeleteAsync();
+
+            SocketGuildUser otherUser = null;
+            if (user != null)
+            {
+                otherUser = Context.Guild.FindUser(CurrentUser, user);
+                if (otherUser == null)
+                {
+                    await Context.Channel.SendMessageAsync("Can't find user: " + user + ".");
+                    return;
+                }
+            }
+
+            await AltsLogic.ShowAlts(Context.Guild, Context.Channel, CurrentUser, otherUser ?? CurrentUser);
+        }
+
+        [Command("addalt")]
+        [Summary("addalt name|add a new alt for yourself")]
+        [RequireUserPermission(GuildPermission.ChangeNickname)]
+        public async Task AddAlt(string name)
+        {
+            await Context.Message.DeleteAsync();
+            await AltsLogic.AddAlt(Context.Guild, Context.Channel, CurrentUser, name);
+        }
+
         [Command("setalliance")]
         [Summary("setalliance <name> <abbrev>|set the main parameters of the alliance")]
         [RequireUserPermission(GuildPermission.Administrator)]
@@ -16,13 +46,13 @@
         {
             await Context.Message.DeleteAsync();
 
-            var alliance = Alliance.GetAlliance(Context.Guild.Id);
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
             alliance.RoleId = role.Id;
             alliance.Name = name;
             alliance.Abbreviation = abbrev;
-            Alliance.SaveAlliance(Context.Guild.Id, alliance);
+            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
-            await ReplyAsync("alliance successfully changed: " + role.Name);
+            await ReplyAsync("alliance changed: " + role.Name);
         }
 
         [Command("setcorp")]
@@ -30,16 +60,16 @@
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task SetCorp(SocketRole role, string fullName, string icon, string abbrev)
         {
-            var alliance = Alliance.GetAlliance(Context.Guild.Id);
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
             var corp = alliance.Corporations.Find(x => x.RoleId == role.Id);
             if (corp != null)
             {
                 corp.FullName = fullName;
                 corp.IconMention = icon;
                 corp.Abbreviation = abbrev;
-                Alliance.SaveAlliance(Context.Guild.Id, alliance);
+                AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
-                await ReplyAsync("corp successfully changed: " + role.Name);
+                await ReplyAsync("corp changed: " + role.Name);
             }
             else
             {
@@ -52,17 +82,17 @@
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task AddCorp(SocketRole role)
         {
-            var alliance = Alliance.GetAlliance(Context.Guild.Id);
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
             var corp = alliance.Corporations.Find(x => x.RoleId == role.Id);
             if (corp == null)
             {
-                corp = new Alliance.Corp
+                corp = new AllianceLogic.Corp
                 {
                     RoleId = role.Id
                 };
 
                 alliance.Corporations.Add(corp);
-                Alliance.SaveAlliance(Context.Guild.Id, alliance);
+                AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
                 await ReplyAsync("corp created: " + role.Name);
             }
@@ -83,16 +113,16 @@
                 return;
             }*/
 
-            var alliance = Alliance.GetAlliance(Context.Guild.Id);
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
 
             var corp = alliance.Corporations.Find(x => x.RoleId == role.Id);
             if (corp != null)
             {
                 corp.CurrentLevel = level;
                 corp.CurrentRelicCount = relics;
-                Alliance.SaveAlliance(Context.Guild.Id, alliance);
+                AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
-                await ReplyAsync("corp successfully changed: " + role.Name);
+                await ReplyAsync("corp changed: " + role.Name);
             }
             else
             {
@@ -143,12 +173,12 @@
         {
             await Context.Message.DeleteAsync();
 
-            var alliance = Alliance.GetAlliance(Context.Guild.Id);
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
             alliance.AllyRoleId = role.Id;
             alliance.AllyIcon = icon;
-            Alliance.SaveAlliance(Context.Guild.Id, alliance);
+            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
-            await ReplyAsync("ally data successfully changed: " + role.Name);
+            await ReplyAsync("ally role changed: " + role.Name);
         }
 
         [Command("falsestart")]
@@ -198,7 +228,7 @@
 
             var signupStateId = "ws-signup-active-" + now.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
             Services.State.Set(Context.Guild.Id, signupStateId, signup);
-            await Ws.RepostSignups(Context.Guild, Context.Channel);
+            await Ws.RepostSignups(Context.Guild, Context.Channel, CurrentUser);
         }
     }
 }

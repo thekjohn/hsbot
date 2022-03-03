@@ -33,6 +33,9 @@
             Discord.ReactionAdded += (message, channel, reaction) => Ws.HandleReactions(reaction, true);
             Discord.ReactionRemoved += (message, channel, reaction) => Ws.HandleReactions(reaction, false);
 
+            Discord.ReactionAdded += (message, channel, reaction) => AltsLogic.HandleReactions(reaction, true);
+            Discord.ReactionRemoved += (message, channel, reaction) => AltsLogic.HandleReactions(reaction, false);
+
             Services.Log.Log(null, "folder: " + Services.State.Folder, ConsoleColor.Magenta);
 
             Commands = new CommandService();
@@ -47,6 +50,7 @@
         {
             new Thread(MessageCleanupThreadWorker).Start();
             new Thread(RsCleanupThreadWorker).Start();
+            new Thread(RemindLogic.SendRemindersThreadWorker).Start();
 
             //var msg = await Discord.Guilds.First().GetTextChannel(830622786396618772).GetMessageAsync(943863908253438002);
 
@@ -61,7 +65,14 @@
                 {
                     foreach (var msg in messagesToDelete)
                     {
-                        await msg.DeleteAsync();
+                        try
+                        {
+                            await msg.DeleteAsync();
+                        }
+                        catch (Exception)
+                        {
+                        }
+
                         Thread.Sleep(1000);
                     }
                 }
@@ -120,7 +131,7 @@
                                     }
 
                                     Services.State.Set(guild.Id, userActivityConfirmationAskedStateId, DateTime.UtcNow);
-                                    await channel.SendMessageAsync(user.Mention + ", still in for RS" + level.ToStr() + "? Type `" + DiscordBot.CommandPrefix + "in " + level.ToStr() + "` to confirm within the next 2 minutes.");
+                                    await channel.SendMessageAsync(":grey_question: " + user.Mention + ", still in for RS" + level.ToStr() + "? Type `" + DiscordBot.CommandPrefix + "in " + level.ToStr() + "` to confirm within the next 2 minutes.");
                                 }
                             }
                         }

@@ -1,6 +1,7 @@
 ﻿namespace HsBot.Logic
 {
     using System.Linq;
+    using System.Text;
     using System.Threading.Tasks;
     using Discord;
     using Discord.Commands;
@@ -109,24 +110,59 @@
         }
 
         [Command("alliance")]
-        [Summary("alliance|display alliance info, corps, levels")]
+        [Summary("alliance|display alliance info, corp levels, alts")]
         public async Task ShowAllianceInfo()
         {
-            var alliance = Alliance.GetAlliance(Context.Guild.Id);
+            await Context.Message.DeleteAsync();
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            if (alliance == null)
+                return;
 
             var allianceRole = Context.Guild.GetRole(alliance.RoleId);
 
             var msg = new EmbedBuilder()
-                .WithTitle(alliance.Name ?? allianceRole.Name)
-            ;
+                .WithTitle(alliance.Name ?? allianceRole.Name);
 
             foreach (var corp in alliance.Corporations.OrderByDescending(x => x.CurrentRelicCount))
             {
                 var role = Context.Guild.GetRole(corp.RoleId);
                 if (role != null)
                 {
-                    msg.AddField(corp.IconMention + " " + (corp.FullName ?? role.Name) + " [" + corp.Abbreviation + "]", "level: " + corp.CurrentLevel + ", relics: " + corp.CurrentRelicCount);
+                    msg.AddField(corp.IconMention + " " + (corp.FullName ?? role.Name) + " [" + corp.Abbreviation + "]", "level: " + corp.CurrentLevel + ", relics: " + corp.CurrentRelicCount, true);
                 }
+            }
+
+            await ReplyAsync(embed: msg.Build());
+
+            msg = new EmbedBuilder()
+                .WithTitle("ALTS");
+
+            var usersWithAlts = alliance.Alts
+                .Select(x => x.OwnerUserId)
+                .Distinct()
+                .Select(x => Context.Guild.GetUser(x))
+                .Where(x => x != null)
+                .OrderByDescending(x => alliance.Alts.Count(y => y.OwnerUserId == x.Id))
+                .ThenBy(x => x.DisplayName);
+
+            var sb = new StringBuilder();
+            foreach (var user in usersWithAlts)
+            {
+                sb.Clear();
+                foreach (var alt in alliance.Alts.Where(x => x.OwnerUserId == user.Id))
+                {
+                    var name = alt.Name;
+                    if (alt.AltUserId != null)
+                    {
+                        var altUser = Context.Guild.GetUser(alt.AltUserId.Value);
+                        name = altUser?.DisplayName ?? "<unknown discord user>";
+                    }
+
+                    sb.AppendLine(name);
+                }
+
+                msg.AddField(alliance.GetUserCorpIcon(user) + " " + user.DisplayName, sb.ToString(), true);
             }
 
             await ReplyAsync(embed: msg.Build());

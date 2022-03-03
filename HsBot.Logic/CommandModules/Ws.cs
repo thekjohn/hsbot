@@ -13,11 +13,25 @@
         public async Task ShowSignup()
         {
             await Context.Message.DeleteAsync();
-            await RepostSignups(Context.Guild, Context.Channel);
+            await RepostSignups(Context.Guild, Context.Channel, CurrentUser);
         }
 
-        internal static async Task RepostSignups(SocketGuild guild, ISocketMessageChannel channel)
+        [Command("remind")]
+        [Summary("remind <who> <when> <message>|remind you about something at a given time\nex.: 'remind me 25m drone' or 'remind @User 2h16m drone'")]
+        public async Task Remind(string who, string when, [Remainder] string message)
         {
+            await Context.Message.DeleteAsync();
+            await RemindLogic.Remind(Context.Guild, Context.Channel, CurrentUser, who, when, message);
+        }
+
+        internal static async Task RepostSignups(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
+        {
+            if (currentUser != null && !AllianceLogic.IsMember(guild.Id, currentUser))
+            {
+                await channel.SendMessageAsync("Only alliance members can use this command.");
+                return;
+            }
+
             var ids = Services.State.ListIds(guild.Id, "ws-signup-active-");
             foreach (var signupStateId in ids)
             {
