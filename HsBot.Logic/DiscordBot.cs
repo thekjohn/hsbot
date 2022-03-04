@@ -30,8 +30,8 @@
             Discord.ReactionAdded += (message, channel, reaction) => Rs.HandleReactions(reaction, true);
             Discord.ReactionRemoved += (message, channel, reaction) => Rs.HandleReactions(reaction, false);
 
-            Discord.ReactionAdded += (message, channel, reaction) => Ws.HandleReactions(reaction, true);
-            Discord.ReactionRemoved += (message, channel, reaction) => Ws.HandleReactions(reaction, false);
+            Discord.ReactionAdded += (message, channel, reaction) => WsSignupLogic.HandleReactions(reaction, true);
+            Discord.ReactionRemoved += (message, channel, reaction) => WsSignupLogic.HandleReactions(reaction, false);
 
             Discord.ReactionAdded += (message, channel, reaction) => AltsLogic.HandleReactions(reaction, true);
             Discord.ReactionRemoved += (message, channel, reaction) => AltsLogic.HandleReactions(reaction, false);
@@ -131,7 +131,10 @@
                                     }
 
                                     Services.State.Set(guild.Id, userActivityConfirmationAskedStateId, DateTime.UtcNow);
-                                    await channel.SendMessageAsync(":grey_question: " + user.Mention + ", still in for RS" + level.ToStr() + "? Type `" + DiscordBot.CommandPrefix + "in " + level.ToStr() + "` to confirm within the next 2 minutes.");
+
+                                    var confirmTimeoutMinutes = 2;
+                                    Services.Cleanup.RegisterForDeletion(confirmTimeoutMinutes * 60,
+                                        await channel.SendMessageAsync(":grey_question: " + user.Mention + ", still in for RS" + level.ToStr() + "? Type `" + DiscordBot.CommandPrefix + "in " + level.ToStr() + "` to confirm within the next " + confirmTimeoutMinutes.ToStr() + " minutes."));
                                 }
                             }
                         }

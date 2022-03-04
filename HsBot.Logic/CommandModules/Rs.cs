@@ -100,7 +100,8 @@
             var role = guild.Roles.FirstOrDefault(x => x.Name == "RS" + level.ToStr());
             if (role == null)
             {
-                await channel.SendMessageAsync("There is no role for RS" + level.ToStr() + ".");
+                Services.Cleanup.RegisterForDeletion(10,
+                    await channel.SendMessageAsync(":x: There is no role for RS" + level.ToStr() + "."));
                 return;
             }
 
@@ -108,7 +109,8 @@
             var queue = Services.State.Get<RsQueueEntry>(guild.Id, queueStateId);
             if (queue == null)
             {
-                await channel.SendMessageAsync("You can't ping an empty queue.");
+                Services.Cleanup.RegisterForDeletion(10,
+                    await channel.SendMessageAsync(":x: You can't ping an empty queue."));
                 return;
             }
 
@@ -118,11 +120,11 @@
             {
                 lastRsMention = DateTime.UtcNow;
                 Services.State.Set(guild.Id, roleMentionStateId, lastRsMention);
-                await channel.SendMessageAsync(role.Mention + " anyone? (" + queue.Users.Count.ToStr() + "/4)");
+                await channel.SendMessageAsync(":question: " + role.Mention + " anyone? (" + queue.Users.Count.ToStr() + "/4)");
             }
             else
             {
-                await channel.SendMessageAsync(role.Name + " anyone? (" + queue.Users.Count.ToStr() + "/4)");
+                await channel.SendMessageAsync(":question: " + role.Name + " anyone? (" + queue.Users.Count.ToStr() + "/4)");
             }
         }
 
@@ -296,7 +298,8 @@
             var role = guild.Roles.FirstOrDefault(x => x.Name == "RS" + level.ToStr());
             if (role == null)
             {
-                await channel.SendMessageAsync("There is no role for RS" + level.ToStr() + ".");
+                Services.Cleanup.RegisterForDeletion(10,
+                    await channel.SendMessageAsync(":x: There is no role for RS" + level.ToStr() + "."));
                 return;
             }
 
@@ -304,7 +307,8 @@
             var queue = Services.State.Get<RsQueueEntry>(guild.Id, queueStateId);
             if (queue == null)
             {
-                await channel.SendMessageAsync("There's nobody in the RS" + level.ToStr() + " queue just now.");
+                Services.Cleanup.RegisterForDeletion(10,
+                    await channel.SendMessageAsync("RS" + level.ToStr() + " queue is empty."));
                 return;
             }
 
@@ -398,24 +402,14 @@
 
                 var queue = Services.State.Get<RsQueueEntry>(guild.Id, queueStateId);
                 if (queue == null)
-                {
-                    if (specificLevel != null)
-                    {
-                        Services.Cleanup.RegisterForDeletion(10,
-                            await channel.SendMessageAsync("RS" + level.ToStr() + " queue was already empty..."));
-
-                        return;
-                    }
-
                     continue;
-                }
 
                 if (!queue.Users.Contains(user.Id))
                 {
                     if (specificLevel != null)
                     {
                         Services.Cleanup.RegisterForDeletion(10,
-                            await channel.SendMessageAsync(user.Mention + " wasn't even in RS" + level.ToStr() + " queue..."));
+                            await channel.SendMessageAsync(":x: " + user.Mention + " wasn't in RS" + level.ToStr() + " queue."));
 
                         return;
                     }

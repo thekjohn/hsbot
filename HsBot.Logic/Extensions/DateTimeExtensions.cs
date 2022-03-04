@@ -26,7 +26,7 @@
             return result;
         }
 
-        public static DateTime AddToNow(this string hourMinuteNotation)
+        public static DateTime AddToUtcNow(this string hourMinuteNotation)
         {
             var days = GetNotationPart(hourMinuteNotation, 'd');
             var hours = GetNotationPart(hourMinuteNotation, 'h');

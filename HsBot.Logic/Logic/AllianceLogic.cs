@@ -21,7 +21,7 @@
             if (alliance == null)
                 return false;
 
-            return !user.Roles.Any(x => x.Id == alliance.RoleId);
+            return user.Roles.Any(x => x.Id == alliance.RoleId);
         }
 
         public class AllianceInfo

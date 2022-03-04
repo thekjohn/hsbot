@@ -16,7 +16,8 @@
 
             if (!user.Roles.Any(x => x.Id == alliance.RoleId))
             {
-                await channel.SendMessageAsync(":x: Only members of " + alliance.Name + " can query the alts.");
+                Services.Cleanup.RegisterForDeletion(10,
+                    await channel.SendMessageAsync(":x: Only members of " + alliance.Name + " can query the alts."));
                 return;
             }
 
@@ -166,7 +167,7 @@
 
             await channel.SendMessageAsync(":white_check_mark: " + ownerUser.Mention + "'s new alt is registered: `" + (altUser?.DisplayName ?? altName) + "`");
 
-            await AltsLogic.ShowAlts(guild, channel, ownerUser, ownerUser);
+            await ShowAlts(guild, channel, ownerUser, ownerUser);
         }
 
         private class MessageEntry

@@ -14,7 +14,8 @@
             var user = guild.FindUser(currentUser, who);
             if (user == null)
             {
-                await channel.SendMessageAsync("Can't find user: " + who + ".");
+                Services.Cleanup.RegisterForDeletion(10,
+                    await channel.SendMessageAsync(":x: Can't find user: " + who + "."));
                 return;
             }
 
@@ -23,7 +24,7 @@
                 GuildId = guild.Id,
                 UserId = user.Id,
                 ChannelId = channel.Id,
-                When = when.AddToNow(),
+                When = when.AddToUtcNow(),
                 Message = message,
             };
 
@@ -36,8 +37,8 @@
             }
 
             Services.State.Set(guild.Id, entry.GetStateId(), entry);
-            var sent = await channel.SendMessageAsync(":white_check_mark: I will DM **" + user.DisplayName + "** in " + when + " with the following message: `" + message + "`");
-            Services.Cleanup.RegisterForDeletion(10, sent);
+            Services.Cleanup.RegisterForDeletion(10,
+                await channel.SendMessageAsync(":white_check_mark: I will DM **" + user.DisplayName + "** in " + when + " with the following message: `" + message + "`"));
         }
 
         public static async void SendRemindersThreadWorker()

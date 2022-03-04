@@ -1,6 +1,5 @@
 ﻿namespace HsBot.Logic
 {
-    using System.Globalization;
     using System.Threading.Tasks;
     using Discord;
     using Discord.Commands;
@@ -22,7 +21,8 @@
                 otherUser = Context.Guild.FindUser(CurrentUser, user);
                 if (otherUser == null)
                 {
-                    await Context.Channel.SendMessageAsync("Can't find user: " + user + ".");
+                    Services.Cleanup.RegisterForDeletion(10,
+                        await Context.Channel.SendMessageAsync(":x: Can't find user: " + user + "."));
                     return;
                 }
             }
@@ -196,7 +196,8 @@
             var queue = Services.State.Get<Rs.RsQueueEntry>(guild.Id, queueStateId);
             if (queue == null)
             {
-                await channel.SendMessageAsync("Can't find run #" + runNumber.ToStr());
+                Services.Cleanup.RegisterForDeletion(10,
+                    await channel.SendMessageAsync(":x: Can't find run #" + runNumber.ToStr()));
                 return;
             }
 
@@ -211,24 +212,17 @@
             queue.FalseStart = DateTime.UtcNow;
             Services.State.Set(guild.Id, queueStateId, queue);
 
-            await channel.SendMessageAsync("Run #" + runNumber.ToStr() + " is successfuly reset.");
+            Services.Cleanup.RegisterForDeletion(10,
+                await channel.SendMessageAsync("Run #" + runNumber.ToStr() + " is successfuly reset."));
         }
 
         [Command("startwssignup")]
-        [Summary("startwssignup|start a new WS signup")]
-        public async Task StartWsSignup()
+        [Summary("startwssignup 5d3h|start a new WS signup which ends in 5d3h from now")]
+        public async Task StartWsSignup(string endsFromNow)
         {
-            var now = DateTime.UtcNow;
-            var signup = new Ws.WsSignup()
-            {
-                StartedOn = now,
-                ChannelId = Context.Channel.Id,
-                MessageId = 0,
-            };
+            await Context.Message.DeleteAsync();
 
-            var signupStateId = "ws-signup-active-" + now.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
-            Services.State.Set(Context.Guild.Id, signupStateId, signup);
-            await Ws.RepostSignups(Context.Guild, Context.Channel, CurrentUser);
+            await WsSignupLogic.StartNew(Context.Guild, Context.Channel, CurrentUser, endsFromNow.AddToUtcNow());
         }
     }
 }
