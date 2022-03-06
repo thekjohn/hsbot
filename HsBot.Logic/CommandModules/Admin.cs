@@ -270,14 +270,14 @@
         [Command("timezone-set")]
         [Summary("timezone-set <identifier>|set your own timezone. Get a list of identifiers with the `{cmdPrefix}timezone-list` command")]
         [RequireUserPermission(GuildPermission.ChangeNickname)]
-        public async Task TimezoneSet(int identifier, string otherUser = null)
+        public async Task TimezoneSet(int identifier/*, string otherUser = null*/)
         {
-            if (otherUser != null && !CurrentUser.GuildPermissions.Administrator)
+            /*if (otherUser != null && !CurrentUser.GuildPermissions.Administrator)
             {
                 await Context.Channel.BotResponse("Only Administrators can set the timezone for other users.", ResponseType.error);
                 return;
             }
-
+            */
             await CleanupService.DeleteCommand(Context.Message);
             var timeZones = TimeZoneInfo.GetSystemTimeZones();
             if (identifier < 1 || identifier > timeZones.Count)
@@ -287,7 +287,7 @@
             }
 
             var user = CurrentUser;
-            if (otherUser != null)
+            /*if (otherUser != null)
             {
                 user = Context.Guild.FindUser(CurrentUser, otherUser);
                 if (user == null)
@@ -295,7 +295,7 @@
                     await Context.Channel.BotResponse("Unknown user: " + otherUser, ResponseType.error);
                     return;
                 }
-            }
+            }*/
 
             var tz = timeZones[identifier - 1];
             await TimeZoneLogic.SetTimeZone(Context.Guild, Context.Channel, user, tz);
