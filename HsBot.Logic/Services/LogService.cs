@@ -1,6 +1,8 @@
 ﻿namespace HsBot.Logic
 {
     using System.Globalization;
+    using Discord;
+    using Discord.WebSocket;
 
     internal static class LogService
     {
@@ -8,6 +10,19 @@
         {
             Console.ForegroundColor = color;
             Console.WriteLine(DateTime.Now.ToString("yyyy.MM.dd HH:mm:ss", CultureInfo.InvariantCulture) + (userName != null ? " [" + userName + "]" : "") + " " + text);
+        }
+
+        public static void LogToChannel(SocketGuild guild, string message, Embed embed)
+        {
+            var channelId = Services.State.Get<ulong>(guild.Id, "bot-log-channel");
+            if (channelId == 0)
+                return;
+
+            var channel = guild.GetTextChannel(channelId);
+            if (channel == null)
+                return;
+
+            channel.SendMessageAsync(message, embed: embed);
         }
     }
 }

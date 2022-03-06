@@ -185,14 +185,23 @@
                     return;
                 }
 
-                if (message.Source == MessageSource.User && message.Channel is SocketTextChannel channel && message.Content.Contains("<@"))
+                if (message.Source != MessageSource.User)
+                    return;
+
+                if (message.Channel is not SocketTextChannel textChannel)
+                    return;
+
+                if (message.Author is not SocketGuildUser user)
+                    return;
+
+                if (user != null && message.MentionedUsers?.Count > 0)
                 {
-                    var afkList = AfkLogic.GetAfkList(channel.Guild.Id);
+                    var afkList = AfkLogic.GetAfkList(textChannel.Guild.Id);
                     foreach (var afk in afkList)
                     {
-                        if (message.Content.Contains(afk.UserId.ToStr()))
+                        if (message.MentionedUsers.FirstOrDefault(x => x.Id == afk.UserId) is SocketGuildUser muser)
                         {
-                            await channel.BotResponse(channel.Guild.GetUser(afk.UserId).DisplayName + " is AFK for " + afk.EndsOn.Subtract(DateTime.UtcNow).ToIntervalStr() + ".", ResponseType.infoStay);
+                            await textChannel.BotResponse(muser.DisplayName + " is AFK for " + afk.EndsOn.Subtract(DateTime.UtcNow).ToIntervalStr() + ".", ResponseType.infoStay);
                         }
                     }
                 }
@@ -206,7 +215,17 @@
                     argPos++;
 
                 var context = new SocketCommandContext(Discord, message);
-                await Commands.ExecuteAsync(context, argPos, null);
+                var result = await Commands.ExecuteAsync(context, argPos, null);
+                if (message.Channel is SocketTextChannel tc)
+                {
+                    var eb = new EmbedBuilder()
+                        .WithTitle("new command issued")
+                        .WithDescription(message.Content)
+                        .AddField("sender", user.DisplayName + " (" + user.Id.ToStr() + ")")
+                        .AddField("channel", textChannel.Name)
+                        .AddField("guild permissions", string.Join(", ", user.GuildPermissions.ToList()));
+                    LogService.LogToChannel(tc.Guild, null, eb.Build());
+                }
             }
             catch (Exception ex)
             {

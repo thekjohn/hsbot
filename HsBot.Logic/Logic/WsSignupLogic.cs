@@ -43,7 +43,7 @@
 
                 var alliance = AllianceLogic.GetAlliance(guild.Id);
 
-                var content = BuildSignupContent(guild, signup);
+                var content = BuildSignupContent(guild, signup, alliance);
 
                 if (signup.MessageId != 0)
                 {
@@ -56,29 +56,34 @@
                     }
                 }
 
-                if (signup.GuildEventId == null || !guild.Events.Any(x => x.Id == signup.GuildEventId))
+                if (signup.EndsOn > DateTime.UtcNow && (signup.GuildEventId == null || !guild.Events.Any(x => x.Id == signup.GuildEventId)))
                 {
                     var evt = await guild.CreateEventAsync("WS signup", DateTime.UtcNow.AddMinutes(1), GuildScheduledEventType.External, GuildScheduledEventPrivacyLevel.Private, null, signup.EndsOn, null, "#" + channel.Name);
                     signup.GuildEventId = evt.Id;
                 }
 
                 var sent = await channel.SendMessageAsync(embed: content);
-                await sent.AddReactionsAsync(new IEmote[]
-                {
-                    new Emoji("💪"),
-                    new Emoji("👍"),
-                    new Emoji("😴"),
-                    new Emoji("❌"),
-                });
-
                 signup.ChannelId = channel.Id;
                 signup.MessageId = sent.Id;
                 Services.State.Set(guild.Id, signupStateId, signup);
+
+                if (signup.EndsOn > DateTime.UtcNow)
+                {
+                    await sent.AddReactionsAsync(new IEmote[]
+                    {
+                        new Emoji("💪"),
+                        new Emoji("👍"),
+                        new Emoji("😴"),
+                        new Emoji("❌"),
+                    });
+                }
             }
         }
 
         internal static async Task RefreshSignup(SocketGuild guild, ISocketMessageChannel channel, ulong messageId)
         {
+            var alliance = AllianceLogic.GetAlliance(guild.Id);
+
             var ids = Services.State.ListIds(guild.Id, "ws-signup-active-");
             foreach (var signupStateId in ids)
             {
@@ -86,7 +91,7 @@
                 if (signup == null)
                     continue;
 
-                var content = BuildSignupContent(guild, signup);
+                var content = BuildSignupContent(guild, signup, alliance);
 
                 if (signup.MessageId != messageId)
                     continue;
@@ -106,14 +111,14 @@
             }
         }
 
-        internal static Embed BuildSignupContent(SocketGuild guild, WsSignup signup)
+        internal static Embed BuildSignupContent(SocketGuild guild, WsSignup signup, AllianceLogic.AllianceInfo alliance)
         {
             var compMain = "";
             var compMainCnt = 0;
             foreach (var user in signup.CompetitiveUsers.Select(x => guild.GetUser(x)).Where(x => x != null).OrderBy(x => x.DisplayName))
             {
                 compMainCnt++;
-                compMain += (compMain == "" ? "" : "\n") + user.DisplayName;
+                compMain += (compMain == "" ? "" : "\n") + alliance.GetUserCorpIcon(user) + user.DisplayName;
             }
 
             var compAlt = "";
@@ -129,7 +134,7 @@
             foreach (var user in signup.CasualUsers.Select(x => guild.GetUser(x)).Where(x => x != null).OrderBy(x => x.DisplayName))
             {
                 casualMainCnt++;
-                casualMain += (casualMain == "" ? "" : "\n") + user.DisplayName;
+                casualMain += (casualMain == "" ? "" : "\n") + alliance.GetUserCorpIcon(user) + user.DisplayName;
             }
 
             var casualAlt = "";
@@ -145,7 +150,7 @@
             foreach (var user in signup.InactiveUsers.Select(x => guild.GetUser(x)).Where(x => x != null).OrderBy(x => x.DisplayName))
             {
                 inactiveMainCnt++;
-                inactiveMain += (inactiveMain == "" ? "" : "\n") + user.DisplayName;
+                inactiveMain += (inactiveMain == "" ? "" : "\n") + alliance.GetUserCorpIcon(user) + user.DisplayName;
             }
 
             var inactiveAlt = "";
@@ -157,7 +162,9 @@
             }
 
             var eb = new EmbedBuilder()
-                .WithTitle("WS signup - ends on " + signup.EndsOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC")
+                .WithTitle(signup.EndsOn > DateTime.UtcNow
+                    ? "WS signup - ends on " + signup.EndsOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC"
+                    : "WS signup - ended on " + signup.EndsOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC")
                 .AddField("Please express your commitment level during this White Star event. Your team will count on you, so please choose wisely!", "We promise you don't get into a stronger team than your commitment level, but you can still end up in a lower commitment level team.", false)
                 .AddField((compMainCnt + compAltCnt).ToStr() + " Competitive 💪", "Highly responsive, focused, no sanc!", true)
                 .AddField((casualMainCnt + casualAltCnt).ToStr() + " Casual 👍", "Responsive, but no commitments. Sanc allowed.", true)
@@ -168,11 +175,6 @@
                 .AddField(compAltCnt.ToStr() + " Competitive Alt 💪", compAlt != "" ? compAlt : "-", true)
                 .AddField(casualAltCnt.ToStr() + " Casual Alt 👍", casualAlt != "" ? casualAlt : "-", true)
                 .AddField(inactiveAltCnt.ToStr() + " Inactive Alt 😴", inactiveAlt != "" ? inactiveAlt : "-", true);
-
-            if (signup.ClosedOn != null)
-            {
-                eb.WithFooter("*Form closed on " + signup.ClosedOn.Value.ToString("yyyy MMMM dd. HH:mm:ss", CultureInfo.InvariantCulture) + " UTC*");
-            }
 
             return eb.Build();
         }
@@ -246,6 +248,13 @@
             var alliance = AllianceLogic.GetAlliance(guild.Id);
             if (alliance == null)
                 return;
+
+            if (signup.EndsOn <= DateTime.UtcNow)
+            {
+                await RepostSignups(guild, reaction.Channel, guild.GetUser(reaction.UserId));
+                await reaction.Channel.BotResponse("Signup is already closed!", ResponseType.error);
+                return;
+            }
 
             var msg = await reaction.Channel.GetMessageAsync(reaction.MessageId);
             await msg.RemoveReactionAsync(reaction.Emote, reaction.UserId);
@@ -434,7 +443,6 @@
             public ulong MessageId { get; set; }
             public DateTime StartedOn { get; init; }
             public DateTime EndsOn { get; init; }
-            public DateTime? ClosedOn { get; init; }
 
             public List<ulong> CompetitiveUsers { get; init; } = new();
             public List<ulong> CasualUsers { get; init; } = new();

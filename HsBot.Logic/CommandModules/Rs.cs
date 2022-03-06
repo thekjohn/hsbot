@@ -233,7 +233,7 @@
                     + "\n" + string.Join(" ", queue.Users.Select(x =>
                         {
                             var user = Context.Guild.GetUser(x);
-                            return alliance.GetUserCorpIcon(user) + " " + user.Mention;
+                            return alliance.GetUserCorpIcon(user) + user.Mention;
                         }));
 
                 CleanupService.RegisterForDeletion(10 * 60,
@@ -282,7 +282,7 @@
                 + "\n" + string.Join(" ", queue.Users.Select(x =>
                 {
                     var user = Context.Guild.GetUser(x);
-                    return alliance.GetUserCorpIcon(user) + " " + user.Mention;
+                    return alliance.GetUserCorpIcon(user) + user.Mention;
                 }));
 
             CleanupService.RegisterForDeletion(10 * 60,
@@ -357,7 +357,7 @@
                                 modList += "💪";
                         }
 
-                        return alliance.GetUserCorpIcon(user) + " " + user.Nickname
+                        return alliance.GetUserCorpIcon(user) + user.Nickname
                             + modList
                             + " [" + runCount + " runs]"
                             + " :watch: " + DateTime.UtcNow.Subtract(Services.State.Get<DateTime>(guild.Id, "rs-queue-activity-" + userId.ToStr() + "-" + queue.Level.ToStr()))

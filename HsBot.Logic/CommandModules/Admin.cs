@@ -56,33 +56,33 @@
         }
 
         [Command("setcorp")]
-        [Summary("setcorplevel <name> <icon> <abbrev>|set the main parameters of a corp")]
-        [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task SetCorp(SocketRole role, string fullName, string icon, string abbrev)
+        [Summary("setcorp <nameToFind> <newName> <icon> <abbrev>|set the main parameters of a corp")]
+        [RequireUserPermission(GuildPermission.ManageChannels)]
+        public async Task SetCorp(string nameToFind, string newName, string icon, string abbrev)
         {
             await CleanupService.DeleteCommand(Context.Message);
 
             var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-            var corp = alliance.Corporations.Find(x => x.RoleId == role.Id);
+            var corp = Context.Guild.FindCorp(alliance, nameToFind);
             if (corp != null)
             {
-                corp.FullName = fullName;
+                corp.FullName = newName;
                 corp.IconMention = icon;
                 corp.Abbreviation = abbrev;
                 AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
-                await Context.Channel.BotResponse("Corp updated: " + role.Name, ResponseType.success);
+                await Context.Channel.BotResponse("Corp updated: " + nameToFind, ResponseType.success);
             }
             else
             {
-                await Context.Channel.BotResponse("Unknown corp: " + role.Name, ResponseType.error);
+                await Context.Channel.BotResponse("Unknown corp: " + nameToFind, ResponseType.error);
             }
         }
 
         [Command("addcorp")]
-        [Summary("addcorp <role>|add new corp to the alliance")]
+        [Summary("addcorp <role> <abbreviation>|add new corp to the alliance")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task AddCorp(SocketRole role)
+        public async Task AddCorp(SocketRole role, string abbreviation)
         {
             await CleanupService.DeleteCommand(Context.Message);
 
@@ -92,7 +92,8 @@
             {
                 corp = new AllianceLogic.Corp
                 {
-                    RoleId = role.Id
+                    RoleId = role.Id,
+                    Abbreviation = abbreviation,
                 };
 
                 alliance.Corporations.Add(corp);
@@ -315,7 +316,18 @@
             }
 
             Services.State.Set(Context.Guild.Id, "rs-queue-role", rsRole.Id);
-            await Context.Channel.BotResponse("RS Queue role set to: " + rsRole.Name, ResponseType.success);
+            await Context.Channel.BotResponse("RS Queue role is set to: " + rsRole.Name, ResponseType.success);
+        }
+
+        [Command("set-bot-log-channel")]
+        [Summary("set-bot-log-channel <channel>|log channel for the bot")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetBotLogChannel(SocketTextChannel channel)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            Services.State.Set(Context.Guild.Id, "bot-log-channel", channel.Id);
+            await Context.Channel.BotResponse("Bot log channel is set to: " + channel.Name, ResponseType.success);
         }
     }
 }

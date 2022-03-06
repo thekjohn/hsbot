@@ -36,14 +36,14 @@
             public ulong AllyRoleId { get; set; }
             public string AllyIcon { get; set; }
 
-            public string GetUserCorpIcon(SocketGuildUser user)
+            public string GetUserCorpIcon(SocketGuildUser user, bool extraSpace = true)
             {
                 var corp = Corporations.Find(c => user.Roles.Any(r => r.Id == c.RoleId));
                 if (corp != null && !string.IsNullOrEmpty(corp.IconMention))
-                    return corp.IconMention;
+                    return corp.IconMention + (extraSpace ? " " : "");
 
-                if (user.Roles.Any(r => r.Id == AllyRoleId))
-                    return AllyIcon;
+                if (AllyIcon != null && user.Roles.Any(r => r.Id == AllyRoleId))
+                    return AllyIcon + (extraSpace ? " " : "");
 
                 return null;
             }

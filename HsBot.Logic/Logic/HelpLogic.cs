@@ -82,7 +82,7 @@
                     sb.AppendLine(name);
                 }
 
-                eb.AddField(alliance.GetUserCorpIcon(user) + " " + user.DisplayName, sb.ToString(), true);
+                eb.AddField(alliance.GetUserCorpIcon(user) + user.DisplayName, sb.ToString(), true);
             }
 
             await channel.SendMessageAsync(embed: eb.Build());
@@ -106,7 +106,10 @@
 
             foreach (var user in realAccounts)
             {
-                sb.Append(user.DisplayName);
+                sb
+                    .Append(alliance.GetUserCorpIcon(user))
+                    .Append(user.DisplayName);
+
                 var tz = TimeZoneLogic.GetUserTimeZone(guild.Id, user.Id);
                 if (tz != null)
                 {
@@ -156,7 +159,10 @@
 
             foreach (var user in realAccounts)
             {
-                sb.Append(user.DisplayName);
+                sb
+                    .Append(alliance.GetUserCorpIcon(user))
+                    .Append(user.DisplayName);
+
                 var tz = TimeZoneLogic.GetUserTimeZone(guild.Id, user.Id);
                 if (tz != null)
                 {
