@@ -119,7 +119,7 @@
 
         [Command("alliance")]
         [Alias("sga")]
-        [Summary("alliance [corp]|display the information for the entire alliance, a specific corp or a specific role")]
+        [Summary("alliance [alts/corpName/roleName]|display the information for the entire alliance, alts, a specific corp or a specific role")]
         public async Task ShowAllianceInfo(string corpOrRole = null)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -128,26 +128,33 @@
             if (alliance == null)
                 return;
 
+            if ((corpOrRole ?? "").Trim() == "")
+            {
+                await HelpLogic.ShowAllianceInfo(Context.Guild, Context.Channel, alliance);
+                return;
+            }
+
+            if (corpOrRole != null && string.Equals(corpOrRole.Trim(), "alts", StringComparison.InvariantCultureIgnoreCase))
+            {
+                await HelpLogic.ShowAllianceAlts(Context.Guild, Context.Channel, alliance);
+                return;
+            }
+
             var corporation = corpOrRole != null ? Context.Guild.FindCorp(alliance, corpOrRole) : null;
-            if (corporation == null)
+            if (corporation != null)
             {
-                var role = Context.Guild.FindRole(corpOrRole);
-                if (role == null)
-                {
-                    await HelpLogic.ShowAllianceInfo(Context.Guild, Context.Channel, alliance);
-                    await HelpLogic.ShowAllianceAlts(Context.Guild, Context.Channel, alliance);
-                }
-                else
-                {
-                    await HelpLogic.ShowAllianceInfo(Context.Guild, Context.Channel, alliance);
-                    await HelpLogic.ShowRoleMembers(Context.Guild, Context.Channel, alliance, role);
-                }
-            }
-            else
-            {
-                await HelpLogic.ShowCorpInfo(Context.Guild, Context.Channel, alliance, corporation);
                 await HelpLogic.ShowCorpMembers(Context.Guild, Context.Channel, alliance, corporation);
+                return;
             }
+
+            var role = Context.Guild.FindRole(corpOrRole);
+            if (role != null)
+            {
+                await HelpLogic.ShowRoleMembers(Context.Guild, Context.Channel, alliance, role);
+                return;
+            }
+
+            await Context.Channel.BotResponse("Unknown corp or role: " + corpOrRole, ResponseType.error);
         }
     }
 }

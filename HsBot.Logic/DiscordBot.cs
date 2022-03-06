@@ -190,7 +190,7 @@
                     var afkList = AfkLogic.GetAfkList(channel.Guild.Id);
                     foreach (var afk in afkList)
                     {
-                        if (message.Content.Contains(MentionUtils.MentionUser(afk.UserId)))
+                        if (message.Content.Contains(afk.UserId.ToStr()))
                         {
                             await channel.BotResponse(channel.Guild.GetUser(afk.UserId).DisplayName + " is AFK for " + afk.EndsOn.Subtract(DateTime.UtcNow).ToIntervalStr() + ".", ResponseType.infoStay);
                         }

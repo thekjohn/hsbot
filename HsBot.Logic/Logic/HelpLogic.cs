@@ -88,25 +88,6 @@
             await channel.SendMessageAsync(embed: eb.Build());
         }
 
-        public static async Task ShowCorpInfo(SocketGuild guild, ISocketMessageChannel channel, AllianceLogic.AllianceInfo alliance, AllianceLogic.Corp corp)
-        {
-            var corpRole = guild.GetRole(corp.RoleId);
-            if (corpRole == null)
-            {
-                await channel.BotResponse("Corp has no member role!", ResponseType.error);
-                return;
-            }
-
-            var eb = new EmbedBuilder()
-                .WithTitle(corp.FullName)
-                .AddField("icon", corp.IconMention, true)
-                .AddField("abbreviation", "[" + corp.Abbreviation + "]", true)
-                .AddField("level", GetCorpLevel(corp.CurrentRelicCount).ToStr(), true)
-                .AddField("relics", corp.CurrentRelicCount.ToStr(), true);
-
-            await channel.SendMessageAsync(embed: eb.Build());
-        }
-
         public static async Task ShowCorpMembers(SocketGuild guild, ISocketMessageChannel channel, AllianceLogic.AllianceInfo alliance, AllianceLogic.Corp corp)
         {
             var corpRole = guild.GetRole(corp.RoleId);
@@ -118,7 +99,12 @@
 
             var now = DateTime.UtcNow;
             var sb = new StringBuilder();
-            foreach (var user in guild.Users.Where(x => x.Roles.Any(y => y.Id == corpRole.Id)).OrderBy(x => x.DisplayName))
+
+            var realAccounts = guild.Users
+                .Where(x => x.Roles.Any(y => y.Id == corpRole.Id) && !alliance.Alts.Any(y => y.AltUserId == x.Id))
+                .OrderBy(x => x.DisplayName);
+
+            foreach (var user in realAccounts)
             {
                 sb.Append(user.DisplayName);
                 var tz = TimeZoneLogic.GetUserTimeZone(guild.Id, user.Id);
@@ -139,6 +125,17 @@
                         .Append("**)");
                 }
 
+                var alts = alliance.Alts.Where(x => x.OwnerUserId == user.Id).ToList();
+                if (alts.Count > 0)
+                {
+                    sb
+                        .Append(" (alt: ")
+                        .AppendJoin(", ", alts.Select(x => x.AltUserId != null
+                            ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>"
+                            : x.Name))
+                        .Append(')');
+                }
+
                 sb.AppendLine();
             }
 
@@ -153,7 +150,11 @@
         {
             var now = DateTime.UtcNow;
             var sb = new StringBuilder();
-            foreach (var user in guild.Users.Where(x => x.Roles.Any(y => y.Id == role.Id)).OrderBy(x => x.DisplayName))
+            var realAccounts = guild.Users
+                .Where(x => x.Roles.Any(y => y.Id == role.Id) && !alliance.Alts.Any(y => y.AltUserId == x.Id)).OrderBy(x => x.DisplayName)
+                .OrderBy(x => x.DisplayName);
+
+            foreach (var user in realAccounts)
             {
                 sb.Append(user.DisplayName);
                 var tz = TimeZoneLogic.GetUserTimeZone(guild.Id, user.Id);
@@ -163,6 +164,26 @@
                         .Append(" (**")
                         .Append(TimeZoneInfo.ConvertTimeFromUtc(now, tz).ToString("HH:mm", CultureInfo.InvariantCulture))
                         .Append("**)");
+                }
+
+                var afk = AfkLogic.GetAfk(guild.Id, user.Id);
+                if (afk != null)
+                {
+                    sb
+                        .Append(" (AFK for **")
+                        .Append(afk.EndsOn.Subtract(now).ToIntervalStr())
+                        .Append("**)");
+                }
+
+                var alts = alliance.Alts.Where(x => x.OwnerUserId == user.Id).ToList();
+                if (alts.Count > 0)
+                {
+                    sb
+                        .Append(" (alt: ")
+                        .AppendJoin(", ", alts.Select(x => x.AltUserId != null
+                            ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>"
+                            : x.Name))
+                        .Append(')');
                 }
 
                 sb.AppendLine();
