@@ -55,7 +55,6 @@
             public string IconMention { get; set; }
             public string FullName { get; set; }
             public string Abbreviation { get; set; }
-            public int CurrentLevel { get; set; }
             public int CurrentRelicCount { get; set; }
         }
 

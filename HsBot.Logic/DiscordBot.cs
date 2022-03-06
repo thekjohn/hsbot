@@ -36,7 +36,7 @@
             Discord.ReactionAdded += (message, channel, reaction) => AltsLogic.HandleReactions(reaction, true);
             Discord.ReactionRemoved += (message, channel, reaction) => AltsLogic.HandleReactions(reaction, false);
 
-            Services.Log.Log(null, "folder: " + Services.State.Folder, ConsoleColor.Magenta);
+            LogService.Log(null, "folder: " + Services.State.Folder, ConsoleColor.Magenta);
 
             Commands = new CommandService();
             Commands.Log += OnLog;
@@ -60,7 +60,7 @@
         {
             while (true)
             {
-                var messagesToDelete = Services.Cleanup.GetMessagesToDelete();
+                var messagesToDelete = CleanupService.GetMessagesToDelete();
                 if (messagesToDelete != null)
                 {
                     foreach (var msg in messagesToDelete)
@@ -133,7 +133,7 @@
                                     Services.State.Set(guild.Id, userActivityConfirmationAskedStateId, DateTime.UtcNow);
 
                                     var confirmTimeoutMinutes = 2;
-                                    Services.Cleanup.RegisterForDeletion(confirmTimeoutMinutes * 60,
+                                    CleanupService.RegisterForDeletion(confirmTimeoutMinutes * 60,
                                         await channel.SendMessageAsync(":grey_question: " + user.Mention + ", still in for RS" + level.ToStr() + "? Type `" + DiscordBot.CommandPrefix + "in " + level.ToStr() + "` to confirm within the next " + confirmTimeoutMinutes.ToStr() + " minutes."));
                                 }
                             }
@@ -151,7 +151,7 @@
             {
                 if (e.ExceptionObject is Exception ex)
                 {
-                    Services.Log.Log(null, "unhandled exception: " + ex.Message, ConsoleColor.Red);
+                    LogService.Log(null, "unhandled exception: " + ex.Message, ConsoleColor.Red);
                 }
             };
 
@@ -175,33 +175,42 @@
             {
                 if (rawMessage is not SocketUserMessage message)
                 {
-                    Services.Log.Log(null, rawMessage.Content, ConsoleColor.Yellow);
+                    LogService.Log(null, rawMessage.Content, ConsoleColor.Yellow);
                     return;
                 }
 
                 if (message.Source == MessageSource.System)
                 {
-                    Services.Log.Log(null, rawMessage.Content, ConsoleColor.Red);
+                    LogService.Log(null, rawMessage.Content, ConsoleColor.Red);
                     return;
                 }
 
-                var context = new SocketCommandContext(Discord, message);
+                if (message.Source == MessageSource.User && message.Channel is SocketTextChannel channel && message.Content.Contains("<@"))
+                {
+                    var afkList = AfkLogic.GetAfkList(channel.Guild.Id);
+                    foreach (var afk in afkList)
+                    {
+                        if (message.Content.Contains(MentionUtils.MentionUser(afk.UserId)))
+                        {
+                            await channel.BotResponse(channel.Guild.GetUser(afk.UserId).DisplayName + " is AFK for " + afk.EndsOn.Subtract(DateTime.UtcNow).ToIntervalStr() + ".", ResponseType.infoStay);
+                        }
+                    }
+                }
 
                 var argPos = 0;
 
                 if (!message.HasCharPrefix(CommandPrefix, ref argPos))
-                {
                     return;
-                }
 
                 if (message.Content[1] == ' ')
                     argPos++;
 
+                var context = new SocketCommandContext(Discord, message);
                 await Commands.ExecuteAsync(context, argPos, null);
             }
             catch (Exception ex)
             {
-                Services.Log.Log(null, "error in " + nameof(OnMessageReceived) + ":" + ex.ToString());
+                LogService.Log(null, "error in " + nameof(OnMessageReceived) + ":" + ex.ToString());
             }
         }
 
@@ -224,7 +233,7 @@
 
         private Task OnLog(LogMessage log)
         {
-            Services.Log.Log(null, log.Message, ConsoleColor.Magenta);
+            LogService.Log(null, log.Message, ConsoleColor.Magenta);
             return Task.CompletedTask;
         }
     }

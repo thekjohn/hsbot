@@ -21,7 +21,7 @@
         [Summary("out [level]|dequeue from a specific, or all queues")]
         public async Task Out(int? level = null)
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
             await RemoveQueue(Context.Guild, Context.Channel, level, CurrentUser, null);
         }
 
@@ -29,7 +29,7 @@
         [Summary("ping <level>|ping an RS role")]
         public async Task Ping(int level)
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
             await Ping(Context.Guild, Context.Channel, level);
         }
 
@@ -37,7 +37,7 @@
         [Summary("start <level>|force start on a queue")]
         public async Task Start(int level)
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
             await StartQueue(level);
         }
 
@@ -45,7 +45,7 @@
         [Summary("rsmod|allow setting RS queue related mods")]
         public async Task RsMod()
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
             await ShowRsMod(Context.Guild, Context.Channel);
         }
 
@@ -53,7 +53,7 @@
         [Summary("q|query active queues")]
         public async Task QueryQueues(int? level = null)
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
 
             var found = false;
             for (var i = 1; i <= 12; i++)
@@ -71,7 +71,7 @@
 
             if (!found)
             {
-                await ReplyAsync("All queues are empty, sorry.");
+                await Context.Channel.BotResponse("All queues are empty, sorry.", ResponseType.info);
             }
         }
 
@@ -100,8 +100,7 @@
             var role = guild.Roles.FirstOrDefault(x => x.Name == "RS" + level.ToStr());
             if (role == null)
             {
-                Services.Cleanup.RegisterForDeletion(10,
-                    await channel.SendMessageAsync(":x: There is no role for RS" + level.ToStr() + "."));
+                await channel.BotResponse("There is no role for RS" + level.ToStr() + ".", ResponseType.error);
                 return;
             }
 
@@ -109,8 +108,7 @@
             var queue = Services.State.Get<RsQueueEntry>(guild.Id, queueStateId);
             if (queue == null)
             {
-                Services.Cleanup.RegisterForDeletion(10,
-                    await channel.SendMessageAsync(":x: You can't ping an empty queue."));
+                await channel.BotResponse("You can't ping an empty queue.", ResponseType.error);
                 return;
             }
 
@@ -130,10 +128,10 @@
 
         private async Task AddQueue(int? level, SocketGuildUser user)
         {
+            await CleanupService.DeleteCommand(Context.Message);
+
             if (user == null)
                 return;
-
-            await Context.Message.DeleteAsync();
 
             int selectedLevel;
             if (level == null)
@@ -141,7 +139,7 @@
                 var highestRsRoleNumber = user.GetHighestRsRoleNumber();
                 if (highestRsRoleNumber == null)
                 {
-                    await ReplyAsync("RS role of " + user.Mention + " cannot be determined: " + user.Nickname);
+                    await Context.Channel.BotResponse("RS role of " + user.Mention + " cannot be determined: " + user.Nickname, ResponseType.error);
                     return;
                 }
 
@@ -155,7 +153,7 @@
             var role = Context.Guild.Roles.FirstOrDefault(x => x.Name == "RS" + selectedLevel.ToStr());
             if (role == null)
             {
-                await ReplyAsync("There is no role for RS" + selectedLevel.ToStr() + ".");
+                await Context.Channel.BotResponse("There is no role for RS" + selectedLevel.ToStr() + ".", ResponseType.error);
                 return;
             }
 
@@ -238,7 +236,8 @@
                             return alliance.GetUserCorpIcon(user) + " " + user.Mention;
                         }));
 
-                await ReplyAsync(response);
+                CleanupService.RegisterForDeletion(10 * 60,
+                    await ReplyAsync(response));
             }
         }
 
@@ -249,9 +248,7 @@
             var queue = Services.State.Get<RsQueueEntry>(Context.Guild.Id, queueStateId);
             if (queue == null)
             {
-                Services.Cleanup.RegisterForDeletion(10,
-                    await ReplyAsync("RS" + level.ToStr() + " queue is empty, there is nothing to start..."));
-
+                await Context.Channel.BotResponse("RS" + level.ToStr() + " queue is empty, there is nothing to start...", ResponseType.error);
                 return;
             }
 
@@ -288,7 +285,8 @@
                     return alliance.GetUserCorpIcon(user) + " " + user.Mention;
                 }));
 
-            await ReplyAsync(response);
+            CleanupService.RegisterForDeletion(10 * 60,
+                await ReplyAsync(response));
         }
 
         private static async Task RefreshQueue(SocketGuild guild, ISocketMessageChannel channel, int level)
@@ -298,8 +296,7 @@
             var role = guild.Roles.FirstOrDefault(x => x.Name == "RS" + level.ToStr());
             if (role == null)
             {
-                Services.Cleanup.RegisterForDeletion(10,
-                    await channel.SendMessageAsync(":x: There is no role for RS" + level.ToStr() + "."));
+                await channel.BotResponse("There is no role for RS" + level.ToStr() + ".", ResponseType.error);
                 return;
             }
 
@@ -307,8 +304,7 @@
             var queue = Services.State.Get<RsQueueEntry>(guild.Id, queueStateId);
             if (queue == null)
             {
-                Services.Cleanup.RegisterForDeletion(10,
-                    await channel.SendMessageAsync("RS" + level.ToStr() + " queue is empty."));
+                await channel.BotResponse("RS" + level.ToStr() + " queue is empty.", ResponseType.info);
                 return;
             }
 
@@ -326,17 +322,17 @@
             var roleMentionStateId = Services.State.GetId("rs-queue-last-role-mention", role.Id);
             var lastRsMention = Services.State.Get<DateTime?>(guild.Id, roleMentionStateId);
 
-            var msg = new EmbedBuilder();
+            var eb = new EmbedBuilder();
             if (queue.RunId == null)
             {
-                msg.WithTitle("RS" + queue.Level.ToStr() + " queue (" + queue.Users.Count.ToStr() + "/4)");
+                eb.WithTitle("RS" + queue.Level.ToStr() + " queue (" + queue.Users.Count.ToStr() + "/4)");
             }
             else
             {
-                msg.WithTitle("RS" + queue.Level.ToStr() + " run #" + queue.RunId.Value.ToStr() + " (" + queue.Users.Count.ToStr() + "/" + queue.Users.Count.ToStr() + ")");
+                eb.WithTitle("RS" + queue.Level.ToStr() + " run #" + queue.RunId.Value.ToStr() + " (" + queue.Users.Count.ToStr() + "/" + queue.Users.Count.ToStr() + ")");
             }
 
-            msg.WithDescription(string.Join("\n",
+            eb.WithDescription(string.Join("\n",
                 queue.Users.Select(userId =>
                     {
                         var user = guild.GetUser(userId);
@@ -364,25 +360,25 @@
                         return alliance.GetUserCorpIcon(user) + " " + user.Nickname
                             + modList
                             + " [" + runCount + " runs]"
-                            + " :watch: " + Services.State.Get<DateTime>(guild.Id, "rs-queue-activity-" + userId.ToStr() + "-" + queue.Level.ToStr())
-                                    .GetAgoString();
+                            + " :watch: " + DateTime.UtcNow.Subtract(Services.State.Get<DateTime>(guild.Id, "rs-queue-activity-" + userId.ToStr() + "-" + queue.Level.ToStr()))
+                                    .ToIntervalStr();
                     }
                 )));
 
             if (queue.RunId == null)
             {
-                msg.WithFooter("Queue created " + queue.StartedOn.GetAgoString() + " ago. "
+                eb.WithFooter("Queue created " + DateTime.UtcNow.Subtract(queue.StartedOn).ToIntervalStr() + " ago. "
                     + (lastRsMention != null
-                        ? role.Name + " was mentioned " + lastRsMention.Value.GetAgoString() + " ago."
+                        ? role.Name + " was mentioned " + DateTime.UtcNow.Subtract(lastRsMention.Value).ToIntervalStr() + " ago."
                         : ""));
             }
             else
             {
-                msg.WithFooter("Run started after " + queue.StartedOn.GetAgoString() + ".");
+                eb.WithFooter("Run started after " + DateTime.UtcNow.Subtract(queue.StartedOn).ToIntervalStr() + ".");
             }
 
             queue.ChannelId = channel.Id;
-            queue.MessageId = (await channel.SendMessageAsync(embed: msg.Build())).Id;
+            queue.MessageId = (await channel.SendMessageAsync(embed: eb.Build())).Id;
             Services.State.Set(guild.Id, queueStateId, queue);
         }
 
@@ -408,9 +404,7 @@
                 {
                     if (specificLevel != null)
                     {
-                        Services.Cleanup.RegisterForDeletion(10,
-                            await channel.SendMessageAsync(":x: " + user.Mention + " wasn't in RS" + level.ToStr() + " queue."));
-
+                        await channel.BotResponse(user.Mention + " wasn't in RS" + level.ToStr() + " queue.", ResponseType.error);
                         return;
                     }
 
@@ -466,11 +460,11 @@
                 }
             }
 
-            var embedBuilder = new EmbedBuilder()
+            var eb = new EmbedBuilder()
                 .WithTitle("RS Mod Editor")
                 .WithDescription("Please react according to your preferences in the RS queue.");
 
-            var sent = await channel.SendMessageAsync(embed: embedBuilder.Build());
+            var sent = await channel.SendMessageAsync(embed: eb.Build());
             await sent.AddReactionsAsync(new IEmote[]
             {
                 guild.Emotes.FirstOrDefault(x =>x.Name == "rse"),

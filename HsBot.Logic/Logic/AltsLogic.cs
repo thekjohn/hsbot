@@ -16,8 +16,7 @@
 
             if (!user.Roles.Any(x => x.Id == alliance.RoleId))
             {
-                Services.Cleanup.RegisterForDeletion(10,
-                    await channel.SendMessageAsync(":x: Only members of " + alliance.Name + " can query the alts."));
+                await channel.BotResponse("Only members of " + alliance.Name + " can query the alts.", ResponseType.error);
                 return;
             }
 
@@ -45,6 +44,7 @@
                     : alts[i].Name;
 
                 description
+                    .Append(":x: ")
                     .Append(NumberEmoteNames[i])
                     .Append(' ')
                     .AppendLine(displayName);
@@ -53,22 +53,22 @@
             if (alts.Count == 0)
                 description.Append("<none>");
 
-            var embed = new EmbedBuilder()
+            var eb = new EmbedBuilder()
                 .WithTitle(":point_right: " + user.DisplayName + "'s registered alt(s)");
 
-            embed = (currentUser.Id == user.Id)
-                ? embed.WithDescription(
+            eb = (currentUser.Id == user.Id)
+                ? eb.WithDescription(
                     (alts.Count > 0
                         ? "React with a number to remove an alt, or use "
                         : "Use ")
-                    + "`" + DiscordBot.CommandPrefix + "addalt <altname>` to add a new alt. If your alt has a discord account, you should @mention it for seamless integration."
+                    + "`" + DiscordBot.CommandPrefix + "addalt <altname>` to add a new alt. If your alt has a discord account, you should use `.addalt @<altdiscordaccount>` mention for better bot experience in the future."
                     + "\n\n" + description.ToString())
-                : embed.WithDescription(description.ToString());
+                : eb.WithDescription(description.ToString());
 
-            embed = embed
+            eb = eb
                 .WithFooter("This message will be automatically deleted after 30 seconds.");
 
-            var sent = await channel.SendMessageAsync(embed: embed.Build());
+            var sent = await channel.SendMessageAsync(embed: eb.Build());
 
             if (currentUser.Id == user.Id)
             {
@@ -84,7 +84,7 @@
                 MessageId = sent.Id,
             });
 
-            Services.Cleanup.RegisterForDeletion(30, sent);
+            CleanupService.RegisterForDeletion(30, sent);
         }
 
         internal static async Task HandleReactions(SocketReaction reaction, bool added)
@@ -157,8 +157,7 @@
                 && ((x.AltUserId != null && x.AltUserId == alt.AltUserId)
                     || (x.Name != null && x.Name == alt.Name))))
             {
-                Services.Cleanup.RegisterForDeletion(10,
-                    await channel.SendMessageAsync(":x: " + ownerUser.Mention + " already registered this alt: " + altName));
+                await channel.BotResponse(ownerUser.Mention + " already registered this alt: " + altName, ResponseType.error);
                 return;
             }
 

@@ -4,6 +4,7 @@
     using Discord;
     using Discord.Commands;
     using Discord.WebSocket;
+    using TimeZoneNames;
 
     [Summary("admin")]
     public class Admin : BaseModule
@@ -13,7 +14,7 @@
         [RequireUserPermission(GuildPermission.ChangeNickname)]
         public async Task Alts(string user = null)
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
 
             SocketGuildUser otherUser = null;
             if (user != null)
@@ -21,8 +22,7 @@
                 otherUser = Context.Guild.FindUser(CurrentUser, user);
                 if (otherUser == null)
                 {
-                    Services.Cleanup.RegisterForDeletion(10,
-                        await Context.Channel.SendMessageAsync(":x: Can't find user: " + user + "."));
+                    await Context.Channel.BotResponse("Can't find user: " + user + ".", ResponseType.error);
                     return;
                 }
             }
@@ -35,7 +35,7 @@
         [RequireUserPermission(GuildPermission.ChangeNickname)]
         public async Task AddAlt(string name)
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
             await AltsLogic.AddAlt(Context.Guild, Context.Channel, CurrentUser, name);
         }
 
@@ -44,7 +44,7 @@
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task SetAlliance(SocketRole role, string name, string abbrev)
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
 
             var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
             alliance.RoleId = role.Id;
@@ -52,7 +52,7 @@
             alliance.Abbreviation = abbrev;
             AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
-            await ReplyAsync("alliance changed: " + role.Name);
+            await Context.Channel.BotResponse("Alliance updated: " + role.Name, ResponseType.success);
         }
 
         [Command("setcorp")]
@@ -60,6 +60,8 @@
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task SetCorp(SocketRole role, string fullName, string icon, string abbrev)
         {
+            await CleanupService.DeleteCommand(Context.Message);
+
             var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
             var corp = alliance.Corporations.Find(x => x.RoleId == role.Id);
             if (corp != null)
@@ -69,11 +71,11 @@
                 corp.Abbreviation = abbrev;
                 AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
-                await ReplyAsync("corp changed: " + role.Name);
+                await Context.Channel.BotResponse("Corp updated: " + role.Name, ResponseType.success);
             }
             else
             {
-                await ReplyAsync("unknown corp: " + role.Name);
+                await Context.Channel.BotResponse("Unknown corp: " + role.Name, ResponseType.error);
             }
         }
 
@@ -82,6 +84,8 @@
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task AddCorp(SocketRole role)
         {
+            await CleanupService.DeleteCommand(Context.Message);
+
             var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
             var corp = alliance.Corporations.Find(x => x.RoleId == role.Id);
             if (corp == null)
@@ -94,40 +98,42 @@
                 alliance.Corporations.Add(corp);
                 AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
-                await ReplyAsync("corp created: " + role.Name);
+                await Context.Channel.BotResponse("Corp created: " + role.Name, ResponseType.success);
             }
             else
             {
-                await ReplyAsync("corp already added: " + role.Name);
+                await Context.Channel.BotResponse("Corp already created: " + role.Name, ResponseType.error);
             }
         }
 
-        [Command("setcorplevel")]
-        [Summary("setcorplevel <level> <relics>|change the level and relic count of a corp")]
+        [Command("setrelics")]
+        [Summary("setrelics <corp> <amount>|change the relic count of a corp")]
         [RequireUserPermission(GuildPermission.ManageChannels)]
-        public async Task SetCorpLevel(SocketRole role, int level, int relics)
+        public async Task SetRelics(string corp, int relicCount)
         {
-            /*if (!CurrentUser.Roles.Any(x => x.Id == role.Id))
-            {
-                await ReplyAsync("Only members within the specified corp can use this command!");
-                return;
-            }*/
+            await CleanupService.DeleteCommand(Context.Message);
 
             var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            if (alliance == null)
+                return;
 
-            var corp = alliance.Corporations.Find(x => x.RoleId == role.Id);
-            if (corp != null)
+            var corporation = Context.Guild.FindCorp(alliance, corp);
+            if (corporation == null)
             {
-                corp.CurrentLevel = level;
-                corp.CurrentRelicCount = relics;
-                AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+                await Context.Channel.BotResponse("Unknown corp: " + corp, ResponseType.error);
+                return;
+            }
 
-                await ReplyAsync("corp changed: " + role.Name);
-            }
-            else
+            if (!CurrentUser.GuildPermissions.Administrator && !CurrentUser.Roles.Any(x => x.Id == corporation.RoleId))
             {
-                await ReplyAsync("unknown corp: " + role.Name);
+                await Context.Channel.BotResponse("Only members of the specified corp can use this command!", ResponseType.error);
+                return;
             }
+
+            corporation.CurrentRelicCount = relicCount;
+            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+            await Context.Channel.BotResponse("Corp updated: " + corporation.FullName, ResponseType.success);
         }
 
         [Command("setrstimeout")]
@@ -135,14 +141,14 @@
         [RequireUserPermission(GuildPermission.ManageChannels)]
         public async Task SetRsTimeout(int level, int minutes)
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
 
             var stateId = Services.State.GetId("rs-queue-timeout", (ulong)level);
             var currentValue = Services.State.Get<int>(Context.Guild.Id, stateId);
 
             Services.State.Set(Context.Guild.Id, stateId, minutes);
-            await ReplyAsync("Timeout for RS" + level.ToStr() + " has been changed to " + minutes.ToStr() + "."
-                + (currentValue != 0 ? " Previous value was " + currentValue.ToStr() + "." : ""));
+            await Context.Channel.BotResponse("Timeout for RS" + level.ToStr() + " has been changed to " + minutes.ToStr() + "."
+                    + (currentValue != 0 ? " Previous value was " + currentValue.ToStr() + "." : ""), ResponseType.success);
         }
 
         [Command("setrstimeout")]
@@ -150,7 +156,7 @@
         [RequireUserPermission(GuildPermission.ManageChannels)]
         public async Task SetRsTimeout(int minutes)
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
 
             for (var level = 1; level <= 12; level++)
             {
@@ -161,8 +167,8 @@
                     Services.State.Set(Context.Guild.Id, stateId, minutes);
                 }
 
-                await ReplyAsync("Timeout for RS" + level.ToStr() + " has been changed to " + minutes.ToStr() + "."
-                    + (currentValue != 0 ? " Previous value was " + currentValue.ToStr() + "." : ""));
+                await Context.Channel.BotResponse("Timeout for RS" + level.ToStr() + " has been changed to " + minutes.ToStr() + "."
+                    + (currentValue != 0 ? " Previous value was " + currentValue.ToStr() + "." : ""), ResponseType.success);
             }
         }
 
@@ -171,14 +177,14 @@
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task SetAllyRole(SocketRole role, string icon)
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
 
             var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
             alliance.AllyRoleId = role.Id;
             alliance.AllyIcon = icon;
             AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
-            await ReplyAsync("ally role changed: " + role.Name);
+            await Context.Channel.BotResponse("Ally role changed: " + role.Name, ResponseType.success);
         }
 
         [Command("falsestart")]
@@ -186,7 +192,7 @@
         [RequireUserPermission(GuildPermission.ManageChannels)]
         public async Task FalseStartRun(int runNumber)
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
             await FalseStartRun(Context.Guild, Context.Channel, runNumber);
         }
 
@@ -196,8 +202,7 @@
             var queue = Services.State.Get<Rs.RsQueueEntry>(guild.Id, queueStateId);
             if (queue == null)
             {
-                Services.Cleanup.RegisterForDeletion(10,
-                    await channel.SendMessageAsync(":x: Can't find run #" + runNumber.ToStr()));
+                await channel.BotResponse("Can't find run #" + runNumber.ToStr(), ResponseType.error);
                 return;
             }
 
@@ -212,17 +217,88 @@
             queue.FalseStart = DateTime.UtcNow;
             Services.State.Set(guild.Id, queueStateId, queue);
 
-            Services.Cleanup.RegisterForDeletion(10,
-                await channel.SendMessageAsync("Run #" + runNumber.ToStr() + " is successfuly reset."));
+            await channel.BotResponse("Run #" + runNumber.ToStr() + " is successfuly reset.", ResponseType.success);
         }
 
         [Command("startwssignup")]
         [Summary("startwssignup 5d3h|start a new WS signup which ends in 5d3h from now")]
         public async Task StartWsSignup(string endsFromNow)
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
+            await WsSignupLogic.StartNew(Context.Guild, Context.Channel, CurrentUser, endsFromNow.AddToDateTime(DateTime.UtcNow));
+        }
 
-            await WsSignupLogic.StartNew(Context.Guild, Context.Channel, CurrentUser, endsFromNow.AddToUtcNow());
+        [Command("timezone-list")]
+        [Summary("timezone-list|list all time zones")]
+        [RequireUserPermission(GuildPermission.ChangeNickname)]
+        public async Task TimezoneList()
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+            var timezones = TimeZoneInfo.GetSystemTimeZones();
+            var index = 0;
+
+            var eb = new EmbedBuilder()
+                .WithTitle("time zones");
+
+            var now = DateTime.UtcNow;
+
+            foreach (var tz in timezones)
+            {
+                var name = TZNames.GetDisplayNameForTimeZone(tz.Id, "en-US");
+                index++;
+                //var desc = "#" + index.ToStr() + " : UTC" + (tz.BaseUtcOffset.TotalMilliseconds >= 0 ? "+" : "-") + tz.BaseUtcOffset.ToString(@"hh\:mm");
+                var desc = "#" + index.ToStr() + " [" + TimeZoneInfo.ConvertTimeFromUtc(now, tz).ToString("HH:mm") + "] [UTC" + (tz.BaseUtcOffset.TotalMilliseconds >= 0 ? "+" : "")
+                    + (tz.BaseUtcOffset.Minutes == 0
+                        ? tz.BaseUtcOffset.Hours.ToStr()
+                        : tz.BaseUtcOffset.ToString(@"h\:mm")
+                        ) + "]";
+                eb.AddField(tz.StandardName, desc, true);
+
+                if (eb.Fields.Count == 25)
+                {
+                    await ReplyAsync(embed: eb.Build());
+                    eb = new EmbedBuilder()
+                        .WithTitle("time zones");
+                }
+            }
+
+            if (eb.Fields.Count > 0)
+                await ReplyAsync(embed: eb.Build());
+        }
+
+        [Command("timezone-set")]
+        [Summary("timezone-set <identifier>|set your own timezone. Get a list of identifiers with the `{cmdPrefix}timezone-list` command")]
+        [RequireUserPermission(GuildPermission.ChangeNickname)]
+        public async Task TimezoneSet(int identifier)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+            var timezones = TimeZoneInfo.GetSystemTimeZones();
+            if (identifier < 1 || identifier > timezones.Count)
+            {
+                await Context.Channel.BotResponse("Wrong timezone index", ResponseType.error);
+                return;
+            }
+
+            var tz = timezones[identifier - 1];
+            await TimeZoneLogic.SetTimeZone(Context.Guild, Context.Channel, CurrentUser, tz);
+        }
+
+        [Command("set-rs-queue-role")]
+        [Summary("set-rs-queue-role <role>|set the role for RS queue access (used by afk command)")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetRsQueueRole(string role)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var rsRole = Context.Guild.FindRole(role);
+            if (rsRole == null)
+            {
+                await Context.Channel.BotResponse("Unknown role: " + role, ResponseType.error);
+                return;
+            }
+
+            Services.State.Set(Context.Guild.Id, "rs-queue-role", rsRole.Id);
+            await Context.Channel.BotResponse("RS Queue role set to: " + rsRole.Name, ResponseType.success);
         }
     }
 }

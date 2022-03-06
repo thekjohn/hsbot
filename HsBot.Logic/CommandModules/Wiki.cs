@@ -19,7 +19,7 @@
         [Summary("wiki|query wiki pages")]
         public async Task GetWiki(string code = null)
         {
-            await Context.Message.DeleteAsync();
+            await CleanupService.DeleteCommand(Context.Message);
 
             if (code != null)
             {
@@ -27,7 +27,7 @@
                 var current = Services.State.Get<WikiEntry>(Context.Guild.Id, stateId);
                 if (current == null)
                 {
-                    await ReplyAsync("WIKI entry not found: '" + code + "'.");
+                    await Context.Channel.BotResponse("WIKI entry not found: '" + code + "'.", ResponseType.error);
                     return;
                 }
 
@@ -40,7 +40,7 @@
                 .ListIds(Context.Guild.Id, prefix)
                 .OrderBy(x => x);
 
-            var embedBuilder = new EmbedBuilder()
+            var eb = new EmbedBuilder()
                 .WithTitle("WIKI pages")
                 .WithDescription("use `" + DiscordBot.CommandPrefix + "wiki <code>` to read a specific page");
 
@@ -52,27 +52,20 @@
                 description += (description == "" ? "" : "\n") + code;
             }
 
-            embedBuilder.AddField("codes", description);
+            eb.AddField("codes", description);
 
-            await ReplyAsync(embed: embedBuilder.Build());
+            await ReplyAsync(embed: eb.Build());
         }
 
         [Command("setwiki")]
         [Summary("setwiki|set a wiki page - requires 'manage channels' role")]
+        [RequireUserPermission(GuildPermission.ManageChannels)]
         public async Task SetWiki(string code, string title, [Remainder] string text)
         {
-            if (!CurrentUser.Roles.Any(x => x.Permissions.ManageChannels))
-            {
-                await ReplyAsync("Only members with 'manage channels' role can use this command!");
-                return;
-            }
-
             var stateId = "wiki-" + code;
             var current = Services.State.Get<WikiEntry>(Context.Guild.Id, stateId);
             if (current != null)
-            {
                 await ReplyAsync("Previous version", embed: FormatEntry(current));
-            }
 
             var entry = new WikiEntry()
             {

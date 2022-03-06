@@ -30,8 +30,7 @@
         {
             if (currentUser != null && !AllianceLogic.IsMember(guild.Id, currentUser))
             {
-                Services.Cleanup.RegisterForDeletion(10,
-                    await channel.SendMessageAsync(":x: Only alliance members can use this command."));
+                await channel.BotResponse("Only alliance members can use this command.", ResponseType.error);
                 return;
             }
 
@@ -110,60 +109,72 @@
         internal static Embed BuildSignupContent(SocketGuild guild, WsSignup signup)
         {
             var compMain = "";
+            var compMainCnt = 0;
             foreach (var user in signup.CompetitiveUsers.Select(x => guild.GetUser(x)).Where(x => x != null).OrderBy(x => x.DisplayName))
             {
+                compMainCnt++;
                 compMain += (compMain == "" ? "" : "\n") + user.DisplayName;
             }
 
             var compAlt = "";
+            var compAltCnt = 0;
             foreach (var alt in signup.CompetitiveAlts.Select(x => x.AltUserId != null ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>" : x.Name).OrderBy(x => x))
             {
+                compAltCnt++;
                 compAlt += (compAlt == "" ? "" : "\n") + alt;
             }
 
             var casualMain = "";
+            var casualMainCnt = 0;
             foreach (var user in signup.CasualUsers.Select(x => guild.GetUser(x)).Where(x => x != null).OrderBy(x => x.DisplayName))
             {
+                casualMainCnt++;
                 casualMain += (casualMain == "" ? "" : "\n") + user.DisplayName;
             }
 
             var casualAlt = "";
+            var casualAltCnt = 0;
             foreach (var alt in signup.CasualAlts.Select(x => x.AltUserId != null ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>" : x.Name).OrderBy(x => x))
             {
+                casualAltCnt++;
                 casualAlt += (casualAlt == "" ? "" : "\n") + alt;
             }
 
             var inactiveMain = "";
+            var inactiveMainCnt = 0;
             foreach (var user in signup.InactiveUsers.Select(x => guild.GetUser(x)).Where(x => x != null).OrderBy(x => x.DisplayName))
             {
+                inactiveMainCnt++;
                 inactiveMain += (inactiveMain == "" ? "" : "\n") + user.DisplayName;
             }
 
             var inactiveAlt = "";
+            var inactiveAltCnt = 0;
             foreach (var alt in signup.InactiveAlts.Select(x => x.AltUserId != null ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>" : x.Name).OrderBy(x => x))
             {
+                inactiveAltCnt++;
                 inactiveAlt += (inactiveAlt == "" ? "" : "\n") + alt;
             }
 
-            var embedBuilder = new EmbedBuilder()
+            var eb = new EmbedBuilder()
                 .WithTitle("WS signup - ends on " + signup.EndsOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC")
                 .AddField("Please express your commitment level during this White Star event. Your team will count on you, so please choose wisely!", "We promise you don't get into a stronger team than your commitment level, but you can still end up in a lower commitment level team.", false)
-                .AddField("Competitive 💪", "Highly responsive, focused, no sanc!", true)
-                .AddField("Casual 👍", "Responsive, but no commitments. Sanc allowed.", true)
-                .AddField("Inactive 😴", "Only bar filling. Sanc recommended.", true)
-                .AddField("Competitive Main 💪", compMain != "" ? compMain : "-", true)
-                .AddField("Casual Main 👍", casualMain != "" ? casualMain : "-", true)
-                .AddField("Inactive Main 😴", inactiveMain != "" ? inactiveMain : "-", true)
-                .AddField("Competitive Alt 💪", compAlt != "" ? compAlt : "-", true)
-                .AddField("Casual Alt 👍", casualAlt != "" ? casualAlt : "-", true)
-                .AddField("Inactive Alt 😴", inactiveAlt != "" ? inactiveAlt : "-", true);
+                .AddField((compMainCnt + compAltCnt).ToStr() + " Competitive 💪", "Highly responsive, focused, no sanc!", true)
+                .AddField((casualMainCnt + casualAltCnt).ToStr() + " Casual 👍", "Responsive, but no commitments. Sanc allowed.", true)
+                .AddField((inactiveMainCnt + inactiveAltCnt).ToStr() + " Inactive 😴", "Only bar filling. Sanc recommended.", true)
+                .AddField(compMainCnt.ToStr() + " Competitive Main 💪", compMain != "" ? compMain : "-", true)
+                .AddField(casualMainCnt.ToStr() + " Casual Main 👍", casualMain != "" ? casualMain : "-", true)
+                .AddField(inactiveMainCnt.ToStr() + " Inactive Main 😴", inactiveMain != "" ? inactiveMain : "-", true)
+                .AddField(compAltCnt.ToStr() + " Competitive Alt 💪", compAlt != "" ? compAlt : "-", true)
+                .AddField(casualAltCnt.ToStr() + " Casual Alt 👍", casualAlt != "" ? casualAlt : "-", true)
+                .AddField(inactiveAltCnt.ToStr() + " Inactive Alt 😴", inactiveAlt != "" ? inactiveAlt : "-", true);
 
             if (signup.ClosedOn != null)
             {
-                embedBuilder.WithFooter("*Form closed on " + signup.ClosedOn.Value.ToString("yyyy MMMM dd. HH:mm:ss", CultureInfo.InvariantCulture) + " UTC*");
+                eb.WithFooter("*Form closed on " + signup.ClosedOn.Value.ToString("yyyy MMMM dd. HH:mm:ss", CultureInfo.InvariantCulture) + " UTC*");
             }
 
-            return embedBuilder.Build();
+            return eb.Build();
         }
 
         internal static async Task HandleReactions(SocketReaction reaction, bool added)
@@ -236,11 +247,18 @@
             if (alliance == null)
                 return;
 
-            var altCount = alliance.Alts
-                .Count(x => x.OwnerUserId == reaction.UserId);
-
             var msg = await reaction.Channel.GetMessageAsync(reaction.MessageId);
             await msg.RemoveReactionAsync(reaction.Emote, reaction.UserId);
+
+            var timeZone = TimeZoneLogic.GetUserTimeZone(guild.Id, reaction.UserId);
+            if (timeZone == null)
+            {
+                await reaction.Channel.BotResponse("You have set your timezone with `" + DiscordBot.CommandPrefix + "timezone-set` command before WS signup!", ResponseType.error);
+                return;
+            }
+
+            var altCount = alliance.Alts
+                .Count(x => x.OwnerUserId == reaction.UserId);
 
             if (altCount == 0 || reaction.Emote.Name == "❌")
             {
@@ -361,12 +379,12 @@
             if (alts.Count == 0)
                 description.Append("<none>");
 
-            var embed = new EmbedBuilder()
+            var eb = new EmbedBuilder()
                 .WithTitle(":point_right: " + user.DisplayName + "'s accounts")
                 .WithDescription("Use the reactions to sign up all or one of your accoutns.\n\n" + description.ToString())
                 .WithFooter("This message will be automatically deleted after 30 seconds.");
 
-            var sent = await channel.SendMessageAsync(embed: embed.Build());
+            var sent = await channel.SendMessageAsync(embed: eb.Build());
 
             var reactions = new List<IEmote>
             {
@@ -396,7 +414,7 @@
                 });
             }
 
-            Services.Cleanup.RegisterForDeletion(30, sent);
+            CleanupService.RegisterForDeletion(30, sent);
         }
 
         private class AccountSelectionEntry

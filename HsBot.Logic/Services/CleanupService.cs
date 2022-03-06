@@ -2,11 +2,25 @@
 {
     using Discord;
 
-    internal class CleanupService
+    internal static class CleanupService
     {
-        private readonly List<Entry> _messagesToDelete = new();
+        private static readonly List<Entry> _messagesToDelete = new();
 
-        public void RegisterForDeletion(int afterSeconds, IUserMessage message)
+        public static async Task DeleteCommand(IUserMessage message)
+        {
+            //await message.AddReactionAsync(Emoji.Parse(":watch:"));
+
+            lock (_messagesToDelete)
+            {
+                _messagesToDelete.Add(new Entry()
+                {
+                    After = DateTime.UtcNow.AddSeconds(1),
+                    Message = message,
+                });
+            }
+        }
+
+        public static void RegisterForDeletion(int afterSeconds, IUserMessage message)
         {
             lock (_messagesToDelete)
             {
@@ -18,7 +32,7 @@
             }
         }
 
-        public List<IUserMessage> GetMessagesToDelete()
+        public static List<IUserMessage> GetMessagesToDelete()
         {
             lock (_messagesToDelete)
             {

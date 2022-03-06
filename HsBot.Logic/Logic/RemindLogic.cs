@@ -14,8 +14,7 @@
             var user = guild.FindUser(currentUser, who);
             if (user == null)
             {
-                Services.Cleanup.RegisterForDeletion(10,
-                    await channel.SendMessageAsync(":x: Can't find user: " + who + "."));
+                await channel.BotResponse("Can't find user: " + who + ".", ResponseType.error);
                 return;
             }
 
@@ -24,7 +23,7 @@
                 GuildId = guild.Id,
                 UserId = user.Id,
                 ChannelId = channel.Id,
-                When = when.AddToUtcNow(),
+                When = when.AddToDateTime(DateTime.UtcNow),
                 Message = message,
             };
 
@@ -37,8 +36,7 @@
             }
 
             Services.State.Set(guild.Id, entry.GetStateId(), entry);
-            Services.Cleanup.RegisterForDeletion(10,
-                await channel.SendMessageAsync(":white_check_mark: I will DM **" + user.DisplayName + "** in " + when + " with the following message: `" + message + "`"));
+            await channel.BotResponse("I will DM **" + user.DisplayName + "** in " + when + " with the following message: `" + message + "`", ResponseType.success);
         }
 
         public static async void SendRemindersThreadWorker()
@@ -68,12 +66,12 @@
                     {
                         var alliance = AllianceLogic.GetAlliance(entry.GuildId);
 
-                        var embed = new EmbedBuilder()
+                        var eb = new EmbedBuilder()
                             .WithTitle("Reminder - " + alliance.Name)
                             .WithDescription(entry.Message)
                             .Build();
 
-                        await user.SendMessageAsync(embed: embed);
+                        await user.SendMessageAsync(embed: eb);
                     }
                 }
 
