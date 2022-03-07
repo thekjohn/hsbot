@@ -5,6 +5,11 @@
 
     public static class AfkLogic
     {
+        public static ulong GetRsQueueRole(ulong guildId)
+        {
+            return Services.State.Get<ulong>(guildId, "rs-queue-role");
+        }
+
         public static async Task SetAfk(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, string hourMinuteNotation)
         {
             var now = DateTime.UtcNow;
@@ -17,7 +22,7 @@
 
             Services.State.Set(guild.Id, "afk-user-" + user.Id, entry);
 
-            var rsQueueRole = Services.State.Get<ulong>(guild.Id, "rs-queue-role");
+            var rsQueueRole = GetRsQueueRole(guild.Id);
             var postMessage = "";
             if (rsQueueRole != 0 && user.Roles.Any(x => x.Id == rsQueueRole))
             {
@@ -36,9 +41,19 @@
             }
         }
 
-        public static AfkEntry GetAfk(ulong guildId, ulong userId)
+        public static AfkEntry GetUserAfk(ulong guildId, ulong userId)
         {
-            return Services.State.Get<AfkEntry>(guildId, "afk-user-" + userId);
+            var entry = Services.State.Get<AfkEntry>(guildId, "afk-user-" + userId);
+            if (entry == null)
+                return null;
+
+            if (entry.EndsOn <= DateTime.UtcNow)
+            {
+                Services.State.Delete(guildId, "afk-user-" + userId);
+                entry = null;
+            }
+
+            return entry;
         }
 
         public static List<AfkEntry> GetAfkList(ulong guildId)
@@ -66,7 +81,7 @@
         {
             Services.State.Delete(guild.Id, "afk-user-" + user.Id);
 
-            var rsQueueRole = Services.State.Get<ulong>(guild.Id, "rs-queue-role");
+            var rsQueueRole = GetRsQueueRole(guild.Id);
             if (rsQueueRole != 0 && !user.Roles.Any(x => x.Id == rsQueueRole))
             {
                 var role = guild.Roles.FirstOrDefault(x => x.Id == rsQueueRole);

@@ -119,7 +119,7 @@
                         .Append("**)");
                 }
 
-                var afk = AfkLogic.GetAfk(guild.Id, user.Id);
+                var afk = AfkLogic.GetUserAfk(guild.Id, user.Id);
                 if (afk != null)
                 {
                     sb
@@ -172,7 +172,7 @@
                         .Append("**)");
                 }
 
-                var afk = AfkLogic.GetAfk(guild.Id, user.Id);
+                var afk = AfkLogic.GetUserAfk(guild.Id, user.Id);
                 if (afk != null)
                 {
                     sb
@@ -200,6 +200,39 @@
                 .WithDescription(sb.ToString());
 
             await channel.SendMessageAsync(embed: eb.Build());
+        }
+
+        internal static async Task ShowMember(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user)
+        {
+            var alliance = AllianceLogic.GetAlliance(guild.Id);
+            if (alliance == null)
+                return;
+
+            var afk = AfkLogic.GetUserAfk(guild.Id, user.Id);
+            var timeZone = TimeZoneLogic.GetUserTimeZone(guild.Id, user.Id);
+
+            var now = DateTime.UtcNow;
+
+            var eb = new EmbedBuilder()
+                .WithTitle("Who is " + user.DisplayName + "?")
+                .AddField("corp", alliance.GetUserCorpIcon(user, false, true))
+                .AddField("roles", string.Join(", ", user.Roles
+                    .Where(x => !x.IsEveryone)
+                    .OrderByDescending(x => x.Position)
+                    .Select(x => x.Name)))
+                .AddField("afk", afk != null
+                    ? "AFK for " + afk.EndsOn.Subtract(now).ToIntervalStr()
+                    : "-")
+                .AddField("timezone", timeZone != null
+                    ? timeZone.StandardName
+                        + "\nUTC" + (timeZone.BaseUtcOffset.TotalMilliseconds >= 0 ? "+" : "")
+                            + (timeZone.BaseUtcOffset.Minutes == 0
+                                ? timeZone.BaseUtcOffset.Hours.ToStr()
+                                : timeZone.BaseUtcOffset.ToString(@"h\:mm")
+                        + "\nlocal time: " + TimeZoneInfo.ConvertTimeFromUtc(now, timeZone).ToString("yyyy.MM.dd HH:mm", CultureInfo.InvariantCulture))
+                    : "-");
+
+            await channel.SendMessageAsync(null, embed: eb.Build());
         }
     }
 }

@@ -2,7 +2,7 @@
 {
     using Discord.WebSocket;
 
-    public enum ResponseType { success, error, question, info, infoStay }
+    public enum ResponseType { successStay, success, error, question, info, infoStay }
 
     internal static class ResponseService
     {
@@ -13,6 +13,9 @@
                 case ResponseType.error:
                     CleanupService.RegisterForDeletion(5,
                         await channel.SendMessageAsync(":x: " + message));
+                    break;
+                case ResponseType.successStay:
+                    await channel.SendMessageAsync(":white_check_mark: " + message);
                     break;
                 case ResponseType.success:
                     CleanupService.RegisterForDeletion(5,

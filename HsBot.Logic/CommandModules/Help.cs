@@ -181,5 +181,22 @@
 
             await Context.Channel.BotResponse("Unknown corp or role: " + corpOrRole, ResponseType.error);
         }
+
+        [Command("whois")]
+        [Alias("whois")]
+        [Summary("whois [user]|display information of a specific a user")]
+        public async Task WhoIs(string userName = null)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var user = Context.Guild.FindUser(CurrentUser, userName);
+            if (user != null)
+            {
+                await HelpLogic.ShowMember(Context.Guild, Context.Channel, user);
+                return;
+            }
+
+            await Context.Channel.BotResponse("Unknown user: " + userName, ResponseType.error);
+        }
     }
 }

@@ -35,15 +35,27 @@
 
             public ulong AllyRoleId { get; set; }
             public string AllyIcon { get; set; }
+            public ulong GreeterRoleId { get; set; }
+            public ulong PublicChannelId { get; set; }
+            public ulong GuestRoleId { get; set; }
+            public ulong CompendiumRoleId { get; set; }
 
-            public string GetUserCorpIcon(SocketGuildUser user, bool extraSpace = true)
+            public string GetUserCorpIcon(SocketGuildUser user, bool extraSpace = true, bool corpName = false)
             {
                 var corp = Corporations.Find(c => user.Roles.Any(r => r.Id == c.RoleId));
                 if (corp != null && !string.IsNullOrEmpty(corp.IconMention))
-                    return corp.IconMention + (extraSpace ? " " : "");
+                {
+                    return corp.IconMention
+                        + (corpName ? " " + corp.FullName : "")
+                        + (extraSpace ? " " : "");
+                }
 
                 if (AllyIcon != null && user.Roles.Any(r => r.Id == AllyRoleId))
-                    return AllyIcon + (extraSpace ? " " : "");
+                {
+                    return AllyIcon
+                        + (corpName ? " ally" : "")
+                        + (extraSpace ? " " : "");
+                }
 
                 return null;
             }

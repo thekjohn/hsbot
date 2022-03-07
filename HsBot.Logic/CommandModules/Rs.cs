@@ -139,7 +139,7 @@
                 var highestRsRoleNumber = user.GetHighestRsRoleNumber();
                 if (highestRsRoleNumber == null)
                 {
-                    await Context.Channel.BotResponse("RS role of " + user.Mention + " cannot be determined: " + user.Nickname, ResponseType.error);
+                    await Context.Channel.BotResponse("RS role of " + user.Mention + " cannot be determined: " + user.DisplayName, ResponseType.error);
                     return;
                 }
 
@@ -357,7 +357,7 @@
                                 modList += "💪";
                         }
 
-                        return alliance.GetUserCorpIcon(user) + user.Nickname
+                        return alliance.GetUserCorpIcon(user) + user.DisplayName
                             + modList
                             + " [" + runCount + " runs]"
                             + " :watch: " + DateTime.UtcNow.Subtract(Services.State.Get<DateTime>(guild.Id, "rs-queue-activity-" + userId.ToStr() + "-" + queue.Level.ToStr()))

@@ -36,6 +36,8 @@
             Discord.ReactionAdded += (message, channel, reaction) => AltsLogic.HandleReactions(reaction, true);
             Discord.ReactionRemoved += (message, channel, reaction) => AltsLogic.HandleReactions(reaction, false);
 
+            Discord.UserJoined += Discord_UserJoined;
+
             LogService.Log(null, "folder: " + Services.State.Folder, ConsoleColor.Magenta);
 
             Commands = new CommandService();
@@ -44,6 +46,11 @@
             Commands.CommandExecuted += CommandExecutedAsync;
 
             CommandPrefix = File.ReadAllText(@"c:\HsBot\Bot.CommandPrefix.txt")[0];
+        }
+
+        private async Task Discord_UserJoined(SocketGuildUser user)
+        {
+            await RoleLogic.UserJoined(user.Guild, user);
         }
 
         private async Task OnReady()

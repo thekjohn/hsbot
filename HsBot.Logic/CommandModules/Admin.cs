@@ -174,11 +174,18 @@
         }
 
         [Command("setallyrole")]
-        [Summary("setallyrole <role> <abbreviation>|set the main parameters of the alliance")]
+        [Summary("setallyrole <role> <icon>|set the ally role")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task SetAllyRole(SocketRole role, string icon)
+        public async Task SetAllyRole(string roleName, string icon)
         {
             await CleanupService.DeleteCommand(Context.Message);
+
+            var role = Context.Guild.FindRole(roleName);
+            if (role == null)
+            {
+                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
+                return;
+            }
 
             var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
             alliance.AllyRoleId = role.Id;
@@ -186,6 +193,83 @@
             AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
             await Context.Channel.BotResponse("Ally role changed: " + role.Name, ResponseType.success);
+        }
+
+        [Command("set-greeter-role")]
+        [Summary("set-greeter-role <role>|set the greeter role")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetGreeterRole(string roleName)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var role = Context.Guild.FindRole(roleName);
+            if (role == null)
+            {
+                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
+                return;
+            }
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            alliance.GreeterRoleId = role.Id;
+            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+            await Context.Channel.BotResponse("Greeter role changed: " + role.Name, ResponseType.success);
+        }
+
+        [Command("set-guest-role")]
+        [Summary("set-guest-role <role>|set the greeter role")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetGuestRole(string roleName)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var role = Context.Guild.FindRole(roleName);
+            if (role == null)
+            {
+                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
+                return;
+            }
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            alliance.GuestRoleId = role.Id;
+            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+            await Context.Channel.BotResponse("Guest role changed: " + role.Name, ResponseType.success);
+        }
+
+        [Command("set-compendium-role")]
+        [Summary("set-compendium-role <role>|set the compendium role")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetCompendiumRole(string roleName)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var role = Context.Guild.FindRole(roleName);
+            if (role == null)
+            {
+                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
+                return;
+            }
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            alliance.CompendiumRoleId = role.Id;
+            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+            await Context.Channel.BotResponse("Compendium role changed: " + role.Name, ResponseType.success);
+        }
+
+        [Command("set-public-channel")]
+        [Summary("set-public-channel <channel>|set the public chat channel")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetGreeterRole(SocketTextChannel channel)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            alliance.PublicChannelId = channel.Id;
+            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+            await Context.Channel.BotResponse("Public chat channel changed: " + channel.Name, ResponseType.success);
         }
 
         [Command("falsestart")]
@@ -328,6 +412,73 @@
 
             Services.State.Set(Context.Guild.Id, "bot-log-channel", channel.Id);
             await Context.Channel.BotResponse("Bot log channel is set to: " + channel.Name, ResponseType.success);
+        }
+
+        [Command("recruit")]
+        [Summary("recruit <userName> <corpName> <rsLevel>|recruit user to a corp and RS level")]
+        [RequireUserPermission(GuildPermission.ManageChannels)]
+        public async Task SetBotLogChannel(string userName, string corpName, int rsLevel)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            if (alliance == null)
+                return;
+
+            var user = Context.Guild.FindUser(CurrentUser, userName);
+            if (user == null)
+            {
+                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
+                return;
+            }
+
+            if (!user.Roles.Any(x => x.Id == alliance.GuestRoleId || x.Id == alliance.AllyRoleId))
+            {
+                await Context.Channel.BotResponse("Only guests or allies can be recruited!", ResponseType.error);
+                return;
+            }
+
+            if (user.GuildPermissions.Administrator)
+            {
+                await Context.Channel.BotResponse("Administrators can't be recruited!", ResponseType.error);
+                return;
+            }
+
+            var corp = Context.Guild.FindCorp(alliance, corpName);
+            if (corp == null)
+            {
+                await Context.Channel.BotResponse("Can't find corp: " + corpName, ResponseType.error);
+                return;
+            }
+
+            await RoleLogic.Recruit(Context.Guild, Context.Channel, user, alliance, corp, rsLevel);
+        }
+
+        [Command("guestify")]
+        [Summary("guestify <userName>|remove all roles and add guest role")]
+        [RequireUserPermission(GuildPermission.ManageChannels)]
+        public async Task Guestify(string userName)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            if (alliance == null)
+                return;
+
+            var user = Context.Guild.FindUser(CurrentUser, userName);
+            if (user == null)
+            {
+                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
+                return;
+            }
+
+            if (user.GuildPermissions.Administrator)
+            {
+                await Context.Channel.BotResponse("Administrators can't be guestified!", ResponseType.error);
+                return;
+            }
+
+            await RoleLogic.Guestify(Context.Guild, Context.Channel, user, alliance);
         }
     }
 }
