@@ -39,6 +39,7 @@
             public ulong PublicChannelId { get; set; }
             public ulong GuestRoleId { get; set; }
             public ulong CompendiumRoleId { get; set; }
+            public string GuestIcon { get; set; } = ":bust_in_silhouette:";
 
             public string GetUserCorpIcon(SocketGuildUser user, bool extraSpace = true, bool corpName = false)
             {
@@ -54,6 +55,13 @@
                 {
                     return AllyIcon
                         + (corpName ? " ally" : "")
+                        + (extraSpace ? " " : "");
+                }
+
+                if (GuestIcon != null && user.Roles.Any(r => r.Id == GuestRoleId))
+                {
+                    return GuestIcon
+                        + (corpName ? " guest" : "")
                         + (extraSpace ? " " : "");
                 }
 

@@ -48,8 +48,9 @@
 
         public static async Task Recruit(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, AllianceLogic.AllianceInfo alliance, AllianceLogic.Corp corp, int? rsLevel)
         {
-            if (user.Roles.Count > 0)
-                await user.RemoveRolesAsync(user.Roles.Where(x => !x.IsEveryone).ToArray());
+            var rolesToRemove = user.Roles.Where(x => !x.IsEveryone).ToArray();
+            if (rolesToRemove.Length > 0)
+                await user.RemoveRolesAsync(rolesToRemove);
 
             var rolesToAdd = new List<ulong>
             {
@@ -87,15 +88,17 @@
 
             await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
 
-            await channel.BotResponse(user.DisplayName + " is successfully recruited to " + corp.FullName
-                + ". New roles: " + string.Join(", ", rolesToAdd.Select(x => guild.GetRole(x).Name))
+            await channel.BotResponse(user.Mention + " is successfully recruited to `" + corp.FullName + "`."
+                + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`")) + "."
+                + "\nRemoved roles: " + string.Join(", ", rolesToRemove.Select(x => "`" + x.Name + "`"))
                 , ResponseType.infoStay);
         }
 
         public static async Task Guestify(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, AllianceLogic.AllianceInfo alliance)
         {
-            if (user.Roles.Count > 0)
-                await user.RemoveRolesAsync(user.Roles.Where(x => !x.IsEveryone).ToArray());
+            var rolesToRemove = user.Roles.Where(x => !x.IsEveryone).ToArray();
+            if (rolesToRemove.Length > 0)
+                await user.RemoveRolesAsync(rolesToRemove);
 
             var rolesToAdd = new List<ulong>
             {
@@ -104,7 +107,9 @@
 
             await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
 
-            await channel.BotResponse(user.DisplayName + " is successfully guestified. New roles: " + string.Join(", ", rolesToAdd.Select(x => guild.GetRole(x).Name))
+            await channel.BotResponse(user.Mention + " is successfully guestified."
+                + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`")) + "."
+                + "\nRemoved roles: " + string.Join(", ", rolesToRemove.Select(x => "`" + x.Name + "`"))
                 , ResponseType.infoStay);
         }
     }

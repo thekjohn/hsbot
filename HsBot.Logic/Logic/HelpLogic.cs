@@ -154,52 +154,59 @@
             var now = DateTime.UtcNow;
             var sb = new StringBuilder();
             var realAccounts = guild.Users
-                .Where(x => x.Roles.Any(y => y.Id == role.Id) && !alliance.Alts.Any(y => y.AltUserId == x.Id)).OrderBy(x => x.DisplayName)
-                .OrderBy(x => x.DisplayName);
+                .Where(x => x.Roles.Any(y => y.Id == role.Id) && !alliance.Alts.Any(y => y.AltUserId == x.Id))
+                .OrderBy(x => x.DisplayName)
+                .ToList();
 
-            foreach (var user in realAccounts)
+            var batchSize = 50;
+            var batchCount = (realAccounts.Count / batchSize) + (realAccounts.Count % batchSize == 0 ? 0 : 1);
+            for (var batch = 0; batch < batchCount; batch++)
             {
-                sb
-                    .Append(alliance.GetUserCorpIcon(user))
-                    .Append(user.DisplayName);
-
-                var tz = TimeZoneLogic.GetUserTimeZone(guild.Id, user.Id);
-                if (tz != null)
+                sb.Clear();
+                foreach (var user in realAccounts.Skip(batch * batchSize).Take(batchSize))
                 {
                     sb
-                        .Append(" (**")
-                        .Append(TimeZoneInfo.ConvertTimeFromUtc(now, tz).ToString("HH:mm", CultureInfo.InvariantCulture))
-                        .Append("**)");
+                        .Append(alliance.GetUserCorpIcon(user))
+                        .Append(user.DisplayName);
+
+                    var tz = TimeZoneLogic.GetUserTimeZone(guild.Id, user.Id);
+                    if (tz != null)
+                    {
+                        sb
+                            .Append(" (**")
+                            .Append(TimeZoneInfo.ConvertTimeFromUtc(now, tz).ToString("HH:mm", CultureInfo.InvariantCulture))
+                            .Append("**)");
+                    }
+
+                    var afk = AfkLogic.GetUserAfk(guild.Id, user.Id);
+                    if (afk != null)
+                    {
+                        sb
+                            .Append(" (AFK for **")
+                            .Append(afk.EndsOn.Subtract(now).ToIntervalStr())
+                            .Append("**)");
+                    }
+
+                    var alts = alliance.Alts.Where(x => x.OwnerUserId == user.Id).ToList();
+                    if (alts.Count > 0)
+                    {
+                        sb
+                            .Append(" (alt: ")
+                            .AppendJoin(", ", alts.Select(x => x.AltUserId != null
+                                ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>"
+                                : x.Name))
+                            .Append(')');
+                    }
+
+                    sb.AppendLine();
                 }
 
-                var afk = AfkLogic.GetUserAfk(guild.Id, user.Id);
-                if (afk != null)
-                {
-                    sb
-                        .Append(" (AFK for **")
-                        .Append(afk.EndsOn.Subtract(now).ToIntervalStr())
-                        .Append("**)");
-                }
+                var eb = new EmbedBuilder()
+                    .WithTitle("Members of " + role.Name)
+                    .WithDescription(sb.ToString());
 
-                var alts = alliance.Alts.Where(x => x.OwnerUserId == user.Id).ToList();
-                if (alts.Count > 0)
-                {
-                    sb
-                        .Append(" (alt: ")
-                        .AppendJoin(", ", alts.Select(x => x.AltUserId != null
-                            ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>"
-                            : x.Name))
-                        .Append(')');
-                }
-
-                sb.AppendLine();
+                await channel.SendMessageAsync(embed: eb.Build());
             }
-
-            var eb = new EmbedBuilder()
-                .WithTitle("Members of " + role.Name)
-                .WithDescription(sb.ToString());
-
-            await channel.SendMessageAsync(embed: eb.Build());
         }
 
         internal static async Task ShowMember(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user)
@@ -214,8 +221,15 @@
             var now = DateTime.UtcNow;
 
             var eb = new EmbedBuilder()
-                .WithTitle("Who is " + user.DisplayName + "?")
-                .AddField("corp", alliance.GetUserCorpIcon(user, false, true))
+                .WithTitle("Who is " + user.DisplayName + "?");
+
+            var corpIcon = alliance.GetUserCorpIcon(user, false, true);
+            if (!string.IsNullOrEmpty(corpIcon))
+            {
+                eb.AddField("corp", corpIcon);
+            }
+
+            eb
                 .AddField("roles", string.Join(", ", user.Roles
                     .Where(x => !x.IsEveryone)
                     .OrderByDescending(x => x.Position)
