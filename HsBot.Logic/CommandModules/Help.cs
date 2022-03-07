@@ -138,6 +138,7 @@
                 .AddField("get the overview of all alts in alliance", "`" + DiscordBot.CommandPrefix + "sga alts`")
                 .AddField("get the list of the members of a corp", "`" + DiscordBot.CommandPrefix + "sga ge`")
                 .AddField("get the list of the members of a role", "`" + DiscordBot.CommandPrefix + "sga ally`")
+                .AddField("list your alts", "`" + DiscordBot.CommandPrefix + "alts`")
                 ;
             await ReplyAsync(embed: eb.Build());
         }

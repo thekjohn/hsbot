@@ -39,6 +39,9 @@
             public ulong PublicChannelId { get; set; }
             public ulong GuestRoleId { get; set; }
             public ulong CompendiumRoleId { get; set; }
+            public ulong AdmiralRoleId { get; set; }
+            public ulong WsDraftChannelId { get; set; }
+            public ulong WsAnnounceChannelId { get; set; }
             public string GuestIcon { get; set; } = ":bust_in_silhouette:";
 
             public string GetUserCorpIcon(SocketGuildUser user, bool extraSpace = true, bool corpName = false)

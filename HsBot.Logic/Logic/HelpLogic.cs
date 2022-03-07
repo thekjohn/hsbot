@@ -55,37 +55,79 @@
 
         public static async Task ShowAllianceAlts(SocketGuild guild, ISocketMessageChannel channel, AllianceLogic.AllianceInfo alliance)
         {
-            var eb = new EmbedBuilder()
-                .WithTitle("ALTS");
-
-            var usersWithAlts = alliance.Alts
-                .Select(x => x.OwnerUserId)
-                .Distinct()
-                .Select(x => guild.GetUser(x))
-                .Where(x => x != null)
-                .OrderByDescending(x => alliance.Alts.Count(y => y.OwnerUserId == x.Id))
-                .ThenBy(x => x.DisplayName);
-
             var sb = new StringBuilder();
-            foreach (var user in usersWithAlts)
+
+            var alts = alliance.Alts.OrderBy(x => x.AltUserId != null
+                ? guild.GetUser(x.OwnerUserId)?.DisplayName ?? "<unknown discord user>"
+                : x.Name).ToList();
+
+            var batchSize = 50;
+            var batchCount = (alts.Count / batchSize) + (alts.Count % batchSize == 0 ? 0 : 1);
+            for (var batch = 0; batch < batchCount; batch++)
             {
                 sb.Clear();
-                foreach (var alt in alliance.Alts.Where(x => x.OwnerUserId == user.Id))
+
+                foreach (var alt in alts.Skip(batch * batchSize).Take(batchSize))
                 {
-                    var name = alt.Name;
+                    var owner = guild.GetUser(alt.OwnerUserId);
+                    if (owner == null)
+                        continue;
+
+                    sb.Append(alliance.GetUserCorpIcon(owner));
+
                     if (alt.AltUserId != null)
                     {
                         var altUser = guild.GetUser(alt.AltUserId.Value);
-                        name = altUser?.DisplayName ?? "<unknown discord user>";
+                        if (altUser != null)
+                        {
+                            sb.Append('`').Append(altUser.DisplayName).Append('`');
+                            var relevantAltRoles = GetRelevantRsWsRoles(altUser);
+                            if (relevantAltRoles.Count > 0)
+                            {
+                                sb
+                                    .Append(' ')
+                                    .AppendJoin(" ", relevantAltRoles.Select(x => x.Mention));
+                            }
+                        }
+                        else
+                        {
+                            sb.Append("<unknown discord user>");
+                        }
+                    }
+                    else
+                    {
+                        sb.Append('`').Append(alt.Name).Append('`');
                     }
 
-                    sb.AppendLine(name);
+                    sb
+                        .Append(" owned by ")
+                        .AppendLine(owner.Mention);
                 }
 
-                eb.AddField(alliance.GetUserCorpIcon(user) + user.DisplayName, sb.ToString(), true);
-            }
+                var eb = new EmbedBuilder()
+                    .WithTitle("ALTS")
+                    .WithDescription(sb.ToString());
 
-            await channel.SendMessageAsync(embed: eb.Build());
+                await channel.SendMessageAsync(embed: eb.Build());
+            }
+        }
+
+        public static List<SocketRole> GetHighestRsRole(SocketGuildUser user)
+        {
+            return user.Roles
+                .Where(x => x.Name.StartsWith("rs", StringComparison.InvariantCultureIgnoreCase))
+                .OrderByDescending(x => x.Position)
+                .Take(1)
+                .ToList();
+        }
+
+        public static List<SocketRole> GetRelevantRsWsRoles(SocketGuildUser user)
+        {
+            return user.Roles
+                .Where(x => x.Name.StartsWith("ws", StringComparison.InvariantCultureIgnoreCase)
+                         || x.Name.StartsWith("rs", StringComparison.InvariantCultureIgnoreCase))
+                .OrderByDescending(x => x.Position)
+                .ToList();
         }
 
         public static async Task ShowCorpMembers(SocketGuild guild, ISocketMessageChannel channel, AllianceLogic.AllianceInfo alliance, AllianceLogic.Corp corp)
@@ -215,9 +257,6 @@
             if (alliance == null)
                 return;
 
-            var afk = AfkLogic.GetUserAfk(guild.Id, user.Id);
-            var timeZone = TimeZoneLogic.GetUserTimeZone(guild.Id, user.Id);
-
             var now = DateTime.UtcNow;
 
             var eb = new EmbedBuilder()
@@ -225,26 +264,96 @@
 
             var corpIcon = alliance.GetUserCorpIcon(user, false, true);
             if (!string.IsNullOrEmpty(corpIcon))
+                eb.AddField("corporation", corpIcon);
+
+            eb.AddField("roles", string.Join(", ", user.Roles
+                .Where(x => !x.IsEveryone)
+                .OrderByDescending(x => x.Position)
+                .Select(x => x.Mention)));
+
+            AfkLogic.AfkEntry afk = null;
+            TimeZoneInfo timeZone = null;
+
+            var isAlt = alliance.Alts.Find(x => x.AltUserId == user.Id);
+            if (isAlt != null)
             {
-                eb.AddField("corp", corpIcon);
+                var owner = guild.GetUser(isAlt.OwnerUserId);
+                if (owner != null)
+                {
+                    var ownerText = owner.Mention;
+
+                    var relevantOwnerRoles = owner
+                        .Roles
+                        .Where(x => x.Name.Contains("ws", StringComparison.InvariantCultureIgnoreCase)
+                                 || x.Name.Contains("rs", StringComparison.InvariantCultureIgnoreCase))
+                        .ToList();
+
+                    if (relevantOwnerRoles.Count > 0)
+                    {
+                        ownerText += " " + string.Join(" ", relevantOwnerRoles
+                            .Where(x => !x.IsEveryone)
+                            .OrderByDescending(x => x.Position)
+                            .Select(x => x.Mention));
+                    }
+
+                    eb.AddField("owner of this alt", ownerText);
+
+                    timeZone = TimeZoneLogic.GetUserTimeZone(guild.Id, owner.Id);
+                    afk = AfkLogic.GetUserAfk(guild.Id, owner.Id);
+                }
+            }
+            else
+            {
+                timeZone = TimeZoneLogic.GetUserTimeZone(guild.Id, user.Id);
+                afk = AfkLogic.GetUserAfk(guild.Id, user.Id);
             }
 
-            eb
-                .AddField("roles", string.Join(", ", user.Roles
-                    .Where(x => !x.IsEveryone)
-                    .OrderByDescending(x => x.Position)
-                    .Select(x => x.Name)))
-                .AddField("afk", afk != null
-                    ? "AFK for " + afk.EndsOn.Subtract(now).ToIntervalStr()
-                    : "-")
-                .AddField("timezone", timeZone != null
-                    ? timeZone.StandardName
-                        + "\nUTC" + (timeZone.BaseUtcOffset.TotalMilliseconds >= 0 ? "+" : "")
-                            + (timeZone.BaseUtcOffset.Minutes == 0
-                                ? timeZone.BaseUtcOffset.Hours.ToStr()
-                                : timeZone.BaseUtcOffset.ToString(@"h\:mm")
-                        + "\nlocal time: " + TimeZoneInfo.ConvertTimeFromUtc(now, timeZone).ToString("yyyy.MM.dd HH:mm", CultureInfo.InvariantCulture))
-                    : "-");
+            if (afk != null)
+                eb.AddField("afk", "AFK for " + afk.EndsOn.Subtract(now).ToIntervalStr());
+
+            if (timeZone != null)
+            {
+                eb.AddField("time zone", timeZone.StandardName
+                    + ", UTC" + (timeZone.BaseUtcOffset.TotalMilliseconds >= 0 ? "+" : "")
+                    + (timeZone.BaseUtcOffset.Minutes == 0
+                        ? timeZone.BaseUtcOffset.Hours.ToStr()
+                        : timeZone.BaseUtcOffset.ToString(@"h\:mm"))
+                    + "\nlocal time: **" + TimeZoneInfo.ConvertTimeFromUtc(now, timeZone).ToString("yyyy.MM.dd HH:mm", CultureInfo.InvariantCulture) + "**");
+            }
+
+            var alts = alliance.Alts.Where(x => x.OwnerUserId == user.Id).ToList();
+            if (alts.Count > 0)
+            {
+                var altsText = "";
+                foreach (var alt in alts)
+                {
+                    if (alt.AltUserId != null)
+                    {
+                        var altUser = guild.GetUser(alt.AltUserId.Value);
+                        if (altUser != null)
+                        {
+                            altsText += altUser.Mention;
+                            var relevantAltRoles = GetRelevantRsWsRoles(altUser);
+                            if (relevantAltRoles.Count > 0)
+                            {
+                                altsText += " " + string.Join(" ", relevantAltRoles.Select(x => x.Mention));
+                            }
+
+                            altsText += "\n";
+                        }
+                        else
+                        {
+                            altsText += "<unknown discord user>\n";
+                        }
+                    }
+                    else
+                    {
+                        altsText += "`" + alt.Name + "`\n";
+                    }
+                }
+
+                eb.AddField("alts", altsText);
+            }
 
             await channel.SendMessageAsync(null, embed: eb.Build());
         }

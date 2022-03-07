@@ -88,7 +88,7 @@
 
             await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
 
-            await channel.BotResponse(user.Mention + " is successfully recruited to `" + corp.FullName + "`."
+            await channel.BotResponse(user.DisplayName + " is successfully recruited to `" + corp.FullName + "`."
                 + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`")) + "."
                 + "\nRemoved roles: " + string.Join(", ", rolesToRemove.Select(x => "`" + x.Name + "`"))
                 , ResponseType.infoStay);
@@ -107,10 +107,34 @@
 
             await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
 
-            await channel.BotResponse(user.Mention + " is successfully guestified."
+            await channel.BotResponse(user.DisplayName + " is successfully guestified."
                 + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`")) + "."
                 + "\nRemoved roles: " + string.Join(", ", rolesToRemove.Select(x => "`" + x.Name + "`"))
                 , ResponseType.infoStay);
+        }
+
+        internal static async Task GiveRole(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, SocketRole role)
+        {
+            if (user.Roles.Any(x => x.Id == role.Id))
+            {
+                await channel.BotResponse(user.DisplayName + " already has this role: " + role.Name, ResponseType.error);
+                return;
+            }
+
+            await user.AddRoleAsync(role);
+            await channel.BotResponse(user.DisplayName + " successfully got this role: " + role.Name, ResponseType.success);
+        }
+
+        internal static async Task TakeRole(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, SocketRole role)
+        {
+            if (!user.Roles.Any(x => x.Id == role.Id))
+            {
+                await channel.BotResponse(user.DisplayName + " doesn't have this role: " + role.Name, ResponseType.error);
+                return;
+            }
+
+            await user.AddRoleAsync(role);
+            await channel.BotResponse(user.DisplayName + " successfully lost this role: " + role.Name, ResponseType.success);
         }
     }
 }

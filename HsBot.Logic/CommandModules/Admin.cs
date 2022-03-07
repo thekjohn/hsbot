@@ -258,10 +258,31 @@
             await Context.Channel.BotResponse("Compendium role changed: " + role.Name, ResponseType.success);
         }
 
+        [Command("set-admiral-role")]
+        [Summary("set-admiral-role <role>|set the WS admiral role")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetAdmiralRole(string roleName)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var role = Context.Guild.FindRole(roleName);
+            if (role == null)
+            {
+                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
+                return;
+            }
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            alliance.AdmiralRoleId = role.Id;
+            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+            await Context.Channel.BotResponse("Admiral role changed: " + role.Name, ResponseType.success);
+        }
+
         [Command("set-public-channel")]
         [Summary("set-public-channel <channel>|set the public chat channel")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task SetGreeterRole(SocketTextChannel channel)
+        public async Task SetPublicChannel(SocketTextChannel channel)
         {
             await CleanupService.DeleteCommand(Context.Message);
 
@@ -272,9 +293,37 @@
             await Context.Channel.BotResponse("Public chat channel changed: " + channel.Name, ResponseType.success);
         }
 
+        [Command("set-ws-draft-channel")]
+        [Summary("set-ws-draft-channel <channel>|set ws draft chat channel")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetWsDraftChannel(SocketTextChannel channel)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            alliance.WsDraftChannelId = channel.Id;
+            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+            await Context.Channel.BotResponse("WS draft channel changed: " + channel.Name, ResponseType.success);
+        }
+
+        [Command("set-ws-announce-channel")]
+        [Summary("set-ws-announce-channel <channel>|set ws announcement chat channel")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetWsAnnounceChannel(SocketTextChannel channel)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            alliance.WsAnnounceChannelId = channel.Id;
+            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+            await Context.Channel.BotResponse("WS announce channel changed: " + channel.Name, ResponseType.success);
+        }
+
         [Command("falsestart")]
         [Summary("falsestart <runNumber>|invalidate an RS run")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
+        [RequireUserPermission(GuildPermission.ChangeNickname)]
         public async Task FalseStartRun(int runNumber)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -307,6 +356,7 @@
 
         [Command("startwssignup")]
         [Summary("startwssignup 5d3h|start a new WS signup which ends in 5d3h from now")]
+        [RequireUserPermission(GuildPermission.ManageChannels)]
         public async Task StartWsSignup(string endsFromNow)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -479,6 +529,66 @@
             }
 
             await RoleLogic.Guestify(Context.Guild, Context.Channel, user, alliance);
+        }
+
+        [Command("give")]
+        [Summary("give <userName> <roleName>|add role to a user")]
+        [RequireUserPermission(GuildPermission.ManageChannels)]
+        public async Task GiveRole(string userName, string roleName)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var user = Context.Guild.FindUser(CurrentUser, userName);
+            if (user == null)
+            {
+                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
+                return;
+            }
+
+            if (user.GuildPermissions.Administrator)
+            {
+                await Context.Channel.BotResponse("Administrators can't be changed this way!", ResponseType.error);
+                return;
+            }
+
+            var role = Context.Guild.FindRole(roleName);
+            if (role == null)
+            {
+                await Context.Channel.BotResponse("Can't find role: " + roleName, ResponseType.error);
+                return;
+            }
+
+            await RoleLogic.GiveRole(Context.Guild, Context.Channel, user, role);
+        }
+
+        [Command("take")]
+        [Summary("take <userName> <roleName>|take away a role from a user")]
+        [RequireUserPermission(GuildPermission.ManageChannels)]
+        public async Task TakeRole(string userName, string roleName)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var user = Context.Guild.FindUser(CurrentUser, userName);
+            if (user == null)
+            {
+                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
+                return;
+            }
+
+            if (user.GuildPermissions.Administrator)
+            {
+                await Context.Channel.BotResponse("Administrators can't be changed this way!", ResponseType.error);
+                return;
+            }
+
+            var role = Context.Guild.FindRole(roleName);
+            if (role == null)
+            {
+                await Context.Channel.BotResponse("Can't find role: " + roleName, ResponseType.error);
+                return;
+            }
+
+            await RoleLogic.TakeRole(Context.Guild, Context.Channel, user, role);
         }
     }
 }

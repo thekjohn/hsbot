@@ -95,6 +95,23 @@
             await RemoveQueue(Context.Guild, Context.Channel, level, targetUser, null);
         }*/
 
+        [Command("setrsruncount")]
+        [Summary("setrsruncount <rsLevel> <count> <userName>|set the RS run counter for a specific user")]
+        [RequireUserPermission(GuildPermission.ManageChannels)]
+        public async Task SetRsRunCounter(int rsLevel, int count, [Remainder] string userName)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var user = Context.Guild.FindUser(CurrentUser, userName);
+            if (user == null)
+            {
+                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
+                return;
+            }
+
+            await RsLogic.SetRsRunCounter(Context.Guild, Context.Channel, user, rsLevel, count);
+        }
+
         private static async Task Ping(SocketGuild guild, ISocketMessageChannel channel, int level)
         {
             var role = guild.Roles.FirstOrDefault(x => x.Name == "RS" + level.ToStr());

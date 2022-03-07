@@ -23,7 +23,7 @@
 
             if (user == null)
             {
-                var users = guild.Users.Where(x => x.DisplayName.StartsWith(userToFind, StringComparison.InvariantCultureIgnoreCase)).ToArray();
+                var users = guild.Users.Where(x => x.DisplayName.Replace(".", "").StartsWith(userToFind, StringComparison.InvariantCultureIgnoreCase)).ToArray();
                 if (users.Length == 1)
                     user = users[0];
             }

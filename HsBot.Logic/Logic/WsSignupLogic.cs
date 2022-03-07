@@ -34,14 +34,14 @@
                 return;
             }
 
+            var alliance = AllianceLogic.GetAlliance(guild.Id);
+
             var ids = Services.State.ListIds(guild.Id, "ws-signup-active-");
             foreach (var signupStateId in ids)
             {
                 var signup = Services.State.Get<WsSignup>(guild.Id, signupStateId);
                 if (signup == null)
                     continue;
-
-                var alliance = AllianceLogic.GetAlliance(guild.Id);
 
                 var content = BuildSignupContent(guild, signup, alliance);
 
@@ -77,6 +77,63 @@
                         new Emoji("❌"),
                     });
                 }
+            }
+        }
+
+        internal static async void AutomaticallyCloseThreadWorker(object obj)
+        {
+            while (true)
+            {
+                var now = DateTime.UtcNow;
+                foreach (var guild in DiscordBot.Discord.Guilds)
+                {
+                    var ids = Services.State.ListIds(guild.Id, "ws-signup-active-");
+                    foreach (var signupStateId in ids)
+                    {
+                        var signup = Services.State.Get<WsSignup>(guild.Id, signupStateId);
+                        if (signup == null)
+                            continue;
+
+                        if (signup.EndsOn <= now.AddMinutes(-5))
+                        {
+                            var channel = guild.GetTextChannel(signup.ChannelId);
+                            if (channel != null)
+                            {
+                                var alliance = AllianceLogic.GetAlliance(guild.Id);
+                                var eb = new EmbedBuilder()
+                                    .WithTitle("WS signup ended")
+                                    .AddField("started on", signup.StartedOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC")
+                                    .AddField("ended on", signup.EndsOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC");
+
+                                string message = null;
+                                if (alliance != null && alliance.AdmiralRoleId != 0)
+                                {
+                                    var role = guild.GetRole(alliance.AdmiralRoleId);
+                                    if (role != null)
+                                    {
+                                        message = " " + role.Mention + " please make teams";
+                                        if (alliance.WsDraftChannelId != 0 && guild.Channels.Any(x => x.Id == alliance.WsDraftChannelId))
+                                        {
+                                            message += " in " + guild.GetTextChannel(alliance.WsDraftChannelId).Mention + "!";
+                                        }
+                                        else
+                                        {
+                                            message += "!";
+                                        }
+                                    }
+                                }
+
+                                await RefreshSignup(guild, channel, signup.MessageId);
+                                await channel.SendMessageAsync(message, embed: eb.Build());
+                            }
+
+                            var newId = signupStateId.Replace("active", "archive");
+                            Services.State.Rename(guild.Id, signupStateId, newId);
+                        }
+                    }
+                }
+
+                Thread.Sleep(10000);
             }
         }
 
@@ -118,7 +175,7 @@
             foreach (var user in signup.CompetitiveUsers.Select(x => guild.GetUser(x)).Where(x => x != null).OrderBy(x => x.DisplayName))
             {
                 compMainCnt++;
-                compMain += (compMain == "" ? "" : "\n") + alliance.GetUserCorpIcon(user) + user.DisplayName;
+                compMain += (compMain == "" ? "" : "\n") + user.DisplayName;
             }
 
             var compAlt = "";
@@ -134,7 +191,7 @@
             foreach (var user in signup.CasualUsers.Select(x => guild.GetUser(x)).Where(x => x != null).OrderBy(x => x.DisplayName))
             {
                 casualMainCnt++;
-                casualMain += (casualMain == "" ? "" : "\n") + alliance.GetUserCorpIcon(user) + user.DisplayName;
+                casualMain += (casualMain == "" ? "" : "\n") + user.DisplayName;
             }
 
             var casualAlt = "";
@@ -150,7 +207,7 @@
             foreach (var user in signup.InactiveUsers.Select(x => guild.GetUser(x)).Where(x => x != null).OrderBy(x => x.DisplayName))
             {
                 inactiveMainCnt++;
-                inactiveMain += (inactiveMain == "" ? "" : "\n") + alliance.GetUserCorpIcon(user) + user.DisplayName;
+                inactiveMain += (inactiveMain == "" ? "" : "\n") + user.DisplayName;
             }
 
             var inactiveAlt = "";

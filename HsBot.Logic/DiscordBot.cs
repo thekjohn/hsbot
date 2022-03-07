@@ -58,6 +58,7 @@
             new Thread(MessageCleanupThreadWorker).Start();
             new Thread(RsCleanupThreadWorker).Start();
             new Thread(RemindLogic.SendRemindersThreadWorker).Start();
+            new Thread(WsSignupLogic.AutomaticallyCloseThreadWorker).Start();
 
             //var msg = await Discord.Guilds.First().GetTextChannel(830622786396618772).GetMessageAsync(943863908253438002);
 
