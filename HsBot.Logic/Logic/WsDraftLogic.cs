@@ -41,49 +41,6 @@
             }
         }
 
-        public static async Task WsScanStarted(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string teamName)
-        {
-            var team = GetWsTeam(guild.Id, teamName);
-            if (team == null)
-            {
-                await channel.BotResponse("WS team `" + teamName + "` is not assembled yet!", ResponseType.error);
-                return;
-            }
-
-            if ((team.Members.Mains.Count + team.Members.Alts.Count != 15)
-                && (team.Members.Mains.Count + team.Members.Alts.Count != 10)
-                && (team.Members.Mains.Count + team.Members.Alts.Count != 5))
-            {
-                await channel.BotResponse("WS team `" + teamName + "` is not complete yet!", ResponseType.error);
-                return;
-            }
-
-            if (team.Scanning)
-            {
-                await channel.BotResponse("WS team `" + teamName + "` is already scanning!", ResponseType.error);
-                return;
-            }
-
-            if (team.Opponent != null)
-            {
-                await channel.BotResponse("WS team `" + teamName + "` is already matched against " + team.Opponent + "!", ResponseType.error);
-                return;
-            }
-
-            team.Scanning = true;
-            SaveWsTeam(guild.Id, team);
-
-            var alliance = AllianceLogic.GetAlliance(guild.Id);
-            var corp = guild.FindCorp(alliance, team.Members.CorpAbbreviation);
-            if (corp != null)
-            {
-                await channel.BotResponse("Can't find team's corp: " + team.Members.CorpAbbreviation, ResponseType.error);
-                return;
-            }
-
-            await AnnounceWS(guild, channel, teamName + " started scanning in " + corp.FullName + "!");
-        }
-
         internal static async Task AddDraftTeam(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, SocketRole role, AllianceLogic.Corp corp)
         {
             var draft = GetWsDraft(guild.Id);
@@ -254,6 +211,7 @@
                     if (admiralRole != null)
                     {
                         var admiralThread = await battleRoom.CreateThreadAsync("admiral", ThreadType.PublicThread, ThreadArchiveDuration.OneDay, admiralMsg);
+                        await admiralThread.SendMessageAsync(":information_source: Type " + DiscordBot.CommandPrefix + "`wsscan` here when scan is started in " + corp.FullName + ".");
                     }
 
                     channelIndex++;
@@ -263,24 +221,126 @@
             await HelpLogic.ShowAllianceInfo(guild, ch, alliance);
         }
 
-        public static async Task WsMatched(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string teamName, string opponentName, string endsIn)
+        public static async Task WsTeamScanning(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
         {
-            var team = GetWsTeam(guild.Id, teamName);
-            if (team == null)
+            var alliance = AllianceLogic.GetAlliance(guild.Id);
+            if (alliance == null)
+                return;
+
+            var adminRole = alliance.AdmiralRoleId != 0 ? guild.GetRole(alliance.AdmiralRoleId) : null;
+            if (adminRole != null && !currentUser.Roles.Any(x => x.Id == adminRole.Id))
             {
-                await channel.BotResponse("WS team `" + teamName + "` is not assembled yet!", ResponseType.error);
+                await channel.BotResponse("Only members of the " + adminRole.Name + " role can use this command!", ResponseType.error);
                 return;
             }
 
-            if (!team.Scanning)
+            if (channel is not SocketThreadChannel thread)
             {
-                await channel.BotResponse("WS team `" + teamName + "` is not scanning yet! You must start scanning with `" + DiscordBot.CommandPrefix + ".wsscan` first.", ResponseType.error);
+                await channel.BotResponse("You have to use this command in the team's admin thread!", ResponseType.error);
+                return;
+            }
+
+            var teamRoleId = thread.ParentChannel.PermissionOverwrites
+                .FirstOrDefault(x => x.TargetType == PermissionTarget.Role
+                    && WsTeamExists(guild.Id, guild.GetRole(x.TargetId).Name))
+                .TargetId;
+
+            var teamRole = guild.GetRole(teamRoleId);
+            if (teamRole == null)
+            {
+                await channel.BotResponse("You have to use this command in the team's admin thread!", ResponseType.error);
+                return;
+            }
+
+            var team = GetWsTeam(guild.Id, teamRole.Name);
+            if (team == null)
+            {
+                await channel.BotResponse(team.Name + " is not assembled yet!", ResponseType.error);
+                return;
+            }
+
+            if (thread.GetPermissionOverwrite(teamRole) == null)
+            {
+                await channel.BotResponse("You have to use this command in the team's admin thread!", ResponseType.error);
+                return;
+            }
+
+            if (team.Scanning)
+            {
+                await channel.BotResponse(team.Name + " is already scanning!", ResponseType.error);
                 return;
             }
 
             if (team.Opponent != null)
             {
-                await channel.BotResponse("WS team `" + teamName + "` is already matched against " + team.Opponent + "!", ResponseType.error);
+                await channel.BotResponse(team.Name + " is already matched against " + team.Opponent + "!", ResponseType.error);
+                return;
+            }
+
+            team.Scanning = true;
+            SaveWsTeam(guild.Id, team);
+
+            var corp = guild.FindCorp(alliance, team.Members.CorpAbbreviation);
+            if (corp == null)
+            {
+                await channel.BotResponse("Can't find team's corp: " + team.Members.CorpAbbreviation, ResponseType.error);
+                return;
+            }
+
+            await (thread.ParentChannel as SocketTextChannel).SendMessageAsync(teamRole.Mention + " scan started, do not leave " + corp.FullName + "!");
+
+            await thread.SendMessageAsync(":information_source: Type `" + DiscordBot.CommandPrefix + "wsmatched <ends_in> <opponent_name>` when scan is finished. Example: `" + DiscordBot.CommandPrefix + "wsmatched 4d23h12m Blue Star Order`");
+
+            await AnnounceWS(guild, channel, team.Name + " started scanning in " + corp.FullName + "!");
+        }
+
+        public static async Task WsTeamMatched(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string opponentName, string endsIn)
+        {
+            var alliance = AllianceLogic.GetAlliance(guild.Id);
+            if (alliance == null)
+                return;
+
+            var adminRole = alliance.AdmiralRoleId != 0 ? guild.GetRole(alliance.AdmiralRoleId) : null;
+            if (adminRole != null && !currentUser.Roles.Any(x => x.Id == adminRole.Id))
+            {
+                await channel.BotResponse("Only members of the " + adminRole.Name + " role can use this command!", ResponseType.error);
+                return;
+            }
+
+            if (channel is not SocketThreadChannel thread)
+            {
+                await channel.BotResponse("You have to use this command in the team's admin thread!", ResponseType.error);
+                return;
+            }
+
+            var teamRoleId = thread.ParentChannel.PermissionOverwrites
+                .FirstOrDefault(x => x.TargetType == PermissionTarget.Role
+                    && WsTeamExists(guild.Id, guild.GetRole(x.TargetId).Name))
+                .TargetId;
+
+            var teamRole = guild.GetRole(teamRoleId);
+            if (teamRole == null)
+            {
+                await channel.BotResponse("You have to use this command in the team's admin thread!", ResponseType.error);
+                return;
+            }
+
+            var team = GetWsTeam(guild.Id, teamRole.Name);
+            if (team == null)
+            {
+                await channel.BotResponse(team.Name + " is not assembled yet!", ResponseType.error);
+                return;
+            }
+
+            if (!team.Scanning)
+            {
+                await channel.BotResponse(team.Name + " is not scanning yet! You must start scanning with `" + DiscordBot.CommandPrefix + "wsscan` first.", ResponseType.error);
+                return;
+            }
+
+            if (team.Opponent != null)
+            {
+                await channel.BotResponse(team.Name + " is already matched against " + team.Opponent + "!", ResponseType.error);
                 return;
             }
 
@@ -290,16 +350,18 @@
 
             SaveWsTeam(guild.Id, team);
 
-            var alliance = AllianceLogic.GetAlliance(guild.Id);
-
             var corp = guild.FindCorp(alliance, team.Members.CorpAbbreviation);
-            if (corp != null)
+            if (corp == null)
             {
                 await channel.BotResponse("Can't find team's corp: " + team.Members.CorpAbbreviation, ResponseType.error);
                 return;
             }
 
-            await AnnounceWS(guild, channel, teamName + " is matched against " + team.Opponent + ". Good luck!");
+            await (thread.ParentChannel as SocketTextChannel).SendMessageAsync(teamRole.Mention + " scan finished, our opponent is `" + team.Opponent + "`. Good luck!");
+
+            await thread.SendMessageAsync(":information_source: Use the " + (thread.ParentChannel as SocketTextChannel).Threads.FirstOrDefault(x => x.Name == "orders").Mention + " channel to give orders to the team!");
+
+            await AnnounceWS(guild, channel, team.Name + " matched against `" + team.Opponent + "`. Good luck!");
         }
 
         internal static async Task ManageDraft(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, SocketRole role, bool add, List<SocketGuildUser> mains, List<AllianceLogic.Alt> alts, List<string> unknownNames)
@@ -462,11 +524,19 @@
         public static WsTeam GetWsTeam(ulong guildId, string teamName)
         {
             var res = Services.State.Get<WsTeam>(guildId, "ws-team-" + teamName);
-            if (res.Members.Mains == null)
-                res.Members.Mains = new List<ulong>();
-            if (res.Members.Alts == null)
-                res.Members.Alts = new List<AllianceLogic.Alt>();
+            if (res != null)
+            {
+                if (res.Members.Mains == null)
+                    res.Members.Mains = new List<ulong>();
+                if (res.Members.Alts == null)
+                    res.Members.Alts = new List<AllianceLogic.Alt>();
+            }
             return res;
+        }
+
+        public static bool WsTeamExists(ulong guildId, string teamName)
+        {
+            return Services.State.Exists(guildId, "ws-team-" + teamName);
         }
 
         private static void SaveWsTeam(ulong guildId, WsTeam team)

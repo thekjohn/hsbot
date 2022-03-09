@@ -1,5 +1,6 @@
 ﻿namespace HsBot.Logic
 {
+    using Discord;
     using Discord.Commands;
     using Discord.WebSocket;
 
@@ -128,19 +129,20 @@
         }
 
         [Command("wsscan")]
-        [Summary("wsscan <teamName>|indicates as WS team is scanning")]
-        public async Task SetWsScan(string teamName)
+        [Summary("wsscan|indicates as WS team is scanning")]
+        public async Task WsTeamScanning()
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await WsDraftLogic.WsScanStarted(Context.Guild, Context.Channel, CurrentUser, teamName);
+            await WsDraftLogic.WsTeamScanning(Context.Guild, Context.Channel, CurrentUser);
         }
 
         [Command("wsmatched")]
-        [Summary("wsmatched <teamName> <ends_in>|indicates as WS team is matched and ends in a specific amount of time (ex: 4d22h)")]
-        public async Task SetWsScan(string teamName, string opponentName, string endsIn)
+        [Summary("wsmatched <ends_in> <opponent_name>|indicates as WS team matched and ends in a specific amount of time (ex: 4d22h)")]
+        [RequireUserPermission(GuildPermission.ChangeNickname)]
+        public async Task WsTeamMatched(string endsIn, [Remainder] string opponentName)
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await WsDraftLogic.WsMatched(Context.Guild, Context.Channel, CurrentUser, teamName, opponentName, endsIn);
+            await WsDraftLogic.WsTeamMatched(Context.Guild, Context.Channel, CurrentUser, opponentName, endsIn);
         }
     }
 }
