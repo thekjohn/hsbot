@@ -4,6 +4,7 @@
     using System.Threading.Tasks;
     using Discord;
     using Discord.Commands;
+    using Discord.WebSocket;
 
     [Summary("help")]
     public class HelpCommandModule : BaseModule
@@ -49,6 +50,11 @@
         {
             await CleanupService.DeleteCommand(Context.Message);
 
+            await ShowHelp(Context.Channel, command);
+        }
+
+        public static async Task ShowHelp(ISocketMessageChannel channel, string command)
+        {
             var commands = DiscordBot.Commands.Commands.ToList();
             var eb = new EmbedBuilder();
 
@@ -109,11 +115,11 @@
                     }
                 }
 
-                await ReplyAsync("Description of the `" + DiscordBot.CommandPrefix + cmd.Name + "` command", false, eb.Build());
+                await channel.SendMessageAsync("Description of the `" + DiscordBot.CommandPrefix + cmd.Name + "` command", false, eb.Build());
             }
             else
             {
-                await Context.Channel.BotResponse("Unknown command: " + command, ResponseType.error);
+                await channel.BotResponse("Unknown command: " + command, ResponseType.error);
             }
         }
 

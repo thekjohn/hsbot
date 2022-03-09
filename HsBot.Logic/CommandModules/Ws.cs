@@ -36,29 +36,5 @@
             await CleanupService.DeleteCommand(Context.Message);
             await AfkLogic.RemoveAfk(Context.Guild, Context.Channel, CurrentUser);
         }
-
-        [Command("wsresults")]
-        [Summary("wsresults <teamName>|list the previous results of a WS team")]
-        public async Task ShowWsWesults(string teamName)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-            await WsLogic.ShowWsWesults(Context.Guild, Context.Channel, CurrentUser, teamName);
-        }
-
-        [Command("wsscan")]
-        [Summary("wsscan <teamName>|indicates as WS team is scanning")]
-        public async Task SetWsScan(string teamName)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-            await WsLogic.WsScanStarted(Context.Guild, Context.Channel, CurrentUser, teamName);
-        }
-
-        [Command("wsmatched")]
-        [Summary("wsmatched <teamName> <ends_in>|indicates as WS team is matched and ends in a specific amount of time (ex: 4d22h)")]
-        public async Task SetWsScan(string teamName, string opponentName, string endsIn)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-            await WsLogic.WsMatched(Context.Guild, Context.Channel, CurrentUser, teamName, opponentName, endsIn);
-        }
     }
 }

@@ -86,6 +86,13 @@
             public ulong OwnerUserId { get; set; }
             public string Name { get; set; }
             public ulong? AltUserId { get; set; }
+
+            public bool Equals(Alt alt)
+            {
+                return
+                    (AltUserId != null && alt.AltUserId != null && AltUserId.Value == alt.AltUserId.Value)
+                    || (AltUserId == null && alt.AltUserId == null && string.Equals(Name, alt.Name, StringComparison.InvariantCultureIgnoreCase));
+            }
         }
     }
 }

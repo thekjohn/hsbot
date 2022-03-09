@@ -123,6 +123,20 @@
                                     }
                                 }
 
+                                if (alliance.WsDraftChannelId != 0)
+                                {
+                                    var draft = new WsDraftLogic.WsDraft()
+                                    {
+                                        OriginalSignup = signup,
+                                        ChannelId = alliance.WsDraftChannelId,
+                                        MessageId = 0,
+                                        Teams = new List<WsDraftLogic.WsTeam>(),
+                                    };
+
+                                    WsDraftLogic.SaveWsDraft(guild.Id, draft);
+                                    await WsDraftLogic.RepostDraft(guild);
+                                }
+
                                 await RefreshSignup(guild, channel, signup.MessageId);
                                 await channel.SendMessageAsync(message, embed: eb.Build());
                             }
@@ -494,7 +508,7 @@
             public List<AllianceLogic.Alt> Alts { get; init; }
         }
 
-        internal class WsSignup
+        public class WsSignup
         {
             public ulong ChannelId { get; set; }
             public ulong MessageId { get; set; }

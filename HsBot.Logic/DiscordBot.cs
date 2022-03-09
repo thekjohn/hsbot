@@ -172,6 +172,7 @@
             await Commands.AddModuleAsync(typeof(HelpCommandModule), null);
             await Commands.AddModuleAsync(typeof(Rs), null);
             await Commands.AddModuleAsync(typeof(Ws), null);
+            await Commands.AddModuleAsync(typeof(WsDraft), null);
             await Commands.AddModuleAsync(typeof(Wiki), null);
             await Commands.AddModuleAsync(typeof(Admin), null);
 
@@ -255,7 +256,8 @@
 
             if (result.Error == CommandError.BadArgCount)
             {
-                await context.Channel.SendMessageAsync("Parameter count does not match any command's. Use " + CommandPrefix + "help to get some help.");
+                await context.Channel.SendMessageAsync("Parameter count doesn't match.");
+                await HelpCommandModule.ShowHelp(context.Channel as ISocketMessageChannel, command.Value.Name);
                 return;
             }
 
