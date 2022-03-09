@@ -1,6 +1,7 @@
 ﻿namespace HsBot.Logic
 {
     using System.Globalization;
+    using Discord;
     using Discord.WebSocket;
 
     public static class AfkLogic
@@ -41,32 +42,43 @@
             }
         }
 
-        public static AfkEntry GetUserAfk(ulong guildId, ulong userId)
+        public static async Task<AfkEntry> GetUserAfk(SocketGuild guild, SocketGuildUser user)
         {
-            var entry = Services.State.Get<AfkEntry>(guildId, "afk-user-" + userId);
+            var entry = Services.State.Get<AfkEntry>(guild.Id, "afk-user-" + user.Id);
             if (entry == null)
                 return null;
 
             if (entry.EndsOn <= DateTime.UtcNow)
             {
-                Services.State.Delete(guildId, "afk-user-" + userId);
-                entry = null;
+                await RemoveAfk(guild, user);
+                return null;
             }
 
             return entry;
         }
 
-        public static List<AfkEntry> GetAfkList(ulong guildId)
+        public static async Task<List<AfkEntry>> GetAfkList(SocketGuild guild)
         {
+            var ids = Services.State.ListIds(guild.Id, "afk-user-");
+            if (ids.Length == 0)
+                return null;
+
             var result = new List<AfkEntry>();
-            var ids = Services.State.ListIds(guildId, "afk-user-");
             var now = DateTime.UtcNow;
             foreach (var id in ids)
             {
-                var entry = Services.State.Get<AfkEntry>(guildId, id);
+                var entry = Services.State.Get<AfkEntry>(guild.Id, id);
                 if (entry.EndsOn <= now)
                 {
-                    Services.State.Delete(guildId, id);
+                    var user = guild.GetUser(entry.UserId);
+                    if (user != null)
+                    {
+                        await RemoveAfk(guild, user);
+                    }
+                    else
+                    {
+                        Services.State.Delete(guild.Id, id);
+                    }
                 }
                 else
                 {
@@ -77,21 +89,47 @@
             return result;
         }
 
+        internal static async void AutomaticallyRemoveAfkThreadWorker(object obj)
+        {
+            while (true)
+            {
+                foreach (var guild in DiscordBot.Discord.Guilds)
+                {
+                    await GetAfkList(guild);
+                }
+
+                Thread.Sleep(10000);
+            }
+        }
+
         public static async Task RemoveAfk(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user)
         {
-            Services.State.Delete(guild.Id, "afk-user-" + user.Id);
-
-            var rsQueueRole = GetRsQueueRole(guild.Id);
-            if (rsQueueRole != 0 && !user.Roles.Any(x => x.Id == rsQueueRole))
-            {
-                var role = guild.Roles.FirstOrDefault(x => x.Id == rsQueueRole);
-                if (role == null)
-                    await channel.BotResponse("The role set by `!set-rs-queue-role` doesn't exist!", ResponseType.error);
-
-                await user.AddRoleAsync(role);
-            }
+            await RemoveAfk(guild, user);
 
             await channel.BotResponse(user.DisplayName + " is no longer AFK. RS access enabled.", ResponseType.infoStay);
+        }
+
+        public static async Task RemoveAfk(SocketGuild guild, SocketGuildUser user)
+        {
+            var stateId = "afk-user-" + user.Id;
+            if (!Services.State.Exists(guild.Id, stateId))
+                return;
+
+            Services.State.Delete(guild.Id, stateId);
+
+            var eb = new EmbedBuilder()
+                .WithTitle("AFK status removed")
+                .AddField("user", user.DisplayName + " (" + user.Id.ToStr() + ")");
+
+            LogService.LogToChannel(guild, null, eb.Build());
+
+            var rsQueueRoleId = GetRsQueueRole(guild.Id);
+            if (rsQueueRoleId != 0 && !user.Roles.Any(x => x.Id == rsQueueRoleId))
+            {
+                var role = guild.Roles.FirstOrDefault(x => x.Id == rsQueueRoleId);
+                if (role != null)
+                    await user.AddRoleAsync(role);
+            }
         }
 
         public class AfkEntry

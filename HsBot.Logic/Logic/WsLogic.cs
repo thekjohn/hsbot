@@ -64,6 +64,12 @@
                 return;
             }
 
+            if (team.Opponent != null)
+            {
+                await channel.BotResponse("WS team `" + teamName + "` is already matched against " + team.Opponent + "!", ResponseType.error);
+                return;
+            }
+
             team.Scanning = true;
             SaveWsTeam(guild.Id, team);
 
@@ -90,6 +96,12 @@
             if (!team.Scanning)
             {
                 await channel.BotResponse("WS team `" + teamName + "` is not scanning yet! You must start scanning with `" + DiscordBot.CommandPrefix + ".wsscan` first.", ResponseType.error);
+                return;
+            }
+
+            if (team.Opponent != null)
+            {
+                await channel.BotResponse("WS team `" + teamName + "` is already matched against " + team.Opponent + "!", ResponseType.error);
                 return;
             }
 

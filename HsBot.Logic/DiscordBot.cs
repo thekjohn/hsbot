@@ -59,6 +59,7 @@
             new Thread(RsCleanupThreadWorker).Start();
             new Thread(RemindLogic.SendRemindersThreadWorker).Start();
             new Thread(WsSignupLogic.AutomaticallyCloseThreadWorker).Start();
+            new Thread(AfkLogic.AutomaticallyRemoveAfkThreadWorker).Start();
 
             //var msg = await Discord.Guilds.First().GetTextChannel(830622786396618772).GetMessageAsync(943863908253438002);
 
@@ -131,7 +132,7 @@
                                         var askedOn = Services.State.Get<DateTime>(guild.Id, userActivityConfirmationAskedStateId);
                                         if (askedOn.AddMinutes(2) < now)
                                         {
-                                            await Rs.RemoveQueue(guild, channel, level, user, null);
+                                            await Rs.RemoveQueue(guild, channel, level, user, null, true);
                                             break; // skip the check and removal of other users until next cycle
                                         }
 
@@ -204,12 +205,15 @@
 
                 if (user != null && message.MentionedUsers?.Count > 0)
                 {
-                    var afkList = AfkLogic.GetAfkList(textChannel.Guild.Id);
-                    foreach (var afk in afkList)
+                    var afkList = await AfkLogic.GetAfkList(textChannel.Guild);
+                    if (afkList != null)
                     {
-                        if (message.MentionedUsers.FirstOrDefault(x => x.Id == afk.UserId) is SocketGuildUser muser)
+                        foreach (var afk in afkList)
                         {
-                            await textChannel.BotResponse(muser.DisplayName + " is AFK for " + afk.EndsOn.Subtract(DateTime.UtcNow).ToIntervalStr() + ".", ResponseType.infoStay);
+                            if (message.MentionedUsers.FirstOrDefault(x => x.Id == afk.UserId) is SocketGuildUser muser)
+                            {
+                                await textChannel.BotResponse(muser.DisplayName + " is AFK for " + afk.EndsOn.Subtract(DateTime.UtcNow).ToIntervalStr() + ".", ResponseType.infoStay);
+                            }
                         }
                     }
                 }

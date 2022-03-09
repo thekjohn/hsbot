@@ -161,7 +161,7 @@
                         .Append("**)");
                 }
 
-                var afk = AfkLogic.GetUserAfk(guild.Id, user.Id);
+                var afk = await AfkLogic.GetUserAfk(guild, user);
                 if (afk != null)
                 {
                     sb
@@ -220,7 +220,7 @@
                             .Append("**)");
                     }
 
-                    var afk = AfkLogic.GetUserAfk(guild.Id, user.Id);
+                    var afk = await AfkLogic.GetUserAfk(guild, user);
                     if (afk != null)
                     {
                         sb
@@ -299,13 +299,13 @@
                     eb.AddField("owner of this alt", ownerText);
 
                     timeZone = TimeZoneLogic.GetUserTimeZone(guild.Id, owner.Id);
-                    afk = AfkLogic.GetUserAfk(guild.Id, owner.Id);
+                    afk = await AfkLogic.GetUserAfk(guild, owner);
                 }
             }
             else
             {
                 timeZone = TimeZoneLogic.GetUserTimeZone(guild.Id, user.Id);
-                afk = AfkLogic.GetUserAfk(guild.Id, user.Id);
+                afk = await AfkLogic.GetUserAfk(guild, user);
             }
 
             if (afk != null)

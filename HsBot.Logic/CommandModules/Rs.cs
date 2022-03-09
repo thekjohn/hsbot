@@ -22,7 +22,7 @@
         public async Task Out(int? level = null)
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await RemoveQueue(Context.Guild, Context.Channel, level, CurrentUser, null);
+            await RemoveQueue(Context.Guild, Context.Channel, level, CurrentUser, null, true);
         }
 
         [Command("ping")]
@@ -131,16 +131,24 @@
 
             var roleMentionStateId = Services.State.GetId("rs-queue-last-role-mention", role.Id);
             var lastRsMention = Services.State.Get<DateTime?>(guild.Id, roleMentionStateId);
+
+            var text = role.Name;
             if (lastRsMention == null || DateTime.UtcNow > lastRsMention.Value.AddMinutes(5))
             {
                 lastRsMention = DateTime.UtcNow;
                 Services.State.Set(guild.Id, roleMentionStateId, lastRsMention);
-                await channel.SendMessageAsync(":question: " + role.Mention + " anyone? (" + queue.Users.Count.ToStr() + "/4)");
+                text = role.Mention;
             }
-            else
-            {
-                await channel.SendMessageAsync(":question: " + role.Name + " anyone? (" + queue.Users.Count.ToStr() + "/4)");
-            }
+
+            var alliance = AllianceLogic.GetAlliance(guild.Id);
+
+            await channel.SendMessageAsync(
+                ":question: " + text + " anyone?\n  (" + queue.Users.Count.ToStr() + "/4) :point_right: "
+                + string.Join(" ", queue.Users
+                    .Select(x => guild.GetUser(x))
+                    .Where(x => x != null)
+                    .Select(x => alliance.GetUserCorpIcon(x) + x.DisplayName)
+                    ));
         }
 
         private async Task AddQueue(int? level, SocketGuildUser user)
@@ -217,7 +225,7 @@
 
                 foreach (var userId in queue.Users)
                 {
-                    await RemoveQueue(Context.Guild, Context.Channel, null, Context.Guild.GetUser(userId), level);
+                    await RemoveQueue(Context.Guild, Context.Channel, null, Context.Guild.GetUser(userId), level, false);
                 }
             }
 
@@ -281,7 +289,7 @@
                 cnt++;
                 Services.State.Set(Context.Guild.Id, runCountStateId, cnt);
 
-                await RemoveQueue(Context.Guild, Context.Channel, null, Context.Guild.GetUser(userId), level);
+                await RemoveQueue(Context.Guild, Context.Channel, null, Context.Guild.GetUser(userId), level, false);
             }
 
             await RefreshQueue(Context.Guild, Context.Channel, level);
@@ -399,7 +407,7 @@
             Services.State.Set(guild.Id, queueStateId, queue);
         }
 
-        public static async Task RemoveQueue(SocketGuild guild, ISocketMessageChannel channel, int? specificLevel, SocketGuildUser user, int? exceptLevel)
+        public static async Task RemoveQueue(SocketGuild guild, ISocketMessageChannel channel, int? specificLevel, SocketGuildUser user, int? exceptLevel, bool log)
         {
             var nonEmptyQueuesLeft = new List<int>();
 
