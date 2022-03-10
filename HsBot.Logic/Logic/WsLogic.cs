@@ -7,7 +7,7 @@
     using Discord;
     using Discord.WebSocket;
 
-    public static class WsDraftLogic
+    public static class WsLogic
     {
         public static async Task ShowWsWesults(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string teamName)
         {
@@ -120,11 +120,6 @@
                 }
             }
 
-            foreach (var team in draft.Teams)
-            {
-                SaveWsTeam(guild.Id, team);
-            }
-
             //Services.State.Rename(guild.Id, "ws-draft", "ws-draft-archive-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssffff", CultureInfo.InvariantCulture));
 
             var alliance = AllianceLogic.GetAlliance(guild.Id);
@@ -190,8 +185,17 @@
                         f.Position = channelIndex;
                     });
 
+                    team.BattleRoomChannelId = battleRoom.Id;
+
                     await battleRoom.AddPermissionOverwriteAsync(guild.EveryoneRole, new OverwritePermissions(viewChannel: PermValue.Deny));
                     await battleRoom.AddPermissionOverwriteAsync(role, new OverwritePermissions(viewChannel: PermValue.Allow));
+
+                    var compendiumRole = guild.Roles.FirstOrDefault(x => x.Tags?.BotId == 548952307384188949);
+                    if (compendiumRole != null)
+                    {
+                        await battleRoom.AddPermissionOverwriteAsync(compendiumRole, new OverwritePermissions(viewChannel: PermValue.Allow, sendMessages: PermValue.Allow));
+                    }
+
                     //await battleRoom.AddPermissionOverwriteAsync(admiralRole, new OverwritePermissions(viewChannel: PermValue.Allow));
 
                     await battleRoom.SendMessageAsync(role.Name + " battleroom is ready, please head to " + corp.FullName + " (" + corp.Abbreviation + ") for scan!", embed: eb.Build());
@@ -204,6 +208,7 @@
                             .Select(x => alliance.GetUserCorpIcon(x) + x.Mention)));
 
                     var ordersThread = await battleRoom.CreateThreadAsync("orders", ThreadType.PublicThread, ThreadArchiveDuration.OneDay, ordersMsg);
+                    team.OrdersChannelId = ordersThread.Id;
 
                     var admiralMsg = await battleRoom.SendMessageAsync("A quiet place for admirals: " +
                         string.Join(" ", usersToMention.Select(x => guild.GetUser(x)).Where(x => x.Roles.Any(y => y.Id == admiralRole.Id)).Select(x => alliance.GetUserCorpIcon(x) + x.Mention)));
@@ -211,14 +216,41 @@
                     if (admiralRole != null)
                     {
                         var admiralThread = await battleRoom.CreateThreadAsync("admiral", ThreadType.PublicThread, ThreadArchiveDuration.OneDay, admiralMsg);
-                        await admiralThread.SendMessageAsync(":information_source: Type " + DiscordBot.CommandPrefix + "`wsscan` here when scan is started in " + corp.FullName + ".");
+                        await admiralThread.SendMessageAsync(":information_source: Type " + DiscordBot.CommandPrefix + "`wsscan` here when scan is started in " + corp.FullName + ". Make sure the corp is closed before the scan to prevent a high influence pilot joining to the corp and ruining the scan.");
+                        team.AdmiralChannelId = admiralThread.Id;
                     }
 
                     channelIndex++;
                 }
+
+                SaveWsTeam(guild.Id, team);
             }
 
             await HelpLogic.ShowAllianceInfo(guild, ch, alliance);
+        }
+
+        public static bool GetWsTeamByChannel(SocketGuild guild, ISocketMessageChannel channel, out WsTeam team, out SocketRole role)
+        {
+            foreach (var stateId in Services.State.ListIds(guild.Id, "ws-team-"))
+            {
+                var t = Services.State.Get<WsTeam>(guild.Id, stateId);
+                if (t.BattleRoomChannelId == channel.Id
+                    || t.AdmiralChannelId == channel.Id
+                    || t.OrdersChannelId == channel.Id)
+                {
+                    var r = guild.GetRole(t.RoleId);
+                    if (r != null)
+                    {
+                        team = t;
+                        role = r;
+                        return true;
+                    }
+                }
+            }
+
+            team = null;
+            role = null;
+            return false;
         }
 
         public static async Task WsTeamScanning(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
@@ -234,28 +266,9 @@
                 return;
             }
 
-            if (channel is not SocketThreadChannel thread)
+            if (channel is not SocketThreadChannel thread || !GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
             {
                 await channel.BotResponse("You have to use this command in the team's admin thread!", ResponseType.error);
-                return;
-            }
-
-            var teamRoleId = thread.ParentChannel.PermissionOverwrites
-                .FirstOrDefault(x => x.TargetType == PermissionTarget.Role
-                    && WsTeamExists(guild.Id, guild.GetRole(x.TargetId).Name))
-                .TargetId;
-
-            var teamRole = guild.GetRole(teamRoleId);
-            if (teamRole == null)
-            {
-                await channel.BotResponse("You have to use this command in the team's admin thread!", ResponseType.error);
-                return;
-            }
-
-            var team = GetWsTeam(guild.Id, teamRole.Name);
-            if (team == null)
-            {
-                await channel.BotResponse(team.Name + " is not assembled yet!", ResponseType.error);
                 return;
             }
 
@@ -307,28 +320,9 @@
                 return;
             }
 
-            if (channel is not SocketThreadChannel thread)
+            if (channel is not SocketThreadChannel thread || !GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
             {
                 await channel.BotResponse("You have to use this command in the team's admin thread!", ResponseType.error);
-                return;
-            }
-
-            var teamRoleId = thread.ParentChannel.PermissionOverwrites
-                .FirstOrDefault(x => x.TargetType == PermissionTarget.Role
-                    && WsTeamExists(guild.Id, guild.GetRole(x.TargetId).Name))
-                .TargetId;
-
-            var teamRole = guild.GetRole(teamRoleId);
-            if (teamRole == null)
-            {
-                await channel.BotResponse("You have to use this command in the team's admin thread!", ResponseType.error);
-                return;
-            }
-
-            var team = GetWsTeam(guild.Id, teamRole.Name);
-            if (team == null)
-            {
-                await channel.BotResponse(team.Name + " is not assembled yet!", ResponseType.error);
                 return;
             }
 
@@ -430,7 +424,7 @@
                     + "\n:point_right: remove a team: `" + DiscordBot.CommandPrefix + "draft-remove-team <roleName>`"
                     + "\n:point_right: add users to a team: `" + DiscordBot.CommandPrefix + "draft add <roleName> <userNames>`"
                     + "\n:point_right: remove users from a team: `" + DiscordBot.CommandPrefix + "draft remove <roleName> <userNames>`"
-                    + "\n:point_right: close draft and create teams, ready to scan: `" + DiscordBot.CommandPrefix + "draft-close`"
+                    + "\n:point_right: close draft and create teams, ready to scan: `" + DiscordBot.CommandPrefix + "close-draft`"
                     + "\nAdding users to a team will remove them from all other teams automatically.");
 
             var userList = draft.OriginalSignup.CompetitiveUsers.Where(x => !draft.Contains(x)).ToList();
@@ -571,6 +565,123 @@
             Services.State.Set(guildId, "ws-draft", draft);
         }
 
+        internal static async void NotifyThreadWorker(object obj)
+        {
+            while (true)
+            {
+                var now = DateTime.UtcNow;
+                foreach (var guild in DiscordBot.Discord.Guilds)
+                {
+                    var ids = Services.State.ListIds(guild.Id, "ws-team-");
+                    foreach (var signupStateId in ids)
+                    {
+                        var team = Services.State.Get<WsTeam>(guild.Id, signupStateId);
+                        if (team == null || team.EndsOn == null)
+                            continue;
+
+                        var teamRole = guild.GetRole(team.RoleId);
+                        if (teamRole == null)
+                            continue;
+
+                        if (team.Opponent == null)
+                            continue;
+
+                        if (team.NotifyPreparationEndsMessageId == null
+                            && team.EndsOn.Value.AddDays(-4).AddHours(-16) <= now)
+                        {
+                            var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                            if (channel != null)
+                            {
+                                var sent = await channel.SendMessageAsync(teamRole.Mention + " preparation ends in "
+                                    + DateTime.Now.Subtract(team.EndsOn.Value.AddDays(-4).AddHours(-12)).ToIntervalStr(true, false)
+                                    + ". Make sure you read and scheduled all orders in " + guild.GetThreadChannel(team.OrdersChannelId).Mention + "!");
+                                team.NotifyPreparationEndsMessageId = sent.Id;
+
+                                SaveWsTeam(guild.Id, team);
+                            }
+                        }
+
+                        if (team.NotifySecondDayMessageId == null
+                            && team.EndsOn.Value.AddDays(-3).AddHours(-16) <= now)
+                        {
+                            var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                            if (channel != null)
+                            {
+                                var sent = await channel.SendMessageAsync(teamRole.Mention + " second day starts in "
+                                    + DateTime.Now.Subtract(team.EndsOn.Value.AddDays(-3).AddHours(-12)).ToIntervalStr(true, false)
+                                    + ". Make sure you read and scheduled all orders in " + guild.GetThreadChannel(team.OrdersChannelId).Mention + "!");
+                                team.NotifySecondDayMessageId = sent.Id;
+
+                                SaveWsTeam(guild.Id, team);
+                            }
+                        }
+
+                        if (team.NotifyThirdDayMessageId == null
+                            && team.EndsOn.Value.AddDays(-2).AddHours(-16) <= now)
+                        {
+                            var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                            if (channel != null)
+                            {
+                                var sent = await channel.SendMessageAsync(teamRole.Mention + " third day starts in "
+                                    + now.Subtract(team.EndsOn.Value.AddDays(-2).AddHours(-12)).ToIntervalStr(true, false)
+                                    + ". Make sure you read and scheduled all orders in " + guild.GetThreadChannel(team.OrdersChannelId).Mention + "!");
+                                team.NotifyThirdDayMessageId = sent.Id;
+
+                                SaveWsTeam(guild.Id, team);
+                            }
+                        }
+
+                        if (team.NotifyFourthDayMessageId == null
+                            && team.EndsOn.Value.AddDays(-1).AddHours(-16) <= now)
+                        {
+                            var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                            if (channel != null)
+                            {
+                                var sent = await channel.SendMessageAsync(teamRole.Mention + " fourth day starts in "
+                                    + now.Subtract(team.EndsOn.Value.AddDays(-1).AddHours(-12)).ToIntervalStr(true, false)
+                                    + ". Make sure you read and scheduled all orders in " + guild.GetThreadChannel(team.OrdersChannelId).Mention + "!");
+                                team.NotifyFourthDayMessageId = sent.Id;
+
+                                SaveWsTeam(guild.Id, team);
+                            }
+                        }
+
+                        if (team.NotifyLastHalfDayMessageId == null
+                            && team.EndsOn.Value.AddDays(-1).AddHours(-16) <= now)
+                        {
+                            var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                            if (channel != null)
+                            {
+                                var sent = await channel.SendMessageAsync(teamRole.Mention + " WS ends in "
+                                    + team.EndsOn.Value.Subtract(now).ToIntervalStr(true, false) + ".");
+                                team.NotifyLastHalfDayMessageId = sent.Id;
+
+                                SaveWsTeam(guild.Id, team);
+                            }
+                        }
+
+                        if (team.Notify2hMessageId == null
+                            && team.EndsOn.Value.AddHours(-2) <= now)
+                        {
+                            var channel = guild.GetTextChannel(team.AdmiralChannelId);
+                            if (channel != null)
+                            {
+                                var sent = await channel.SendMessageAsync(teamRole.Mention + " WS ends in "
+                                    + team.EndsOn.Value.Subtract(now).ToIntervalStr(true, false) + ". Type `!wsclose <score> <opponentScore>` to close this WS and delete all channels!");
+                                team.Notify2hMessageId = sent.Id;
+
+                                SaveWsTeam(guild.Id, team);
+                            }
+                        }
+                    }
+                }
+
+                Thread.Sleep(10000);
+            }
+        }
+
+        public enum WsKind { Unknown, Competitive, Casual, Inactive }
+
         public class WsResult
         {
             public string TeamName { get; set; }
@@ -580,6 +691,7 @@
             public int Score { get; set; }
             public int OpponentScore { get; set; }
             public WsTeamMembers TeamMembers { get; set; }
+            public WsKind Kind { get; set; } = WsKind.Unknown;
         }
 
         public class WsTeamMembers
@@ -597,6 +709,17 @@
             public WsTeamMembers Members { get; set; } = new WsTeamMembers();
             public bool Scanning { get; set; }
             public DateTime? EndsOn { get; set; }
+
+            public ulong BattleRoomChannelId { get; set; }
+            public ulong AdmiralChannelId { get; set; }
+            public ulong OrdersChannelId { get; set; }
+
+            public ulong? NotifyPreparationEndsMessageId { get; set; }
+            public ulong? NotifySecondDayMessageId { get; set; }
+            public ulong? NotifyThirdDayMessageId { get; set; }
+            public ulong? NotifyFourthDayMessageId { get; set; }
+            public ulong? NotifyLastHalfDayMessageId { get; set; }
+            public ulong? Notify2hMessageId { get; set; }
         }
 
         public class WsDraft

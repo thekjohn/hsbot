@@ -12,7 +12,7 @@
         public async Task ShowWsWesults(string teamName)
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await WsDraftLogic.ShowWsWesults(Context.Guild, Context.Channel, CurrentUser, teamName);
+            await WsLogic.ShowWsWesults(Context.Guild, Context.Channel, CurrentUser, teamName);
         }
 
         [Command("draft-add-team")]
@@ -36,7 +36,7 @@
                 return;
             }
 
-            await WsDraftLogic.AddDraftTeam(Context.Guild, Context.Channel, CurrentUser, role, corp);
+            await WsLogic.AddDraftTeam(Context.Guild, Context.Channel, CurrentUser, role, corp);
         }
 
         [Command("draft-remove-team")]
@@ -52,7 +52,7 @@
                 return;
             }
 
-            await WsDraftLogic.RemoveDraftTeam(Context.Guild, Context.Channel, CurrentUser, role);
+            await WsLogic.RemoveDraftTeam(Context.Guild, Context.Channel, CurrentUser, role);
         }
 
         [Command("draft")]
@@ -117,15 +117,15 @@
             if (unknownNames.Count > 0)
                 await Context.Channel.BotResponse("Uknown names: " + string.Join(", ", unknownNames.Select(x => "`" + x + "`")), ResponseType.error);
 
-            await WsDraftLogic.ManageDraft(Context.Guild, Context.Channel, CurrentUser, role, operation == "add", mains, alts, unknownNames);
+            await WsLogic.ManageDraft(Context.Guild, Context.Channel, CurrentUser, role, operation == "add", mains, alts, unknownNames);
         }
 
-        [Command("draft-close")]
-        [Summary("draft-close|close the draft and create the teams")]
+        [Command("close-draft")]
+        [Summary("close-draft|close the draft and create the teams")]
         public async Task CloseDraft()
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await WsDraftLogic.CloseDraft(Context.Guild, Context.Channel, CurrentUser);
+            await WsLogic.CloseDraft(Context.Guild, Context.Channel, CurrentUser);
         }
 
         [Command("wsscan")]
@@ -133,7 +133,7 @@
         public async Task WsTeamScanning()
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await WsDraftLogic.WsTeamScanning(Context.Guild, Context.Channel, CurrentUser);
+            await WsLogic.WsTeamScanning(Context.Guild, Context.Channel, CurrentUser);
         }
 
         [Command("wsmatched")]
@@ -142,7 +142,7 @@
         public async Task WsTeamMatched(string endsIn, [Remainder] string opponentName)
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await WsDraftLogic.WsTeamMatched(Context.Guild, Context.Channel, CurrentUser, opponentName, endsIn);
+            await WsLogic.WsTeamMatched(Context.Guild, Context.Channel, CurrentUser, opponentName, endsIn);
         }
     }
 }

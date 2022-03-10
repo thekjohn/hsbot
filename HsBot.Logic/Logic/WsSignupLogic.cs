@@ -125,16 +125,16 @@
 
                                 if (alliance.WsDraftChannelId != 0)
                                 {
-                                    var draft = new WsDraftLogic.WsDraft()
+                                    var draft = new WsLogic.WsDraft()
                                     {
                                         OriginalSignup = signup,
                                         ChannelId = alliance.WsDraftChannelId,
                                         MessageId = 0,
-                                        Teams = new List<WsDraftLogic.WsTeam>(),
+                                        Teams = new List<WsLogic.WsTeam>(),
                                     };
 
-                                    WsDraftLogic.SaveWsDraft(guild.Id, draft);
-                                    await WsDraftLogic.RepostDraft(guild);
+                                    WsLogic.SaveWsDraft(guild.Id, draft);
+                                    await WsLogic.RepostDraft(guild);
                                 }
 
                                 await RefreshSignup(guild, channel, signup.MessageId);

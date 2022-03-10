@@ -4,7 +4,7 @@
 
     internal static class DateTimeExtensions
     {
-        public static string ToIntervalStr(this TimeSpan value)
+        public static string ToIntervalStr(this TimeSpan value, bool includeMinutes = true, bool includeSeconds = true)
         {
             var result = "";
             if (value.Days > 0)
@@ -13,10 +13,10 @@
             if (value.Hours > 0)
                 result += (result != "" ? " " : "") + value.Hours.ToString("D", CultureInfo.InvariantCulture) + "h";
 
-            if (value.Minutes > 0)
+            if (value.Minutes > 0 && includeMinutes)
                 result += (result != "" ? " " : "") + value.Minutes.ToString("D", CultureInfo.InvariantCulture) + "m";
 
-            if (value.Seconds > 0)
+            if (value.Seconds > 0 && includeSeconds)
                 result += (result != "" ? " " : "") + value.Seconds.ToString("D", CultureInfo.InvariantCulture) + "s";
 
             if (result == "")
