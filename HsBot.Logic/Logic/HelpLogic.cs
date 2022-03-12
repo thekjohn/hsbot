@@ -24,7 +24,8 @@
                 }
 
                 var level = GetCorpLevel(corp.CurrentRelicCount);
-                eb.AddField(corp.IconMention + " " + (corp.FullName ?? role.Name) + " [" + corp.Abbreviation + "]", "level: " + level.ToStr() + ", relics: " + corp.CurrentRelicCount.ToStr(), true);
+                var bonus = GetCorpArtifactBonus(level);
+                eb.AddField(corp.IconMention + " " + (corp.FullName ?? role.Name) + " [" + corp.Abbreviation + "]", corp.CurrentRelicCount.ToStr() + " relics, " + bonus.ToStr() + "% bonus", true);
             }
 
             await channel.SendMessageAsync(embed: eb.Build());
@@ -50,6 +51,26 @@
                 >= 30 => 3,
                 >= 1 => 2,
                 _ => 1,
+            };
+        }
+
+        public static int GetCorpArtifactBonus(int level)
+        {
+            return level switch
+            {
+                2 => 1,
+                3 => 2,
+                4 => 3,
+                5 => 4,
+                6 => 6,
+                7 => 8,
+                8 => 10,
+                9 => 12,
+                10 => 14,
+                11 => 16,
+                12 => 18,
+                >= 13 => 20,
+                _ => 0,
             };
         }
 

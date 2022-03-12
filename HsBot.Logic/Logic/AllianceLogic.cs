@@ -34,6 +34,7 @@
             public List<Alt> Alts { get; set; } = new List<Alt>();
 
             public ulong AllyRoleId { get; set; }
+            public ulong WsGuestRoleId { get; set; }
             public string AllyIcon { get; set; }
             public ulong GreeterRoleId { get; set; }
             public ulong PublicChannelId { get; set; }

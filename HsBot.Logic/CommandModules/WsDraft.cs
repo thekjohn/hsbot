@@ -1,6 +1,5 @@
 ﻿namespace HsBot.Logic
 {
-    using Discord;
     using Discord.Commands;
     using Discord.WebSocket;
 
@@ -138,7 +137,6 @@
 
         [Command("wsmatched")]
         [Summary("wsmatched <ends_in> <opponent_name>|indicates as WS team matched and ends in a specific amount of time (ex: 4d22h)")]
-        [RequireUserPermission(GuildPermission.ChangeNickname)]
         public async Task WsTeamMatched(string endsIn, [Remainder] string opponentName)
         {
             await CleanupService.DeleteCommand(Context.Message);

@@ -21,16 +21,18 @@
             var msg = "Welcome " + user.Mention + "!";
             if (alliance.GreeterRoleId != 0 && guild.GetRole(alliance.GreeterRoleId) != null)
             {
-                msg += " A random " + guild.GetRole(alliance.GreeterRoleId).Mention + " will be here shortly to greet you!";
+                msg += " A random " + guild.GetRole(alliance.GreeterRoleId).Mention + " will be here shortly to greet you! Please tell us your RS level (and corporation name) while waiting.";
             }
 
             var eb = new EmbedBuilder()
                 .WithTitle("What brought you here on this beautiful day?")
                 .WithDescription(
                     ":one: looking for a corp and I heard " + alliance.Name + " (" + alliance.Abbreviation + ") is the best of all!"
-                    + "\n:two: looking for an Red Star queue"
+                    + "\n:two: looking for a Red Star queue"
                     + "\n:three: looking for a White Star team"
-                    + "\n:four: trade");
+                    + "\n:four: trade"
+                    + "\n:five: WS diplomacy"
+                    );
 
             if (alliance.GuestRoleId != 0)
             {
@@ -41,9 +43,11 @@
 
             var sent = await channel.SendMessageAsync(msg, embed: eb.Build());
             await sent.AddReactionsAsync(AltsLogic.NumberEmoteNames
-                .Take(4)
+                .Take(5)
                 .Select(x => Emoji.Parse(x))
                 .ToArray());
+
+            await HelpLogic.ShowAllianceInfo(guild, channel, alliance);
         }
 
         public static async Task Recruit(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, AllianceLogic.AllianceInfo alliance, AllianceLogic.Corp corp, int? rsLevel)

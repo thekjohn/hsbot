@@ -237,6 +237,27 @@
             await Context.Channel.BotResponse("Guest role changed: " + role.Name, ResponseType.success);
         }
 
+        [Command("set-wsguest-role")]
+        [Summary("set-wsguest-role <role>|set the greeter role")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetWsGuestRole(string roleName)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var role = Context.Guild.FindRole(roleName);
+            if (role == null)
+            {
+                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
+                return;
+            }
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            alliance.WsGuestRoleId = role.Id;
+            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+            await Context.Channel.BotResponse("WS guest role changed: " + role.Name, ResponseType.success);
+        }
+
         [Command("set-compendium-role")]
         [Summary("set-compendium-role <role>|set the compendium role")]
         [RequireUserPermission(GuildPermission.Administrator)]
@@ -404,14 +425,8 @@
         [Command("timezone-set")]
         [Summary("timezone-set <identifier>|set your own timezone. Get a list of identifiers with the `{cmdPrefix}timezone-list` command")]
         [RequireUserPermission(GuildPermission.ChangeNickname)]
-        public async Task TimezoneSet(int identifier/*, string otherUser = null*/)
+        public async Task TimezoneSet(int identifier)
         {
-            /*if (otherUser != null && !CurrentUser.GuildPermissions.Administrator)
-            {
-                await Context.Channel.BotResponse("Only Administrators can set the timezone for other users.", ResponseType.error);
-                return;
-            }
-            */
             await CleanupService.DeleteCommand(Context.Message);
             var timeZones = TimeZoneInfo.GetSystemTimeZones();
             if (identifier < 1 || identifier > timeZones.Count)
@@ -420,16 +435,35 @@
                 return;
             }
 
-            var user = CurrentUser;
-            /*if (otherUser != null)
+            var tz = timeZones[identifier - 1];
+            await TimeZoneLogic.SetTimeZone(Context.Guild, Context.Channel, CurrentUser, tz);
+        }
+
+        [Command("timezone-set")]
+        [Summary("timezone-set <identifier> <user>|set timezone of another user")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task TimezoneSet(int identifier, string otherUser)
+        {
+            if (!CurrentUser.GuildPermissions.Administrator)
             {
-                user = Context.Guild.FindUser(CurrentUser, otherUser);
-                if (user == null)
-                {
-                    await Context.Channel.BotResponse("Unknown user: " + otherUser, ResponseType.error);
-                    return;
-                }
-            }*/
+                await Context.Channel.BotResponse("Only Administrators can set the timezone for other users.", ResponseType.error);
+                return;
+            }
+
+            await CleanupService.DeleteCommand(Context.Message);
+            var timeZones = TimeZoneInfo.GetSystemTimeZones();
+            if (identifier < 1 || identifier > timeZones.Count)
+            {
+                await Context.Channel.BotResponse("Wrong timezone index", ResponseType.error);
+                return;
+            }
+
+            var user = Context.Guild.FindUser(CurrentUser, otherUser);
+            if (user == null)
+            {
+                await Context.Channel.BotResponse("Unknown user: " + otherUser, ResponseType.error);
+                return;
+            }
 
             var tz = timeZones[identifier - 1];
             await TimeZoneLogic.SetTimeZone(Context.Guild, Context.Channel, user, tz);

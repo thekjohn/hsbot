@@ -10,19 +10,30 @@
     {
         private static readonly List<AccountSelectionEntry> _accountSelectionEntries = new();
 
-        internal static async Task StartNew(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, DateTime ends)
+        internal static async Task StartNew(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, DateTime endsOn)
         {
+            var alliance = AllianceLogic.GetAlliance(guild.Id);
+            if (alliance == null)
+                return;
+
             var now = DateTime.UtcNow;
             var signup = new WsSignup()
             {
                 StartedOn = now,
-                EndsOn = ends,
+                EndsOn = endsOn,
                 ChannelId = channel.Id,
                 MessageId = 0,
             };
 
             var signupStateId = "ws-signup-active-" + now.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
             Services.State.Set(guild.Id, signupStateId, signup);
+
+            var memberRole = guild.GetRole(alliance.RoleId);
+            if (memberRole != null)
+            {
+                await channel.SendMessageAsync(memberRole.Mention + " New signup form is online, we count on you! :point_down");
+            }
+
             await RepostSignups(guild, channel, currentUser);
         }
 
@@ -144,6 +155,56 @@
                             var newId = signupStateId.Replace("active", "archive");
                             Services.State.Rename(guild.Id, signupStateId, newId);
                         }
+                        else
+                        {
+                            if (signup.Notify1dLeftMessageId == null
+                                && signup.EndsOn.AddDays(-1) <= now)
+                            {
+                                var channel = guild.GetTextChannel(signup.ChannelId);
+                                if (channel != null)
+                                {
+                                    var alliance = AllianceLogic.GetAlliance(guild.Id);
+                                    if (alliance != null)
+                                    {
+                                        var memberRole = guild.GetRole(alliance.RoleId);
+                                        var wsGuestRole = alliance.WsGuestRoleId != 0 ? guild.GetRole(alliance.WsGuestRoleId) : null;
+
+                                        if (memberRole != null)
+                                        {
+                                            var sent = await channel.SendMessageAsync(memberRole.Mention
+                                                + (wsGuestRole != null ? " " + wsGuestRole.Mention : "")
+                                                + " WS signup ends in "
+                                                + signup.EndsOn.Subtract(now).ToIntervalStr(true, false) + "!");
+                                            signup.Notify1dLeftMessageId = sent.Id;
+
+                                            Services.State.Set(guild.Id, signupStateId, signup);
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (signup.Notify2hLeftMessageId == null
+                                && signup.EndsOn.AddHours(-2) <= now)
+                            {
+                                var channel = guild.GetTextChannel(signup.ChannelId);
+                                if (channel != null)
+                                {
+                                    var alliance = AllianceLogic.GetAlliance(guild.Id);
+                                    if (alliance != null)
+                                    {
+                                        var memberRole = guild.GetRole(alliance.RoleId);
+                                        if (memberRole != null)
+                                        {
+                                            var sent = await channel.SendMessageAsync(memberRole.Mention + " WS signup ends in "
+                                                + signup.EndsOn.Subtract(now).ToIntervalStr(true, false) + "!");
+                                            signup.Notify1dLeftMessageId = sent.Id;
+
+                                            Services.State.Set(guild.Id, signupStateId, signup);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -189,7 +250,9 @@
             foreach (var user in signup.CompetitiveUsers.Select(x => guild.GetUser(x)).Where(x => x != null).OrderBy(x => x.DisplayName))
             {
                 compMainCnt++;
-                compMain += (compMain == "" ? "" : "\n") + user.DisplayName;
+                compMain += (compMain == "" ? "" : "\n")
+                    + (user.Roles.Any(x => x.Id == alliance.WsGuestRoleId) ? alliance.AllyIcon + " " : "")
+                    + user.DisplayName;
             }
 
             var compAlt = "";
@@ -205,7 +268,9 @@
             foreach (var user in signup.CasualUsers.Select(x => guild.GetUser(x)).Where(x => x != null).OrderBy(x => x.DisplayName))
             {
                 casualMainCnt++;
-                casualMain += (casualMain == "" ? "" : "\n") + user.DisplayName;
+                casualMain += (casualMain == "" ? "" : "\n")
+                    + (user.Roles.Any(x => x.Id == alliance.WsGuestRoleId) ? alliance.AllyIcon + " " : "")
+                    + user.DisplayName;
             }
 
             var casualAlt = "";
@@ -221,7 +286,9 @@
             foreach (var user in signup.InactiveUsers.Select(x => guild.GetUser(x)).Where(x => x != null).OrderBy(x => x.DisplayName))
             {
                 inactiveMainCnt++;
-                inactiveMain += (inactiveMain == "" ? "" : "\n") + user.DisplayName;
+                inactiveMain += (inactiveMain == "" ? "" : "\n")
+                    + (user.Roles.Any(x => x.Id == alliance.WsGuestRoleId) ? alliance.AllyIcon + " " : "")
+                    + user.DisplayName;
             }
 
             var inactiveAlt = "";
@@ -236,7 +303,7 @@
                 .WithTitle(signup.EndsOn > DateTime.UtcNow
                     ? "WS signup - ends on " + signup.EndsOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC"
                     : "WS signup - ended on " + signup.EndsOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC")
-                .AddField("Please express your commitment level during this White Star event. Your team will count on you, so please choose wisely!", "We promise you don't get into a stronger team than your commitment level, but you can still end up in a lower commitment level team.", false)
+                .AddField("Please set your commitment level during this White Star event. Your team will count on you, so please choose wisely!", "We promise you don't get into a stronger team than your commitment level, but you can still end up in a lower commitment level team.", false)
                 .AddField((compMainCnt + compAltCnt).ToStr() + " Competitive 💪", "Highly responsive, focused, no sanc!", true)
                 .AddField((casualMainCnt + casualAltCnt).ToStr() + " Casual 👍", "Responsive, but no commitments. Sanc allowed.", true)
                 .AddField((inactiveMainCnt + inactiveAltCnt).ToStr() + " Inactive 😴", "Only bar filling. Sanc recommended.", true)
@@ -524,6 +591,9 @@
             public List<AllianceLogic.Alt> InactiveAlts { get; init; } = new();
 
             public ulong? GuildEventId { get; set; }
+
+            public ulong? Notify1dLeftMessageId { get; set; }
+            public ulong? Notify2hLeftMessageId { get; set; }
         }
     }
 }
