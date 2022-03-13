@@ -498,10 +498,25 @@
             await Context.Channel.BotResponse("Bot log channel is set to: " + channel.Name, ResponseType.success);
         }
 
+        [Command("greeter")]
+        [Summary("greeter|show greeter commands")]
+        [RequireUserPermission(GuildPermission.ManageChannels)]
+        public async Task Greeter()
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+            var eb = new EmbedBuilder()
+                .WithTitle("GREETER COMMANDS")
+                .AddField("Recruit to a corporation", "`!recruit <userName> <corpName> <rsLevel>`")
+                .AddField("Promote to WS guest (WS signup access)", "`!promote-wsguest <userName>`")
+                .AddField("Promote to Ally (RS queue access)", "`!promote-ally <userName> <rsLevel>`")
+                .AddField("Demote to guest, remove all roles", "`!demote <userName>`");
+            await Context.Channel.SendMessageAsync(null, embed: eb.Build());
+        }
+
         [Command("recruit")]
         [Summary("recruit <userName> <corpName> <rsLevel>|recruit user to a corp and RS level")]
         [RequireUserPermission(GuildPermission.ManageChannels)]
-        public async Task SetBotLogChannel(string userName, string corpName, int rsLevel)
+        public async Task Recruit(string userName, string corpName, int rsLevel)
         {
             await CleanupService.DeleteCommand(Context.Message);
 
@@ -538,10 +553,10 @@
             await RoleLogic.Recruit(Context.Guild, Context.Channel, user, alliance, corp, rsLevel);
         }
 
-        [Command("guestify")]
-        [Summary("guestify <userName>|remove all roles and add guest role")]
+        [Command("demote")]
+        [Summary("demote <userName>|remove all roles and add guest role")]
         [RequireUserPermission(GuildPermission.ManageChannels)]
-        public async Task Guestify(string userName)
+        public async Task DemoteToGuest(string userName)
         {
             await CleanupService.DeleteCommand(Context.Message);
 
@@ -562,7 +577,61 @@
                 return;
             }
 
-            await RoleLogic.Guestify(Context.Guild, Context.Channel, user, alliance);
+            await RoleLogic.DemoteToGuest(Context.Guild, Context.Channel, user, alliance);
+        }
+
+        [Command("promote-wsguest")]
+        [Summary("promote-wsguest <userName>|add ws guest and compendium roles")]
+        [RequireUserPermission(GuildPermission.ManageChannels)]
+        public async Task PromoteToWsGuest(string userName)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            if (alliance == null)
+                return;
+
+            var user = Context.Guild.FindUser(CurrentUser, userName);
+            if (user == null)
+            {
+                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
+                return;
+            }
+
+            if (user.GuildPermissions.Administrator)
+            {
+                await Context.Channel.BotResponse("Administrators can't be guestified!", ResponseType.error);
+                return;
+            }
+
+            await RoleLogic.PromoteToWsGuest(Context.Guild, Context.Channel, user, alliance);
+        }
+
+        [Command("promote-ally")]
+        [Summary("promote-ally <userName> <rsLevel>|add RS queue access")]
+        [RequireUserPermission(GuildPermission.ManageChannels)]
+        public async Task PromoteToAlly(string userName, int rsLevel)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            if (alliance == null)
+                return;
+
+            var user = Context.Guild.FindUser(CurrentUser, userName);
+            if (user == null)
+            {
+                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
+                return;
+            }
+
+            if (user.GuildPermissions.Administrator)
+            {
+                await Context.Channel.BotResponse("Administrators can't be guestified!", ResponseType.error);
+                return;
+            }
+
+            await RoleLogic.PromoteToAlly(Context.Guild, Context.Channel, user, alliance, rsLevel);
         }
 
         [Command("give")]

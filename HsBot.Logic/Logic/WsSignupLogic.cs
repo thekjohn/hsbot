@@ -168,7 +168,6 @@
                                     {
                                         var memberRole = guild.GetRole(alliance.RoleId);
                                         var wsGuestRole = alliance.WsGuestRoleId != 0 ? guild.GetRole(alliance.WsGuestRoleId) : null;
-
                                         if (memberRole != null)
                                         {
                                             var sent = await channel.SendMessageAsync(memberRole.Mention
@@ -176,7 +175,6 @@
                                                 + " WS signup ends in "
                                                 + signup.EndsOn.Subtract(now).ToIntervalStr(true, false) + "!");
                                             signup.Notify1dLeftMessageId = sent.Id;
-
                                             Services.State.Set(guild.Id, signupStateId, signup);
                                         }
                                     }
@@ -193,12 +191,14 @@
                                     if (alliance != null)
                                     {
                                         var memberRole = guild.GetRole(alliance.RoleId);
+                                        var wsGuestRole = alliance.WsGuestRoleId != 0 ? guild.GetRole(alliance.WsGuestRoleId) : null;
                                         if (memberRole != null)
                                         {
-                                            var sent = await channel.SendMessageAsync(memberRole.Mention + " WS signup ends in "
+                                            var sent = await channel.SendMessageAsync(memberRole.Mention
+                                                + (wsGuestRole != null ? " " + wsGuestRole.Mention : "")
+                                                + " WS signup ends in "
                                                 + signup.EndsOn.Subtract(now).ToIntervalStr(true, false) + "!");
-                                            signup.Notify1dLeftMessageId = sent.Id;
-
+                                            signup.Notify2hLeftMessageId = sent.Id;
                                             Services.State.Set(guild.Id, signupStateId, signup);
                                         }
                                     }

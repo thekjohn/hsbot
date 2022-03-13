@@ -66,27 +66,21 @@
             {
                 var role = guild.GetRole(alliance.CompendiumRoleId);
                 if (role != null)
-                {
                     rolesToAdd.Add(role.Id);
-                }
             }
 
             if (rsLevel != null)
             {
                 var role = guild.Roles.FirstOrDefault(x => x.Name.StartsWith("RS" + rsLevel.Value.ToStr(), StringComparison.InvariantCultureIgnoreCase));
                 if (role != null)
-                {
                     rolesToAdd.Add(role.Id);
-                }
-            }
 
-            var rsQueueRoleId = AfkLogic.GetRsQueueRole(guild.Id);
-            if (rsQueueRoleId != 0)
-            {
-                var role = guild.GetRole(rsQueueRoleId);
-                if (role != null)
+                var rsQueueRoleId = AfkLogic.GetRsQueueRole(guild.Id);
+                if (rsQueueRoleId != 0)
                 {
-                    rolesToAdd.Add(role.Id);
+                    role = guild.GetRole(rsQueueRoleId);
+                    if (role != null)
+                        rolesToAdd.Add(role.Id);
                 }
             }
 
@@ -98,7 +92,7 @@
                 , ResponseType.infoStay);
         }
 
-        public static async Task Guestify(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, AllianceLogic.AllianceInfo alliance)
+        public static async Task DemoteToGuest(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, AllianceLogic.AllianceInfo alliance)
         {
             var rolesToRemove = user.Roles.Where(x => !x.IsEveryone).ToArray();
             if (rolesToRemove.Length > 0)
@@ -112,8 +106,57 @@
             await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
 
             await channel.BotResponse(user.DisplayName + " is successfully guestified."
-                + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`")) + "."
+                + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`"))
                 + "\nRemoved roles: " + string.Join(", ", rolesToRemove.Select(x => "`" + x.Name + "`"))
+                , ResponseType.infoStay);
+        }
+
+        public static async Task PromoteToWsGuest(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, AllianceLogic.AllianceInfo alliance)
+        {
+            var rolesToAdd = new List<ulong>
+            {
+                alliance.WsGuestRoleId,
+            };
+
+            if (alliance.CompendiumRoleId != 0)
+            {
+                var role = guild.GetRole(alliance.CompendiumRoleId);
+                if (role != null)
+                    rolesToAdd.Add(role.Id);
+            }
+
+            await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
+
+            await channel.BotResponse(user.DisplayName + " is successfully set as WS guest."
+                + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`"))
+                , ResponseType.infoStay);
+        }
+
+        public static async Task PromoteToAlly(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, AllianceLogic.AllianceInfo alliance, int? rsLevel)
+        {
+            var rolesToAdd = new List<ulong>
+            {
+                alliance.AllyRoleId,
+            };
+
+            if (rsLevel != null)
+            {
+                var role = guild.Roles.FirstOrDefault(x => x.Name.StartsWith("RS" + rsLevel.Value.ToStr(), StringComparison.InvariantCultureIgnoreCase));
+                if (role != null)
+                    rolesToAdd.Add(role.Id);
+
+                var rsQueueRoleId = AfkLogic.GetRsQueueRole(guild.Id);
+                if (rsQueueRoleId != 0)
+                {
+                    role = guild.GetRole(rsQueueRoleId);
+                    if (role != null)
+                        rolesToAdd.Add(role.Id);
+                }
+            }
+            await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
+
+            await channel.BotResponse(user.DisplayName + " is successfully set as WS guest."
+                + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`"))
                 , ResponseType.infoStay);
         }
 
