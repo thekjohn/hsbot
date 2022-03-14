@@ -7,6 +7,7 @@
     using Discord.WebSocket;
 
     [Summary("help")]
+    [RequireContext(ContextType.Guild)]
     public class HelpCommandModule : BaseModule
     {
         [Command("help")]
@@ -19,28 +20,48 @@
                 if (module.Preconditions.OfType<RequireUserPermissionAttribute>().Any(x => x.GuildPermission != null && !CurrentUser.GuildPermissions.Has(x.GuildPermission.Value)))
                     continue;
 
-                var commands = module.Commands.ToList();
-                var eb = new EmbedBuilder()
-                    .WithTitle(module.Summary.ToUpper());
+                if (module.Preconditions.OfType<RequireMinimumAllianceRoleAttribute>().Any(x => !x.Test(CurrentUser)))
+                    continue;
 
-                foreach (var command in commands)
+                var commands = module.Commands
+                    .Where(command =>
+                    {
+                        if (command.Preconditions.OfType<RequireUserPermissionAttribute>().Any(x => x.GuildPermission != null && !CurrentUser.GuildPermissions.Has(x.GuildPermission.Value)))
+                            return false;
+
+                        if (command.Preconditions.OfType<RequireMinimumAllianceRoleAttribute>().Any(x => !x.Test(CurrentUser)))
+                            return false;
+
+                        return true;
+                    })
+                    .ToList();
+
+                if (commands.Count == 0)
+                    continue;
+
+                var batchSize = 25;
+                var batchCount = (commands.Count / batchSize) + (commands.Count % batchSize == 0 ? 0 : 1);
+                for (var batch = 0; batch < batchCount; batch++)
                 {
-                    if (command.Preconditions.OfType<RequireUserPermissionAttribute>().Any(x => x.GuildPermission != null && !CurrentUser.GuildPermissions.Has(x.GuildPermission.Value)))
-                        continue;
+                    var eb = new EmbedBuilder()
+                        .WithTitle(module.Summary.ToUpper());
 
-                    var txt = (command.Summary ?? command.Name).Replace("{cmdPrefix}", DiscordBot.CommandPrefix.ToString());
-                    if (txt.Contains('|'))
+                    foreach (var command in commands.Skip(batch * batchSize).Take(batchSize))
                     {
-                        var parts = txt.Split('|');
-                        eb.AddField(DiscordBot.CommandPrefix + parts[0], parts[1], true);
+                        var txt = (command.Summary ?? command.Name).Replace("{cmdPrefix}", DiscordBot.CommandPrefix.ToString());
+                        if (txt.Contains('|'))
+                        {
+                            var parts = txt.Split('|');
+                            eb.AddField(DiscordBot.CommandPrefix + parts[0], parts[1], true);
+                        }
+                        else
+                        {
+                            eb.AddField(DiscordBot.CommandPrefix + txt, "-", true);
+                        }
                     }
-                    else
-                    {
-                        eb.AddField(DiscordBot.CommandPrefix + txt, "-", true);
-                    }
+
+                    await ReplyAsync(embed: eb.Build());
                 }
-
-                await ReplyAsync(embed: eb.Build());
             }
         }
 
@@ -55,6 +76,10 @@
 
         public static async Task ShowHelp(ISocketMessageChannel channel, string command)
         {
+            var alliance = AllianceLogic.GetAlliance((channel as SocketGuildChannel).Guild.Id);
+            if (alliance == null)
+                return;
+
             var commands = DiscordBot.Commands.Commands.ToList();
             var eb = new EmbedBuilder();
 
@@ -114,6 +139,18 @@
                         eb.AddField(p.Name, desc);
                     }
                 }
+
+                var requireUserPermission = cmd.Module.Preconditions.OfType<RequireUserPermissionAttribute>().FirstOrDefault(x => x.GuildPermission != null)
+                    ?? cmd.Preconditions.OfType<RequireUserPermissionAttribute>().FirstOrDefault(x => x.GuildPermission != null);
+
+                if (requireUserPermission != null)
+                    eb.AddField("Required permissions", requireUserPermission.GuildPermission.ToString());
+
+                var requireMinimumAllianceRole = cmd.Module.Preconditions.OfType<RequireMinimumAllianceRoleAttribute>().FirstOrDefault()
+                    ?? cmd.Preconditions.OfType<RequireMinimumAllianceRoleAttribute>().FirstOrDefault();
+
+                if (requireMinimumAllianceRole != null)
+                    eb.AddField("Required minimum role", (channel as SocketGuildChannel).Guild.GetRole(alliance.GetAllianceRoleId(requireMinimumAllianceRole.AllianceRole)));
 
                 await channel.SendMessageAsync("Description of the `" + DiscordBot.CommandPrefix + cmd.Name + "` command", false, eb.Build());
             }

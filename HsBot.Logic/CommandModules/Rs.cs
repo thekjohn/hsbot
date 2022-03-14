@@ -6,11 +6,13 @@
     using Discord.WebSocket;
 
     [Summary("Red Stars")]
+    [RequireContext(ContextType.Guild)]
     public class Rs : BaseModule
     {
         [Command("in")]
         [Alias("i")]
         [Summary("in [level]|enqueue to your highest, or a specific level queue")]
+        [RequireMinimumAllianceRole(AllianceRole.Ally)]
         public async Task In(int? level = null)
         {
             await AddQueue(level, CurrentUser);
@@ -19,6 +21,7 @@
         [Command("out")]
         [Alias("o")]
         [Summary("out [level]|dequeue from a specific, or all queues")]
+        [RequireMinimumAllianceRole(AllianceRole.Ally)]
         public async Task Out(int? level = null)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -27,6 +30,7 @@
 
         [Command("ping")]
         [Summary("ping <level>|ping an RS role")]
+        [RequireMinimumAllianceRole(AllianceRole.Member)]
         public async Task Ping(int level)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -35,6 +39,7 @@
 
         [Command("start")]
         [Summary("start <level>|force start on a queue")]
+        [RequireMinimumAllianceRole(AllianceRole.Member)]
         public async Task Start(int level)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -43,6 +48,7 @@
 
         [Command("rsmod")]
         [Summary("rsmod|allow setting RS queue related mods")]
+        [RequireMinimumAllianceRole(AllianceRole.Ally)]
         public async Task RsMod()
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -51,6 +57,7 @@
 
         [Command("q")]
         [Summary("q|query active queues")]
+        [RequireMinimumAllianceRole(AllianceRole.Ally)]
         public async Task QueryQueues(int? level = null)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -97,7 +104,7 @@
 
         [Command("setrsruncount")]
         [Summary("setrsruncount <rsLevel> <count> <userName>|set the RS run counter for a specific user")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
+        [RequireMinimumAllianceRole(AllianceRole.Greeter)]
         public async Task SetRsRunCounter(int rsLevel, int count, [Remainder] string userName)
         {
             await CleanupService.DeleteCommand(Context.Message);

@@ -4,10 +4,12 @@
     using Discord.WebSocket;
 
     [Summary("White Star Draft")]
+    [RequireContext(ContextType.Guild)]
     public class WsDraft : BaseModule
     {
         [Command("wsresults")]
         [Summary("wsresults <teamName>|list the previous results of a WS team")]
+        [RequireMinimumAllianceRole(AllianceRole.Member)]
         public async Task ShowWsWesults(string teamName)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -16,6 +18,7 @@
 
         [Command("draft-add-team")]
         [Summary("draft-add-team <teamName> <corpName>|Create a team in the draft. Team name must be an existing role, like 'WS1'. Corp is where the scan will happen.")]
+        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
         public async Task AddTeamToDraft(string teamName, string corpName)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -40,6 +43,7 @@
 
         [Command("draft-remove-team")]
         [Summary("draft-remove-team <teamName>|Remove a team from the draft.")]
+        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
         public async Task RemoveTeamFromDraft(string teamName)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -56,6 +60,7 @@
 
         [Command("draft")]
         [Summary("draft <add/remove> <teamName> <list of user names>|add/remove one or more users to a WS team.")]
+        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
         public async Task AddToWsTeam(string operation, string teamName, [Remainder] string userNames)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -121,6 +126,7 @@
 
         [Command("close-draft")]
         [Summary("close-draft|close the draft and create the teams")]
+        [RequireMinimumAllianceRole(AllianceRole.Leader)]
         public async Task CloseDraft()
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -129,6 +135,7 @@
 
         [Command("wsscan")]
         [Summary("wsscan|indicates as WS team is scanning")]
+        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
         public async Task WsTeamScanning()
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -137,6 +144,7 @@
 
         [Command("wsmatched")]
         [Summary("wsmatched <ends_in> <opponent_name>|indicates as WS team matched and ends in a specific amount of time (ex: 4d22h)")]
+        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
         public async Task WsTeamMatched(string endsIn, [Remainder] string opponentName)
         {
             await CleanupService.DeleteCommand(Context.Message);

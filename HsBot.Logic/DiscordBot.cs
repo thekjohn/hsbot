@@ -175,6 +175,7 @@
             await Commands.AddModuleAsync(typeof(Ws), null);
             await Commands.AddModuleAsync(typeof(WsDraft), null);
             await Commands.AddModuleAsync(typeof(Wiki), null);
+            await Commands.AddModuleAsync(typeof(Greeter), null);
             await Commands.AddModuleAsync(typeof(Admin), null);
 
             await Task.Delay(Timeout.Infinite);

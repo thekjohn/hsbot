@@ -5,6 +5,8 @@
     using Discord.Commands;
 
     [Summary("wiki")]
+    [RequireContext(ContextType.Guild)]
+    [RequireMinimumAllianceRole(AllianceRole.Ally)]
     public class Wiki : BaseModule
     {
         private Embed FormatEntry(WikiEntry entry)
@@ -59,7 +61,7 @@
 
         [Command("setwiki")]
         [Summary("setwiki|set a wiki page - requires 'manage channels' role")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
+        [RequireMinimumAllianceRole(AllianceRole.Greeter)]
         public async Task SetWiki(string code, string title, [Remainder] string text)
         {
             var stateId = "wiki-" + code;

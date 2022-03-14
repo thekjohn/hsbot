@@ -2,6 +2,8 @@
 {
     using Discord.WebSocket;
 
+    public enum AllianceRole { Leader, Officer, Greeter, Admiral, Member, WSGuest, Ally, Guest }
+
     public static class AllianceLogic
     {
         public static AllianceInfo GetAlliance(ulong guildId)
@@ -44,6 +46,24 @@
             public ulong WsDraftChannelId { get; set; }
             public ulong WsAnnounceChannelId { get; set; }
             public string GuestIcon { get; set; } = ":bust_in_silhouette:";
+            public ulong LeaderRoleId { get; set; }
+            public ulong OfficerRoleId { get; set; }
+
+            public ulong GetAllianceRoleId(AllianceRole role)
+            {
+                return role switch
+                {
+                    AllianceRole.Leader => LeaderRoleId,
+                    AllianceRole.Officer => OfficerRoleId,
+                    AllianceRole.Greeter => GreeterRoleId,
+                    AllianceRole.Admiral => AdmiralRoleId,
+                    AllianceRole.Member => RoleId,
+                    AllianceRole.WSGuest => WsGuestRoleId,
+                    AllianceRole.Ally => AllyRoleId,
+                    AllianceRole.Guest => GuestRoleId,
+                    _ => 0UL,
+                };
+            }
 
             public string GetUserCorpIcon(SocketGuildUser user, bool extraSpace = true, bool corpName = false)
             {

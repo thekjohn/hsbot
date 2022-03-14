@@ -7,11 +7,12 @@
     using TimeZoneNames;
 
     [Summary("admin")]
+    [RequireContext(ContextType.Guild)]
     public class Admin : BaseModule
     {
         [Command("alts")]
         [Summary("alts [user]|display alts")]
-        [RequireUserPermission(GuildPermission.ChangeNickname)]
+        [RequireMinimumAllianceRole(AllianceRole.Member)]
         public async Task Alts(string user = null)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -32,7 +33,7 @@
 
         [Command("addalt")]
         [Summary("addalt name|add a new alt for yourself")]
-        [RequireUserPermission(GuildPermission.ChangeNickname)]
+        [RequireMinimumAllianceRole(AllianceRole.Member)]
         public async Task AddAlt(string name)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -57,7 +58,7 @@
 
         [Command("setcorp")]
         [Summary("setcorp <nameToFind> <newName> <icon> <abbrev>|set the main parameters of a corp")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
+        [RequireUserPermission(GuildPermission.Administrator)]
         public async Task SetCorp(string nameToFind, string newName, string icon, string abbrev)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -109,7 +110,7 @@
 
         [Command("setrelics")]
         [Summary("setrelics <corp> <amount>|change the relic count of a corp")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
+        [RequireMinimumAllianceRole(AllianceRole.Officer)]
         public async Task SetRelics(string corp, int relicCount)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -139,7 +140,7 @@
 
         [Command("setrstimeout")]
         [Summary("setrstimeout <level> <minutes>|change the activity timeout of a specific RS queue")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
+        [RequireMinimumAllianceRole(AllianceRole.Leader)]
         public async Task SetRsTimeout(int level, int minutes)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -154,7 +155,7 @@
 
         [Command("setrstimeout")]
         [Summary("setrstimeout <minutes>|change the activity timeout of a all RS queues")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
+        [RequireMinimumAllianceRole(AllianceRole.Leader)]
         public async Task SetRsTimeout(int minutes)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -214,6 +215,48 @@
             AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
             await Context.Channel.BotResponse("Greeter role changed: " + role.Name, ResponseType.success);
+        }
+
+        [Command("set-leader-role")]
+        [Summary("set-leader-role <role>|set the leader role")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetLeaderRole(string roleName)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var role = Context.Guild.FindRole(roleName);
+            if (role == null)
+            {
+                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
+                return;
+            }
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            alliance.LeaderRoleId = role.Id;
+            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+            await Context.Channel.BotResponse("Leader role changed: " + role.Name, ResponseType.success);
+        }
+
+        [Command("set-officer-role")]
+        [Summary("set-officer-role <role>|set the leader role")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetOfficerRole(string roleName)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var role = Context.Guild.FindRole(roleName);
+            if (role == null)
+            {
+                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
+                return;
+            }
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            alliance.OfficerRoleId = role.Id;
+            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+            await Context.Channel.BotResponse("Officer role changed: " + role.Name, ResponseType.success);
         }
 
         [Command("set-guest-role")]
@@ -344,7 +387,7 @@
 
         [Command("falsestart")]
         [Summary("falsestart <runNumber>|invalidate an RS run")]
-        [RequireUserPermission(GuildPermission.ChangeNickname)]
+        [RequireMinimumAllianceRole(AllianceRole.Officer)]
         public async Task FalseStartRun(int runNumber)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -377,7 +420,7 @@
 
         [Command("startwssignup")]
         [Summary("startwssignup 5d3h|start a new WS signup which ends in 5d3h from now")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
+        [RequireMinimumAllianceRole(AllianceRole.Leader)]
         public async Task StartWsSignup(string endsFromNow)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -386,7 +429,7 @@
 
         [Command("timezone-list")]
         [Summary("timezone-list|list all time zones")]
-        [RequireUserPermission(GuildPermission.ChangeNickname)]
+        [RequireMinimumAllianceRole(AllianceRole.Ally)]
         public async Task TimezoneList()
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -424,7 +467,7 @@
 
         [Command("timezone-set")]
         [Summary("timezone-set <identifier>|set your own timezone. Get a list of identifiers with the `{cmdPrefix}timezone-list` command")]
-        [RequireUserPermission(GuildPermission.ChangeNickname)]
+        [RequireMinimumAllianceRole(AllianceRole.Ally)]
         public async Task TimezoneSet(int identifier)
         {
             await CleanupService.DeleteCommand(Context.Message);
@@ -441,7 +484,7 @@
 
         [Command("timezone-set")]
         [Summary("timezone-set <identifier> <user>|set timezone of another user")]
-        [RequireUserPermission(GuildPermission.Administrator)]
+        [RequireMinimumAllianceRole(AllianceRole.Officer)]
         public async Task TimezoneSet(int identifier, string otherUser)
         {
             if (!CurrentUser.GuildPermissions.Administrator)
@@ -496,202 +539,6 @@
 
             Services.State.Set(Context.Guild.Id, "bot-log-channel", channel.Id);
             await Context.Channel.BotResponse("Bot log channel is set to: " + channel.Name, ResponseType.success);
-        }
-
-        [Command("greeter")]
-        [Summary("greeter|show greeter commands")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
-        public async Task Greeter()
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-            var eb = new EmbedBuilder()
-                .WithTitle("GREETER COMMANDS")
-                .AddField("Recruit to a corporation", "`!recruit <userName> <corpName> <rsLevel>`")
-                .AddField("Promote to WS guest (WS signup access)", "`!promote-wsguest <userName>`")
-                .AddField("Promote to Ally (RS queue access)", "`!promote-ally <userName> <rsLevel>`")
-                .AddField("Demote to guest, remove all roles", "`!demote <userName>`");
-            await Context.Channel.SendMessageAsync(null, embed: eb.Build());
-        }
-
-        [Command("recruit")]
-        [Summary("recruit <userName> <corpName> <rsLevel>|recruit user to a corp and RS level")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
-        public async Task Recruit(string userName, string corpName, int rsLevel)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-
-            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-            if (alliance == null)
-                return;
-
-            var user = Context.Guild.FindUser(CurrentUser, userName);
-            if (user == null)
-            {
-                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
-                return;
-            }
-
-            if (!user.Roles.Any(x => x.Id == alliance.GuestRoleId || x.Id == alliance.AllyRoleId))
-            {
-                await Context.Channel.BotResponse("Only guests or allies can be recruited!", ResponseType.error);
-                return;
-            }
-
-            if (user.GuildPermissions.Administrator)
-            {
-                await Context.Channel.BotResponse("Administrators can't be recruited!", ResponseType.error);
-                return;
-            }
-
-            var corp = Context.Guild.FindCorp(alliance, corpName);
-            if (corp == null)
-            {
-                await Context.Channel.BotResponse("Can't find corp: " + corpName, ResponseType.error);
-                return;
-            }
-
-            await RoleLogic.Recruit(Context.Guild, Context.Channel, user, alliance, corp, rsLevel);
-        }
-
-        [Command("demote")]
-        [Summary("demote <userName>|remove all roles and add guest role")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
-        public async Task DemoteToGuest(string userName)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-
-            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-            if (alliance == null)
-                return;
-
-            var user = Context.Guild.FindUser(CurrentUser, userName);
-            if (user == null)
-            {
-                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
-                return;
-            }
-
-            if (user.GuildPermissions.Administrator)
-            {
-                await Context.Channel.BotResponse("Administrators can't be guestified!", ResponseType.error);
-                return;
-            }
-
-            await RoleLogic.DemoteToGuest(Context.Guild, Context.Channel, user, alliance);
-        }
-
-        [Command("promote-wsguest")]
-        [Summary("promote-wsguest <userName>|add ws guest and compendium roles")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
-        public async Task PromoteToWsGuest(string userName)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-
-            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-            if (alliance == null)
-                return;
-
-            var user = Context.Guild.FindUser(CurrentUser, userName);
-            if (user == null)
-            {
-                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
-                return;
-            }
-
-            if (user.GuildPermissions.Administrator)
-            {
-                await Context.Channel.BotResponse("Administrators can't be guestified!", ResponseType.error);
-                return;
-            }
-
-            await RoleLogic.PromoteToWsGuest(Context.Guild, Context.Channel, user, alliance);
-        }
-
-        [Command("promote-ally")]
-        [Summary("promote-ally <userName> <rsLevel>|add RS queue access")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
-        public async Task PromoteToAlly(string userName, int rsLevel)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-
-            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-            if (alliance == null)
-                return;
-
-            var user = Context.Guild.FindUser(CurrentUser, userName);
-            if (user == null)
-            {
-                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
-                return;
-            }
-
-            if (user.GuildPermissions.Administrator)
-            {
-                await Context.Channel.BotResponse("Administrators can't be guestified!", ResponseType.error);
-                return;
-            }
-
-            await RoleLogic.PromoteToAlly(Context.Guild, Context.Channel, user, alliance, rsLevel);
-        }
-
-        [Command("give")]
-        [Summary("give <userName> <roleName>|add role to a user")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
-        public async Task GiveRole(string userName, string roleName)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-
-            var user = Context.Guild.FindUser(CurrentUser, userName);
-            if (user == null)
-            {
-                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
-                return;
-            }
-
-            if (user.GuildPermissions.Administrator)
-            {
-                await Context.Channel.BotResponse("Administrators can't be changed this way!", ResponseType.error);
-                return;
-            }
-
-            var role = Context.Guild.FindRole(roleName);
-            if (role == null)
-            {
-                await Context.Channel.BotResponse("Can't find role: " + roleName, ResponseType.error);
-                return;
-            }
-
-            await RoleLogic.GiveRole(Context.Guild, Context.Channel, user, role);
-        }
-
-        [Command("take")]
-        [Summary("take <userName> <roleName>|take away a role from a user")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
-        public async Task TakeRole(string userName, string roleName)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-
-            var user = Context.Guild.FindUser(CurrentUser, userName);
-            if (user == null)
-            {
-                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
-                return;
-            }
-
-            if (user.GuildPermissions.Administrator)
-            {
-                await Context.Channel.BotResponse("Administrators can't be changed this way!", ResponseType.error);
-                return;
-            }
-
-            var role = Context.Guild.FindRole(roleName);
-            if (role == null)
-            {
-                await Context.Channel.BotResponse("Can't find role: " + roleName, ResponseType.error);
-                return;
-            }
-
-            await RoleLogic.TakeRole(Context.Guild, Context.Channel, user, role);
         }
     }
 }

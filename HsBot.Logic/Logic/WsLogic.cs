@@ -120,7 +120,7 @@
                 }
             }
 
-            //Services.State.Rename(guild.Id, "ws-draft", "ws-draft-archive-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssffff", CultureInfo.InvariantCulture));
+            Services.State.Rename(guild.Id, "ws-draft", "ws-draft-archive-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssffff", CultureInfo.InvariantCulture));
 
             var alliance = AllianceLogic.GetAlliance(guild.Id);
 
@@ -253,20 +253,35 @@
             return false;
         }
 
+        public static bool GetWsTeamByAdmiralChannel(SocketGuild guild, ISocketMessageChannel channel, out WsTeam team, out SocketRole role)
+        {
+            foreach (var stateId in Services.State.ListIds(guild.Id, "ws-team-"))
+            {
+                var t = Services.State.Get<WsTeam>(guild.Id, stateId);
+                if (t.AdmiralChannelId == channel.Id)
+                {
+                    var r = guild.GetRole(t.RoleId);
+                    if (r != null)
+                    {
+                        team = t;
+                        role = r;
+                        return true;
+                    }
+                }
+            }
+
+            team = null;
+            role = null;
+            return false;
+        }
+
         public static async Task WsTeamScanning(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
         {
             var alliance = AllianceLogic.GetAlliance(guild.Id);
             if (alliance == null)
                 return;
 
-            var adminRole = alliance.AdmiralRoleId != 0 ? guild.GetRole(alliance.AdmiralRoleId) : null;
-            if (adminRole != null && !currentUser.Roles.Any(x => x.Id == adminRole.Id))
-            {
-                await channel.BotResponse("Only members of the " + adminRole.Name + " role can use this command!", ResponseType.error);
-                return;
-            }
-
-            if (channel is not SocketThreadChannel thread || !GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
+            if (channel is not SocketThreadChannel thread || !GetWsTeamByAdmiralChannel(guild, channel, out var team, out var teamRole))
             {
                 await channel.BotResponse("You have to use this command in the team's admin thread!", ResponseType.error);
                 return;
@@ -313,14 +328,7 @@
             if (alliance == null)
                 return;
 
-            var adminRole = alliance.AdmiralRoleId != 0 ? guild.GetRole(alliance.AdmiralRoleId) : null;
-            if (adminRole != null && !currentUser.Roles.Any(x => x.Id == adminRole.Id))
-            {
-                await channel.BotResponse("Only members of the " + adminRole.Name + " role can use this command!", ResponseType.error);
-                return;
-            }
-
-            if (channel is not SocketThreadChannel thread || !GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
+            if (channel is not SocketThreadChannel thread || !GetWsTeamByAdmiralChannel(guild, channel, out var team, out var teamRole))
             {
                 await channel.BotResponse("You have to use this command in the team's admin thread!", ResponseType.error);
                 return;
@@ -430,7 +438,7 @@
             var userList = draft.OriginalSignup.CompetitiveUsers.Where(x => !draft.Contains(x)).ToList();
             if (userList.Count > 0)
             {
-                eb.AddField("💪 Competitive Main", string.Join(" ", userList
+                eb.AddField(userList.Count.ToStr() + " Competitive Main", string.Join(" ", userList
                       .Select(x => guild.GetUser(x))
                       .OrderBy(x => x?.DisplayName ?? "<unknown discord user>")
                       .Select(x => "`" + x.DisplayName + "`")));
@@ -440,7 +448,7 @@
             if (altList.Count > 0)
             {
                 eb
-                  .AddField("💪 Competitive Alts", string.Join(" ", altList
+                  .AddField(altList.Count.ToStr() + " Competitive Alts", string.Join(" ", altList
                       .Select(x => x.AltUserId != null ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>" : x.Name)
                       .OrderBy(x => x)
                       .Select(x => "`" + x + "`")));
@@ -449,7 +457,7 @@
             userList = draft.OriginalSignup.CasualUsers.Where(x => !draft.Contains(x)).ToList();
             if (userList.Count > 0)
             {
-                eb.AddField("👍 Casual Main", string.Join(" ", userList
+                eb.AddField(userList.Count.ToStr() + " Casual Main", string.Join(" ", userList
                       .Select(x => guild.GetUser(x))
                       .Where(x => x != null)
                       .OrderBy(x => x.DisplayName)
@@ -459,7 +467,7 @@
             altList = draft.OriginalSignup.CasualAlts.Where(x => !draft.Contains(x)).ToList();
             if (altList.Count > 0)
             {
-                eb.AddField("👍 Casual Alt", string.Join(" ", altList
+                eb.AddField(altList.Count.ToStr() + " Casual Alt", string.Join(" ", altList
                     .Select(x => x.AltUserId != null ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>" : x.Name)
                     .OrderBy(x => x)
                     .Select(x => "`" + x + "`")));
@@ -468,7 +476,7 @@
             userList = draft.OriginalSignup.InactiveUsers.Where(x => !draft.Contains(x)).ToList();
             if (userList.Count > 0)
             {
-                eb.AddField("😴 Inactive Main", string.Join(" ", userList
+                eb.AddField(userList.Count.ToStr() + " Inactive Main", string.Join(" ", userList
                   .Select(x => guild.GetUser(x))
                   .Where(x => x != null)
                   .OrderBy(x => x.DisplayName)
@@ -478,7 +486,7 @@
             altList = draft.OriginalSignup.InactiveAlts.Where(x => !draft.Contains(x)).ToList();
             if (altList.Count > 0)
             {
-                eb.AddField("😴 Inactive Alt", string.Join(" ", altList
+                eb.AddField(altList.Count.ToStr() + " Inactive Alt", string.Join(" ", altList
                     .Select(x => x.AltUserId != null ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>" : x.Name)
                     .OrderBy(x => x)
                     .Select(x => "`" + x + "`")));
@@ -490,7 +498,7 @@
                 if (role == null)
                     continue;
 
-                eb.AddField(role.Name + " (" + team.Members.CorpAbbreviation + ")",
+                eb.AddField((team.Members.Mains.Count + team.Members.Alts.Count).ToStr() + " " + role.Name + " (" + team.Members.CorpAbbreviation + ")",
                     "mains: " + string.Join(" ", team.Members.Mains.Select(x => "`" + (guild.GetUser(x)?.DisplayName ?? "<unknown discord user>") + "`")) +
                     "\nalts: " + string.Join(" ", team.Members.Alts.Select(x => "`" + (x.AltUserId != null ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>" : x.Name) + "`"))
                     );

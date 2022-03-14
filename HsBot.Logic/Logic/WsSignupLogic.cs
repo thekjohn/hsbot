@@ -31,7 +31,7 @@
             var memberRole = guild.GetRole(alliance.RoleId);
             if (memberRole != null)
             {
-                await channel.SendMessageAsync(memberRole.Mention + " New signup form is online, we count on you! :point_down");
+                await channel.SendMessageAsync(memberRole.Mention + " New signup form is online, we count on you! :point_down:");
             }
 
             await RepostSignups(guild, channel, currentUser);
