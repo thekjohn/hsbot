@@ -145,10 +145,10 @@
         {
             await CleanupService.DeleteCommand(Context.Message);
 
-            var stateId = Services.State.GetId("rs-queue-timeout", (ulong)level);
-            var currentValue = Services.State.Get<int>(Context.Guild.Id, stateId);
+            var stateId = StateService.GetId("rs-queue-timeout", (ulong)level);
+            var currentValue = StateService.Get<int>(Context.Guild.Id, stateId);
 
-            Services.State.Set(Context.Guild.Id, stateId, minutes);
+            StateService.Set(Context.Guild.Id, stateId, minutes);
             await Context.Channel.BotResponse("Timeout for RS" + level.ToStr() + " has been changed to " + minutes.ToStr() + "."
                     + (currentValue != 0 ? " Previous value was " + currentValue.ToStr() + "." : ""), ResponseType.success);
         }
@@ -162,11 +162,11 @@
 
             for (var level = 1; level <= 12; level++)
             {
-                var stateId = Services.State.GetId("rs-queue-timeout", (ulong)level);
-                var currentValue = Services.State.Get<int>(Context.Guild.Id, stateId);
+                var stateId = StateService.GetId("rs-queue-timeout", (ulong)level);
+                var currentValue = StateService.Get<int>(Context.Guild.Id, stateId);
                 if (currentValue != minutes)
                 {
-                    Services.State.Set(Context.Guild.Id, stateId, minutes);
+                    StateService.Set(Context.Guild.Id, stateId, minutes);
                 }
 
                 await Context.Channel.BotResponse("Timeout for RS" + level.ToStr() + " has been changed to " + minutes.ToStr() + "."
@@ -174,173 +174,76 @@
             }
         }
 
-        [Command("setallyrole")]
-        [Summary("setallyrole <role> <icon>|set the ally role")]
+        [Command("set-alliance-icon")]
+        [Summary("set-alliance-icon <icon>|set key icons of the alliance")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task SetAllyRole(string roleName, string icon)
+        public async Task SetAllianceIcon(string icon, string iconMention)
         {
             await CleanupService.DeleteCommand(Context.Message);
 
-            var role = Context.Guild.FindRole(roleName);
-            if (role == null)
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+
+            switch (icon)
             {
-                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
-                return;
+                case "ally":
+                    alliance.AllyIcon = iconMention;
+                    break;
             }
 
-            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-            alliance.AllyRoleId = role.Id;
-            alliance.AllyIcon = icon;
             AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
-            await Context.Channel.BotResponse("Ally role changed: " + role.Name, ResponseType.success);
+            await Context.Channel.BotResponse("Icon '" + icon + "' is changed changed to " + iconMention, ResponseType.success);
         }
 
-        [Command("set-greeter-role")]
-        [Summary("set-greeter-role <role>|set the greeter role")]
+        [Command("set-alliance-role")]
+        [Summary("set-alliance-role <greeter|leader|officer|guest|wsguest|compendium|admiral|ally> <discordRoleName>|set key roles of the alliance")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task SetGreeterRole(string roleName)
+        public async Task SetAllianceRole(string role, string discordRoleName)
         {
             await CleanupService.DeleteCommand(Context.Message);
 
-            var role = Context.Guild.FindRole(roleName);
-            if (role == null)
+            var discordRole = Context.Guild.FindRole(discordRoleName);
+            if (discordRole == null)
             {
-                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
+                await Context.Channel.BotResponse("Unknown role: " + discordRoleName, ResponseType.error);
                 return;
             }
 
             var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-            alliance.GreeterRoleId = role.Id;
-            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
-            await Context.Channel.BotResponse("Greeter role changed: " + role.Name, ResponseType.success);
-        }
-
-        [Command("set-leader-role")]
-        [Summary("set-leader-role <role>|set the leader role")]
-        [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task SetLeaderRole(string roleName)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-
-            var role = Context.Guild.FindRole(roleName);
-            if (role == null)
+            switch (role)
             {
-                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
-                return;
+                case "greeter":
+                    alliance.GreeterRoleId = discordRole.Id;
+                    break;
+                case "leader":
+                    alliance.LeaderRoleId = discordRole.Id;
+                    break;
+                case "officer":
+                    alliance.OfficerRoleId = discordRole.Id;
+                    break;
+                case "guest":
+                    alliance.GuestRoleId = discordRole.Id;
+                    break;
+                case "wsguest":
+                    alliance.WsGuestRoleId = discordRole.Id;
+                    break;
+                case "compendium":
+                    alliance.CompendiumRoleId = discordRole.Id;
+                    break;
+                case "admiral":
+                    alliance.AdmiralRoleId = discordRole.Id;
+                    break;
+                case "ally":
+                    alliance.AllyRoleId = discordRole.Id;
+                    break;
+                default:
+                    await Context.Channel.BotResponse("First parameter must be one of these values: greeter, leader, officer, guest, wsguest, compendium, admiral, ally", ResponseType.error);
+                    return;
             }
 
-            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-            alliance.LeaderRoleId = role.Id;
             AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
-
-            await Context.Channel.BotResponse("Leader role changed: " + role.Name, ResponseType.success);
-        }
-
-        [Command("set-officer-role")]
-        [Summary("set-officer-role <role>|set the leader role")]
-        [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task SetOfficerRole(string roleName)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-
-            var role = Context.Guild.FindRole(roleName);
-            if (role == null)
-            {
-                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
-                return;
-            }
-
-            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-            alliance.OfficerRoleId = role.Id;
-            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
-
-            await Context.Channel.BotResponse("Officer role changed: " + role.Name, ResponseType.success);
-        }
-
-        [Command("set-guest-role")]
-        [Summary("set-guest-role <role>|set the greeter role")]
-        [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task SetGuestRole(string roleName)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-
-            var role = Context.Guild.FindRole(roleName);
-            if (role == null)
-            {
-                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
-                return;
-            }
-
-            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-            alliance.GuestRoleId = role.Id;
-            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
-
-            await Context.Channel.BotResponse("Guest role changed: " + role.Name, ResponseType.success);
-        }
-
-        [Command("set-wsguest-role")]
-        [Summary("set-wsguest-role <role>|set the greeter role")]
-        [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task SetWsGuestRole(string roleName)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-
-            var role = Context.Guild.FindRole(roleName);
-            if (role == null)
-            {
-                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
-                return;
-            }
-
-            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-            alliance.WsGuestRoleId = role.Id;
-            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
-
-            await Context.Channel.BotResponse("WS guest role changed: " + role.Name, ResponseType.success);
-        }
-
-        [Command("set-compendium-role")]
-        [Summary("set-compendium-role <role>|set the compendium role")]
-        [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task SetCompendiumRole(string roleName)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-
-            var role = Context.Guild.FindRole(roleName);
-            if (role == null)
-            {
-                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
-                return;
-            }
-
-            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-            alliance.CompendiumRoleId = role.Id;
-            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
-
-            await Context.Channel.BotResponse("Compendium role changed: " + role.Name, ResponseType.success);
-        }
-
-        [Command("set-admiral-role")]
-        [Summary("set-admiral-role <role>|set the WS admiral role")]
-        [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task SetAdmiralRole(string roleName)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-
-            var role = Context.Guild.FindRole(roleName);
-            if (role == null)
-            {
-                await Context.Channel.BotResponse("Unknown role: " + roleName, ResponseType.error);
-                return;
-            }
-
-            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-            alliance.AdmiralRoleId = role.Id;
-            AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
-
-            await Context.Channel.BotResponse("Admiral role changed: " + role.Name, ResponseType.success);
+            await Context.Channel.BotResponse("Role '" + role + "' is changed changed to " + discordRole.Name, ResponseType.success);
         }
 
         [Command("set-public-channel")]
@@ -396,8 +299,8 @@
 
         private static async Task FalseStartRun(SocketGuild guild, ISocketMessageChannel channel, int runNumber)
         {
-            var queueStateId = Services.State.GetId("rs-log", (ulong)runNumber);
-            var queue = Services.State.Get<Rs.RsQueueEntry>(guild.Id, queueStateId);
+            var queueStateId = StateService.GetId("rs-log", (ulong)runNumber);
+            var queue = StateService.Get<Rs.RsQueueEntry>(guild.Id, queueStateId);
             if (queue == null)
             {
                 await channel.BotResponse("Can't find run #" + runNumber.ToStr(), ResponseType.error);
@@ -406,14 +309,14 @@
 
             foreach (var userId in queue.Users)
             {
-                var runCountStateId = Services.State.GetId("rs-run-count", userId, (ulong)queue.Level);
-                var runCount = Services.State.Get<int>(guild.Id, runCountStateId);
+                var runCountStateId = StateService.GetId("rs-run-count", userId, (ulong)queue.Level);
+                var runCount = StateService.Get<int>(guild.Id, runCountStateId);
                 runCount--;
-                Services.State.Set(guild.Id, runCountStateId, runCount);
+                StateService.Set(guild.Id, runCountStateId, runCount);
             }
 
             queue.FalseStart = DateTime.UtcNow;
-            Services.State.Set(guild.Id, queueStateId, queue);
+            StateService.Set(guild.Id, queueStateId, queue);
 
             await channel.BotResponse("Run #" + runNumber.ToStr() + " is successfuly reset.", ResponseType.success);
         }
@@ -437,7 +340,8 @@
             var index = 0;
 
             var eb = new EmbedBuilder()
-                .WithTitle("time zones");
+                .WithTitle("time zones")
+                .WithFooter("This message will self-destruct in 60 seconds.");
 
             var now = DateTime.UtcNow;
 
@@ -455,14 +359,19 @@
 
                 if (eb.Fields.Count == 25)
                 {
-                    await ReplyAsync(embed: eb.Build());
+                    CleanupService.RegisterForDeletion(60,
+                        await ReplyAsync(embed: eb.Build()));
+
                     eb = new EmbedBuilder()
                         .WithTitle("time zones");
                 }
             }
 
             if (eb.Fields.Count > 0)
-                await ReplyAsync(embed: eb.Build());
+            {
+                CleanupService.RegisterForDeletion(60,
+                    await ReplyAsync(embed: eb.Build()));
+            }
         }
 
         [Command("timezone-set")]
@@ -526,7 +435,7 @@
                 return;
             }
 
-            Services.State.Set(Context.Guild.Id, "rs-queue-role", rsRole.Id);
+            StateService.Set(Context.Guild.Id, "rs-queue-role", rsRole.Id);
             await Context.Channel.BotResponse("RS Queue role is set to: " + rsRole.Name, ResponseType.success);
         }
 
@@ -537,7 +446,7 @@
         {
             await CleanupService.DeleteCommand(Context.Message);
 
-            Services.State.Set(Context.Guild.Id, "bot-log-channel", channel.Id);
+            StateService.Set(Context.Guild.Id, "bot-log-channel", channel.Id);
             await Context.Channel.BotResponse("Bot log channel is set to: " + channel.Name, ResponseType.success);
         }
     }

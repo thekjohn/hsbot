@@ -35,7 +35,7 @@
                 _entries.Add(entry);
             }
 
-            Services.State.Set(guild.Id, entry.GetStateId(), entry);
+            StateService.Set(guild.Id, entry.GetStateId(), entry);
             await channel.BotResponse("I will DM **" + user.DisplayName + "** in " + when + " with the following message: `" + message + "`", ResponseType.success);
         }
 
@@ -55,7 +55,7 @@
                     if (entry != null)
                     {
                         _entries.Remove(entry);
-                        Services.State.Delete(entry.GuildId, entry.GetStateId());
+                        StateService.Delete(entry.GuildId, entry.GetStateId());
                     }
                 }
 
@@ -84,10 +84,10 @@
             _entries = new List<Entry>();
             foreach (var guild in DiscordBot.Discord.Guilds)
             {
-                var idList = Services.State.ListIds(guild.Id, "reminder-");
+                var idList = StateService.ListIds(guild.Id, "reminder-");
                 foreach (var id in idList)
                 {
-                    var entry = Services.State.Get<Entry>(guild.Id, id);
+                    var entry = StateService.Get<Entry>(guild.Id, id);
                     _entries.Add(entry);
                 }
             }

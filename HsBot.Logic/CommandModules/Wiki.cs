@@ -26,7 +26,7 @@
             if (code != null)
             {
                 var stateId = "wiki-" + code;
-                var current = Services.State.Get<WikiEntry>(Context.Guild.Id, stateId);
+                var current = StateService.Get<WikiEntry>(Context.Guild.Id, stateId);
                 if (current == null)
                 {
                     await Context.Channel.BotResponse("WIKI entry not found: '" + code + "'.", ResponseType.error);
@@ -38,7 +38,7 @@
             }
 
             var prefix = "wiki-";
-            var ids = Services.State
+            var ids = StateService
                 .ListIds(Context.Guild.Id, prefix)
                 .OrderBy(x => x);
 
@@ -65,7 +65,7 @@
         public async Task SetWiki(string code, string title, [Remainder] string text)
         {
             var stateId = "wiki-" + code;
-            var current = Services.State.Get<WikiEntry>(Context.Guild.Id, stateId);
+            var current = StateService.Get<WikiEntry>(Context.Guild.Id, stateId);
             if (current != null)
                 await ReplyAsync("Previous version", embed: FormatEntry(current));
 
@@ -76,7 +76,7 @@
                 Text = text,
             };
 
-            Services.State.Set(Context.Guild.Id, stateId, entry);
+            StateService.Set(Context.Guild.Id, stateId, entry);
             await ReplyAsync("WIKI entry has been recoded", embed: FormatEntry(entry));
         }
 

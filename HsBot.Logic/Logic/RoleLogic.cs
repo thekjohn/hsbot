@@ -180,7 +180,7 @@
                 return;
             }
 
-            await user.AddRoleAsync(role);
+            await user.RemoveRoleAsync(role);
             await channel.BotResponse(user.DisplayName + " successfully lost this role: " + role.Name, ResponseType.success);
         }
     }

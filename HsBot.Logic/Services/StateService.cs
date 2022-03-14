@@ -4,18 +4,18 @@
     using System.Text;
     using System.Text.Json;
 
-    internal class StateService
+    internal static class StateService
     {
-        public string Folder { get; }
-        private readonly object _lock = new();
+        public static string Folder { get; }
+        private static readonly object _lock = new();
 
-        public StateService()
+        static StateService()
         {
             //Folder = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Uri.UnescapeDataString(new Uri(Assembly.GetExecutingAssembly().Location).AbsolutePath)), ".."));
             Folder = @"c:\HsBot";
         }
 
-        public string[] ListIds(ulong guildId, string idPrefix)
+        public static string[] ListIds(ulong guildId, string idPrefix)
         {
             lock (_lock)
             {
@@ -33,7 +33,7 @@
             }
         }
 
-        public T Get<T>(ulong guildId, string id)
+        public static T Get<T>(ulong guildId, string id)
         {
             lock (_lock)
             {
@@ -48,7 +48,7 @@
             return default;
         }
 
-        public List<T> GetList<T>(ulong guildId, string id)
+        public static List<T> GetList<T>(ulong guildId, string id)
         {
             var result = new List<T>();
             lock (_lock)
@@ -67,7 +67,7 @@
             return result;
         }
 
-        private string GetFileName(ulong guildId, string id)
+        private static string GetFileName(ulong guildId, string id)
         {
             var folder = Path.Combine(Folder, guildId.ToStr());
             if (!Directory.Exists(folder))
@@ -76,7 +76,7 @@
             return Path.Combine(folder, "state-" + id + ".txt");
         }
 
-        public void Set<T>(ulong guildId, string id, T value)
+        public static void Set<T>(ulong guildId, string id, T value)
         {
             lock (_lock)
             {
@@ -86,7 +86,7 @@
             }
         }
 
-        public void AppendToList<T>(ulong guildId, string id, params T[] values)
+        public static void AppendToList<T>(ulong guildId, string id, params T[] values)
         {
             if (values.Length == 0)
                 return;
@@ -112,7 +112,7 @@
             }
         }
 
-        public void Delete(ulong guildId, string id)
+        public static void Delete(ulong guildId, string id)
         {
             lock (_lock)
             {
@@ -122,7 +122,7 @@
             }
         }
 
-        public void Rename(ulong guildId, string oldId, string newId)
+        public static void Rename(ulong guildId, string oldId, string newId)
         {
             lock (_lock)
             {
@@ -135,7 +135,7 @@
             }
         }
 
-        public bool Exists(ulong guildId, string id)
+        public static bool Exists(ulong guildId, string id)
         {
             lock (_lock)
             {
@@ -144,7 +144,7 @@
             }
         }
 
-        public string GetId(string prefix, params ulong[] parts)
+        public static string GetId(string prefix, params ulong[] parts)
         {
             return (prefix != null ? prefix + "-" : string.Empty)
                 + string.Join('-', parts.Select(x => x.ToString("D", CultureInfo.InvariantCulture)));

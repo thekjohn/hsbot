@@ -60,7 +60,10 @@
                         }
                     }
 
-                    await ReplyAsync(embed: eb.Build());
+                    eb.WithFooter("This message will self-destruct in 60 seconds.");
+
+                    CleanupService.RegisterForDeletion(60,
+                        await ReplyAsync(embed: eb.Build()));
                 }
             }
         }
@@ -152,7 +155,10 @@
                 if (requireMinimumAllianceRole != null)
                     eb.AddField("Required minimum role", (channel as SocketGuildChannel).Guild.GetRole(alliance.GetAllianceRoleId(requireMinimumAllianceRole.AllianceRole)));
 
-                await channel.SendMessageAsync("Description of the `" + DiscordBot.CommandPrefix + cmd.Name + "` command", false, eb.Build());
+                eb.WithFooter("This message will self-destruct in 30 seconds.");
+
+                CleanupService.RegisterForDeletion(30,
+                    await channel.SendMessageAsync("Description of the `" + DiscordBot.CommandPrefix + cmd.Name + "` command", false, eb.Build()));
             }
             else
             {
@@ -234,13 +240,13 @@
             await CleanupService.DeleteCommand(Context.Message);
 
             var user = Context.Guild.FindUser(CurrentUser, userName);
-            if (user != null)
+            if (user == null)
             {
-                await HelpLogic.ShowMember(Context.Guild, Context.Channel, user);
+                await Context.Channel.BotResponse("Unknown user: " + userName, ResponseType.error);
                 return;
             }
 
-            await Context.Channel.BotResponse("Unknown user: " + userName, ResponseType.error);
+            await HelpLogic.ShowMember(Context.Guild, Context.Channel, user);
         }
     }
 }

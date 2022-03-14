@@ -68,8 +68,8 @@
                 if (level != null && i != level.Value)
                     continue;
 
-                var queueStateId = Services.State.GetId("rs-queue", (ulong)i);
-                if (Services.State.Exists(Context.Guild.Id, queueStateId))
+                var queueStateId = StateService.GetId("rs-queue", (ulong)i);
+                if (StateService.Exists(Context.Guild.Id, queueStateId))
                 {
                     await RefreshQueue(Context.Guild, Context.Channel, i);
                     found = true;
@@ -128,22 +128,22 @@
                 return;
             }
 
-            var queueStateId = Services.State.GetId("rs-queue", (ulong)level);
-            var queue = Services.State.Get<RsQueueEntry>(guild.Id, queueStateId);
+            var queueStateId = StateService.GetId("rs-queue", (ulong)level);
+            var queue = StateService.Get<RsQueueEntry>(guild.Id, queueStateId);
             if (queue == null)
             {
                 await channel.BotResponse("You can't ping an empty queue.", ResponseType.error);
                 return;
             }
 
-            var roleMentionStateId = Services.State.GetId("rs-queue-last-role-mention", role.Id);
-            var lastRsMention = Services.State.Get<DateTime?>(guild.Id, roleMentionStateId);
+            var roleMentionStateId = StateService.GetId("rs-queue-last-role-mention", role.Id);
+            var lastRsMention = StateService.Get<DateTime?>(guild.Id, roleMentionStateId);
 
             var text = role.Name;
             if (lastRsMention == null || DateTime.UtcNow > lastRsMention.Value.AddMinutes(5))
             {
                 lastRsMention = DateTime.UtcNow;
-                Services.State.Set(guild.Id, roleMentionStateId, lastRsMention);
+                StateService.Set(guild.Id, roleMentionStateId, lastRsMention);
                 text = role.Mention;
             }
 
@@ -189,8 +189,8 @@
                 return;
             }
 
-            var queueStateId = Services.State.GetId("rs-queue", (ulong)selectedLevel);
-            var queue = Services.State.Get<RsQueueEntry>(Context.Guild.Id, queueStateId)
+            var queueStateId = StateService.GetId("rs-queue", (ulong)selectedLevel);
+            var queue = StateService.Get<RsQueueEntry>(Context.Guild.Id, queueStateId)
                 ?? new RsQueueEntry()
                 {
                     ChannelId = Context.Channel.Id,
@@ -198,9 +198,9 @@
                     StartedOn = DateTime.UtcNow,
                 };
 
-            Services.State.Set(Context.Guild.Id, "rs-queue-activity-" + user.Id.ToStr(), DateTime.UtcNow);
-            Services.State.Set(Context.Guild.Id, "rs-queue-activity-" + user.Id.ToStr() + "-" + selectedLevel.ToStr(), DateTime.UtcNow);
-            Services.State.Delete(Context.Guild.Id, "rs-queue-activity-" + user.Id.ToStr() + "-" + selectedLevel.ToStr() + "-asked");
+            StateService.Set(Context.Guild.Id, "rs-queue-activity-" + user.Id.ToStr(), DateTime.UtcNow);
+            StateService.Set(Context.Guild.Id, "rs-queue-activity-" + user.Id.ToStr() + "-" + selectedLevel.ToStr(), DateTime.UtcNow);
+            StateService.Delete(Context.Guild.Id, "rs-queue-activity-" + user.Id.ToStr() + "-" + selectedLevel.ToStr() + "-asked");
 
             if (queue.Users.Contains(user.Id))
             {
@@ -214,20 +214,20 @@
             if (queue.Users.Count == 4)
             {
                 var runCountStateId = "rs-run-count";
-                queue.RunId = Services.State.Get<int>(Context.Guild.Id, runCountStateId) + 1;
-                Services.State.Set(Context.Guild.Id, runCountStateId, queue.RunId);
+                queue.RunId = StateService.Get<int>(Context.Guild.Id, runCountStateId) + 1;
+                StateService.Set(Context.Guild.Id, runCountStateId, queue.RunId);
             }
 
-            Services.State.Set(Context.Guild.Id, queueStateId, queue);
+            StateService.Set(Context.Guild.Id, queueStateId, queue);
 
             if (queue.Users.Count == 4)
             {
                 foreach (var userId in queue.Users)
                 {
-                    var runCountStateId = Services.State.GetId("rs-run-count", userId, (ulong)queue.Level);
-                    var cnt = Services.State.Get<int>(Context.Guild.Id, runCountStateId);
+                    var runCountStateId = StateService.GetId("rs-run-count", userId, (ulong)queue.Level);
+                    var cnt = StateService.Get<int>(Context.Guild.Id, runCountStateId);
                     cnt++;
-                    Services.State.Set(Context.Guild.Id, runCountStateId, cnt);
+                    StateService.Set(Context.Guild.Id, runCountStateId, cnt);
                 }
 
                 foreach (var userId in queue.Users)
@@ -237,12 +237,12 @@
             }
 
             string response;
-            var roleMentionStateId = Services.State.GetId("rs-queue-last-role-mention", role.Id);
-            var lastRsMention = Services.State.Get<DateTime?>(Context.Guild.Id, roleMentionStateId);
+            var roleMentionStateId = StateService.GetId("rs-queue-last-role-mention", role.Id);
+            var lastRsMention = StateService.Get<DateTime?>(Context.Guild.Id, roleMentionStateId);
             if (lastRsMention == null || DateTime.UtcNow > lastRsMention.Value.AddMinutes(5))
             {
                 lastRsMention = DateTime.UtcNow;
-                Services.State.Set(Context.Guild.Id, roleMentionStateId, lastRsMention);
+                StateService.Set(Context.Guild.Id, roleMentionStateId, lastRsMention);
                 response = ":white_check_mark: " + role.Mention;
             }
             else
@@ -259,7 +259,7 @@
 
             if (queue.Users.Count == 4)
             {
-                Services.State.Rename(Context.Guild.Id, queueStateId, "rs-log-" + queue.RunId.Value.ToStr());
+                StateService.Rename(Context.Guild.Id, queueStateId, "rs-log-" + queue.RunId.Value.ToStr());
 
                 response = "RS" + selectedLevel.ToStr() + " ready! Meet where? (4/4)"
                     + "\n" + string.Join(" ", queue.Users.Select(x =>
@@ -275,9 +275,9 @@
 
         private async Task StartQueue(int level)
         {
-            var queueStateId = Services.State.GetId("rs-queue", (ulong)level);
+            var queueStateId = StateService.GetId("rs-queue", (ulong)level);
 
-            var queue = Services.State.Get<RsQueueEntry>(Context.Guild.Id, queueStateId);
+            var queue = StateService.Get<RsQueueEntry>(Context.Guild.Id, queueStateId);
             if (queue == null)
             {
                 await Context.Channel.BotResponse("RS" + level.ToStr() + " queue is empty, there is nothing to start...", ResponseType.error);
@@ -285,22 +285,22 @@
             }
 
             var runCountStateId = "rs-run-count";
-            queue.RunId = Services.State.Get<int>(Context.Guild.Id, runCountStateId) + 1;
-            Services.State.Set(Context.Guild.Id, runCountStateId, queue.RunId);
-            Services.State.Set(Context.Guild.Id, queueStateId, queue);
+            queue.RunId = StateService.Get<int>(Context.Guild.Id, runCountStateId) + 1;
+            StateService.Set(Context.Guild.Id, runCountStateId, queue.RunId);
+            StateService.Set(Context.Guild.Id, queueStateId, queue);
 
             foreach (var userId in queue.Users)
             {
-                runCountStateId = Services.State.GetId("rs-run-count", userId, (ulong)queue.Level);
-                var cnt = Services.State.Get<int>(Context.Guild.Id, runCountStateId);
+                runCountStateId = StateService.GetId("rs-run-count", userId, (ulong)queue.Level);
+                var cnt = StateService.Get<int>(Context.Guild.Id, runCountStateId);
                 cnt++;
-                Services.State.Set(Context.Guild.Id, runCountStateId, cnt);
+                StateService.Set(Context.Guild.Id, runCountStateId, cnt);
 
                 await RemoveQueue(Context.Guild, Context.Channel, null, Context.Guild.GetUser(userId), level, false);
             }
 
             await RefreshQueue(Context.Guild, Context.Channel, level);
-            Services.State.Rename(Context.Guild.Id, queueStateId, "rs-log-" + queue.RunId.Value.ToStr());
+            StateService.Rename(Context.Guild.Id, queueStateId, "rs-log-" + queue.RunId.Value.ToStr());
 
             var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
 
@@ -332,8 +332,8 @@
                 return;
             }
 
-            var queueStateId = Services.State.GetId("rs-queue", (ulong)level);
-            var queue = Services.State.Get<RsQueueEntry>(guild.Id, queueStateId);
+            var queueStateId = StateService.GetId("rs-queue", (ulong)level);
+            var queue = StateService.Get<RsQueueEntry>(guild.Id, queueStateId);
             if (queue == null)
             {
                 await channel.BotResponse("RS" + level.ToStr() + " queue is empty.", ResponseType.info);
@@ -351,8 +351,8 @@
                 }
             }
 
-            var roleMentionStateId = Services.State.GetId("rs-queue-last-role-mention", role.Id);
-            var lastRsMention = Services.State.Get<DateTime?>(guild.Id, roleMentionStateId);
+            var roleMentionStateId = StateService.GetId("rs-queue-last-role-mention", role.Id);
+            var lastRsMention = StateService.Get<DateTime?>(guild.Id, roleMentionStateId);
 
             var eb = new EmbedBuilder();
             if (queue.RunId == null)
@@ -368,11 +368,11 @@
                 queue.Users.Select(userId =>
                     {
                         var user = guild.GetUser(userId);
-                        var runCountStateId = Services.State.GetId("rs-run-count", userId, (ulong)queue.Level);
-                        var runCount = Services.State.Get<int>(guild.Id, runCountStateId);
+                        var runCountStateId = StateService.GetId("rs-run-count", userId, (ulong)queue.Level);
+                        var runCount = StateService.Get<int>(guild.Id, runCountStateId);
 
                         var modList = "";
-                        var mods = Services.State.Get<UserRsMod>(guild.Id, Services.State.GetId("rs-mod", user.Id));
+                        var mods = StateService.Get<UserRsMod>(guild.Id, StateService.GetId("rs-mod", user.Id));
                         if (mods != null)
                         {
                             if (mods.Rse)
@@ -392,7 +392,7 @@
                         return alliance.GetUserCorpIcon(user) + user.DisplayName
                             + modList
                             + " [" + runCount + " runs]"
-                            + " :watch: " + DateTime.UtcNow.Subtract(Services.State.Get<DateTime>(guild.Id, "rs-queue-activity-" + userId.ToStr() + "-" + queue.Level.ToStr()))
+                            + " :watch: " + DateTime.UtcNow.Subtract(StateService.Get<DateTime>(guild.Id, "rs-queue-activity-" + userId.ToStr() + "-" + queue.Level.ToStr()))
                                     .ToIntervalStr();
                     }
                 )));
@@ -411,7 +411,7 @@
 
             queue.ChannelId = channel.Id;
             queue.MessageId = (await channel.SendMessageAsync(embed: eb.Build())).Id;
-            Services.State.Set(guild.Id, queueStateId, queue);
+            StateService.Set(guild.Id, queueStateId, queue);
         }
 
         public static async Task RemoveQueue(SocketGuild guild, ISocketMessageChannel channel, int? specificLevel, SocketGuildUser user, int? exceptLevel, bool log)
@@ -420,7 +420,7 @@
 
             for (var level = 1; level <= 12; level++)
             {
-                var queueStateId = Services.State.GetId("rs-queue", (ulong)level);
+                var queueStateId = StateService.GetId("rs-queue", (ulong)level);
 
                 if (specificLevel != null && specificLevel.Value != level)
                     continue;
@@ -428,7 +428,7 @@
                 if (exceptLevel == level)
                     continue;
 
-                var queue = Services.State.Get<RsQueueEntry>(guild.Id, queueStateId);
+                var queue = StateService.Get<RsQueueEntry>(guild.Id, queueStateId);
                 if (queue == null)
                     continue;
 
@@ -446,7 +446,7 @@
                 queue.Users.Remove(user.Id);
                 if (queue.Users.Count > 0)
                 {
-                    Services.State.Set(guild.Id, queueStateId, queue);
+                    StateService.Set(guild.Id, queueStateId, queue);
                 }
                 else
                 {
@@ -461,7 +461,7 @@
                         }
                     }
 
-                    Services.State.Delete(guild.Id, queueStateId);
+                    StateService.Delete(guild.Id, queueStateId);
                 }
 
                 var msg = ":x: " + user.Mention + " left RS" + queue.Level.ToStr() + " queue (" + queue.Users.Count.ToStr() + "/4)";
@@ -480,7 +480,7 @@
         private async Task ShowRsMod(SocketGuild guild, ISocketMessageChannel channel)
         {
             var rsModStateId = "rs-mod-state";
-            var rsMod = Services.State.Get<RsModState>(guild.Id, rsModStateId);
+            var rsMod = StateService.Get<RsModState>(guild.Id, rsModStateId);
             if (rsMod != null)
             {
                 try
@@ -514,7 +514,7 @@
                 LastShown = DateTime.UtcNow,
             };
 
-            Services.State.Set(guild.Id, rsModStateId, rsMod);
+            StateService.Set(guild.Id, rsModStateId, rsMod);
         }
 
         internal static async Task HandleReactions(SocketReaction reaction, bool added)
@@ -525,12 +525,12 @@
             var channel = reaction.Channel as SocketGuildChannel;
 
             var rsModStateId = "rs-mod-state";
-            var rsMod = Services.State.Get<RsModState>(channel.Guild.Id, rsModStateId);
+            var rsMod = StateService.Get<RsModState>(channel.Guild.Id, rsModStateId);
             if (rsMod == null)
                 return;
 
-            var userStateId = Services.State.GetId("rs-mod", reaction.UserId);
-            var userState = Services.State.Get<UserRsMod>(channel.Guild.Id, userStateId)
+            var userStateId = StateService.GetId("rs-mod", reaction.UserId);
+            var userState = StateService.Get<UserRsMod>(channel.Guild.Id, userStateId)
                 ?? new UserRsMod()
                 {
                     UserID = reaction.UserId,
@@ -558,7 +558,7 @@
                     break;
             }
 
-            Services.State.Set(channel.Guild.Id, userStateId, userState);
+            StateService.Set(channel.Guild.Id, userStateId, userState);
         }
 
         internal class RsModState

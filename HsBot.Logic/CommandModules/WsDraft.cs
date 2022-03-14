@@ -7,19 +7,19 @@
     [RequireContext(ContextType.Guild)]
     public class WsDraft : BaseModule
     {
-        [Command("wsresults")]
-        [Summary("wsresults <teamName>|list the previous results of a WS team")]
+        [Command("wssignup")]
+        [Summary("wssignup|show active signup form(s)")]
         [RequireMinimumAllianceRole(AllianceRole.Member)]
-        public async Task ShowWsWesults(string teamName)
+        public async Task ShowSignup()
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await WsLogic.ShowWsWesults(Context.Guild, Context.Channel, CurrentUser, teamName);
+            await WsSignupLogic.RepostSignups(Context.Guild, Context.Channel, CurrentUser);
         }
 
         [Command("draft-add-team")]
-        [Summary("draft-add-team <teamName> <corpName>|Create a team in the draft. Team name must be an existing role, like 'WS1'. Corp is where the scan will happen.")]
+        [Summary("draft-add-team <teamName> <corpName> <commitmentLevel>|Create a team in the draft. Team name must be an existing role, like 'WS1'. Corp is where the scan will happen.")]
         [RequireMinimumAllianceRole(AllianceRole.Admiral)]
-        public async Task AddTeamToDraft(string teamName, string corpName)
+        public async Task AddTeamToDraft(string teamName, string corpName, string commitmentLevel)
         {
             await CleanupService.DeleteCommand(Context.Message);
 
@@ -38,7 +38,21 @@
                 return;
             }
 
-            await WsLogic.AddDraftTeam(Context.Guild, Context.Channel, CurrentUser, role, corp);
+            var teamCommitmentLevel = commitmentLevel.ToLowerInvariant() switch
+            {
+                "competitive" => WsTeamCommitmentLevel.Competitive,
+                "casual" => WsTeamCommitmentLevel.Casual,
+                "inactive" => WsTeamCommitmentLevel.Inactive,
+                _ => WsTeamCommitmentLevel.Unknown,
+            };
+
+            if (teamCommitmentLevel == WsTeamCommitmentLevel.Unknown)
+            {
+                await Context.Channel.BotResponse("Team commitment level must be one of the following values: `competitive`, `casual`, `inactive`.", ResponseType.error);
+                return;
+            }
+
+            await WsDraftLogic.AddDraftTeam(Context.Guild, Context.Channel, CurrentUser, role, corp, teamCommitmentLevel);
         }
 
         [Command("draft-remove-team")]
@@ -55,7 +69,7 @@
                 return;
             }
 
-            await WsLogic.RemoveDraftTeam(Context.Guild, Context.Channel, CurrentUser, role);
+            await WsDraftLogic.RemoveDraftTeam(Context.Guild, Context.Channel, CurrentUser, role);
         }
 
         [Command("draft")]
@@ -121,7 +135,7 @@
             if (unknownNames.Count > 0)
                 await Context.Channel.BotResponse("Uknown names: " + string.Join(", ", unknownNames.Select(x => "`" + x + "`")), ResponseType.error);
 
-            await WsLogic.ManageDraft(Context.Guild, Context.Channel, CurrentUser, role, operation == "add", mains, alts, unknownNames);
+            await WsDraftLogic.ManageDraft(Context.Guild, Context.Channel, CurrentUser, role, operation == "add", mains, alts, unknownNames);
         }
 
         [Command("close-draft")]
@@ -130,25 +144,7 @@
         public async Task CloseDraft()
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await WsLogic.CloseDraft(Context.Guild, Context.Channel, CurrentUser);
-        }
-
-        [Command("wsscan")]
-        [Summary("wsscan|indicates as WS team is scanning")]
-        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
-        public async Task WsTeamScanning()
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-            await WsLogic.WsTeamScanning(Context.Guild, Context.Channel, CurrentUser);
-        }
-
-        [Command("wsmatched")]
-        [Summary("wsmatched <ends_in> <opponent_name>|indicates as WS team matched and ends in a specific amount of time (ex: 4d22h)")]
-        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
-        public async Task WsTeamMatched(string endsIn, [Remainder] string opponentName)
-        {
-            await CleanupService.DeleteCommand(Context.Message);
-            await WsLogic.WsTeamMatched(Context.Guild, Context.Channel, CurrentUser, opponentName, endsIn);
+            await WsDraftLogic.CloseDraft(Context.Guild, Context.Channel, CurrentUser);
         }
     }
 }

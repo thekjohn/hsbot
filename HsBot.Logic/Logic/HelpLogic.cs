@@ -207,9 +207,11 @@
 
             var eb = new EmbedBuilder()
                 .WithTitle("Members of " + corp.FullName)
-                .WithDescription(sb.ToString());
+                .WithDescription(sb.ToString())
+                .WithFooter("This message will self-destruct in 30 seconds.");
 
-            await channel.SendMessageAsync(embed: eb.Build());
+            CleanupService.RegisterForDeletion(30,
+                await channel.SendMessageAsync(embed: eb.Build()));
         }
 
         public static async Task ShowRoleMembers(SocketGuild guild, ISocketMessageChannel channel, AllianceLogic.AllianceInfo alliance, SocketRole role)
@@ -266,9 +268,11 @@
 
                 var eb = new EmbedBuilder()
                     .WithTitle("Members of " + role.Name)
-                    .WithDescription(sb.ToString());
+                    .WithDescription(sb.ToString())
+                    .WithFooter("This message will self-destruct in 30 seconds.");
 
-                await channel.SendMessageAsync(embed: eb.Build());
+                CleanupService.RegisterForDeletion(30,
+                    await channel.SendMessageAsync(embed: eb.Build()));
             }
         }
 
@@ -376,7 +380,10 @@
                 eb.AddField("alts", altsText);
             }
 
-            await channel.SendMessageAsync(null, embed: eb.Build());
+            eb.WithFooter("This message will self-destruct in 30 seconds.");
+
+            CleanupService.RegisterForDeletion(30,
+                await channel.SendMessageAsync(null, embed: eb.Build()));
         }
     }
 }

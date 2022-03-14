@@ -20,7 +20,7 @@
                 return;
             }
 
-            var entry = Services.State.Get<MessageEntry>(guild.Id, "myalts-panel-" + user.Id.ToStr());
+            var entry = StateService.Get<MessageEntry>(guild.Id, "myalts-panel-" + user.Id.ToStr());
             if (entry != null)
             {
                 try
@@ -65,8 +65,7 @@
                     + "\n\n" + description.ToString())
                 : eb.WithDescription(description.ToString());
 
-            eb = eb
-                .WithFooter("This message will be automatically deleted after 30 seconds.");
+            eb.WithFooter("This message will self-destruct in 30 seconds.");
 
             var sent = await channel.SendMessageAsync(embed: eb.Build());
 
@@ -78,7 +77,7 @@
                 .ToArray());
             }
 
-            Services.State.Set(guild.Id, "myalts-panel-" + user.Id.ToStr(), new MessageEntry()
+            StateService.Set(guild.Id, "myalts-panel-" + user.Id.ToStr(), new MessageEntry()
             {
                 ChannelId = channel.Id,
                 MessageId = sent.Id,
@@ -96,7 +95,7 @@
             var user = reaction.User.Value as SocketGuildUser;
 
             var entryId = "myalts-panel-" + reaction.UserId.ToStr();
-            var entry = Services.State.Get<MessageEntry>(channel.Guild.Id, entryId);
+            var entry = StateService.Get<MessageEntry>(channel.Guild.Id, entryId);
             if (entry == null || entry.MessageId != reaction.MessageId)
                 return;
 
@@ -127,7 +126,7 @@
             {
             }
 
-            Services.State.Delete(channel.Guild.Id, entryId);
+            StateService.Delete(channel.Guild.Id, entryId);
 
             await reaction.Channel.SendMessageAsync(":white_check_mark: " + channel.Guild.GetUser(reaction.UserId).Mention + "'s alt is removed: `"
                 + (alt.AltUserId != null

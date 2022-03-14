@@ -8,13 +8,13 @@
     {
         public static AllianceInfo GetAlliance(ulong guildId)
         {
-            return Services.State.Get<AllianceInfo>(guildId, "alliance")
+            return StateService.Get<AllianceInfo>(guildId, "alliance")
                 ?? new AllianceInfo();
         }
 
         public static void SaveAlliance(ulong guildId, AllianceInfo alliance)
         {
-            Services.State.Set(guildId, "alliance", alliance);
+            StateService.Set(guildId, "alliance", alliance);
         }
 
         public static bool IsMember(ulong guildId, SocketGuildUser user)

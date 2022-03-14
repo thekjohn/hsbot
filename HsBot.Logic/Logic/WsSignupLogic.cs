@@ -26,7 +26,7 @@
             };
 
             var signupStateId = "ws-signup-active-" + now.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
-            Services.State.Set(guild.Id, signupStateId, signup);
+            StateService.Set(guild.Id, signupStateId, signup);
 
             var memberRole = guild.GetRole(alliance.RoleId);
             if (memberRole != null)
@@ -47,10 +47,10 @@
 
             var alliance = AllianceLogic.GetAlliance(guild.Id);
 
-            var ids = Services.State.ListIds(guild.Id, "ws-signup-active-");
+            var ids = StateService.ListIds(guild.Id, "ws-signup-active-");
             foreach (var signupStateId in ids)
             {
-                var signup = Services.State.Get<WsSignup>(guild.Id, signupStateId);
+                var signup = StateService.Get<WsSignup>(guild.Id, signupStateId);
                 if (signup == null)
                     continue;
 
@@ -76,7 +76,7 @@
                 var sent = await channel.SendMessageAsync(embed: content);
                 signup.ChannelId = channel.Id;
                 signup.MessageId = sent.Id;
-                Services.State.Set(guild.Id, signupStateId, signup);
+                StateService.Set(guild.Id, signupStateId, signup);
 
                 if (signup.EndsOn > DateTime.UtcNow)
                 {
@@ -98,10 +98,10 @@
                 var now = DateTime.UtcNow;
                 foreach (var guild in DiscordBot.Discord.Guilds)
                 {
-                    var ids = Services.State.ListIds(guild.Id, "ws-signup-active-");
+                    var ids = StateService.ListIds(guild.Id, "ws-signup-active-");
                     foreach (var signupStateId in ids)
                     {
-                        var signup = Services.State.Get<WsSignup>(guild.Id, signupStateId);
+                        var signup = StateService.Get<WsSignup>(guild.Id, signupStateId);
                         if (signup == null)
                             continue;
 
@@ -136,16 +136,16 @@
 
                                 if (alliance.WsDraftChannelId != 0)
                                 {
-                                    var draft = new WsLogic.WsDraft()
+                                    var draft = new WsDraftLogic.WsDraft()
                                     {
                                         OriginalSignup = signup,
                                         ChannelId = alliance.WsDraftChannelId,
                                         MessageId = 0,
-                                        Teams = new List<WsLogic.WsTeam>(),
+                                        Teams = new List<WsTeam>(),
                                     };
 
-                                    WsLogic.SaveWsDraft(guild.Id, draft);
-                                    await WsLogic.RepostDraft(guild);
+                                    WsDraftLogic.SaveWsDraft(guild.Id, draft);
+                                    await WsDraftLogic.RepostDraft(guild);
                                 }
 
                                 await RefreshSignup(guild, channel, signup.MessageId);
@@ -153,7 +153,7 @@
                             }
 
                             var newId = signupStateId.Replace("active", "archive");
-                            Services.State.Rename(guild.Id, signupStateId, newId);
+                            StateService.Rename(guild.Id, signupStateId, newId);
                         }
                         else
                         {
@@ -175,7 +175,7 @@
                                                 + " WS signup ends in "
                                                 + signup.EndsOn.Subtract(now).ToIntervalStr(true, false) + "!");
                                             signup.Notify1dLeftMessageId = sent.Id;
-                                            Services.State.Set(guild.Id, signupStateId, signup);
+                                            StateService.Set(guild.Id, signupStateId, signup);
                                         }
                                     }
                                 }
@@ -199,7 +199,7 @@
                                                 + " WS signup ends in "
                                                 + signup.EndsOn.Subtract(now).ToIntervalStr(true, false) + "!");
                                             signup.Notify2hLeftMessageId = sent.Id;
-                                            Services.State.Set(guild.Id, signupStateId, signup);
+                                            StateService.Set(guild.Id, signupStateId, signup);
                                         }
                                     }
                                 }
@@ -216,10 +216,10 @@
         {
             var alliance = AllianceLogic.GetAlliance(guild.Id);
 
-            var ids = Services.State.ListIds(guild.Id, "ws-signup-active-");
+            var ids = StateService.ListIds(guild.Id, "ws-signup-active-");
             foreach (var signupStateId in ids)
             {
-                var signup = Services.State.Get<WsSignup>(guild.Id, signupStateId);
+                var signup = StateService.Get<WsSignup>(guild.Id, signupStateId);
                 if (signup == null)
                     continue;
 
@@ -366,11 +366,11 @@
             }
 
             string signupStateId = null;
-            var ids = Services.State.ListIds(guild.Id, "ws-signup-active-");
+            var ids = StateService.ListIds(guild.Id, "ws-signup-active-");
             WsSignup signup = null;
             foreach (var ssid in ids)
             {
-                signup = Services.State.Get<WsSignup>(guild.Id, ssid);
+                signup = StateService.Get<WsSignup>(guild.Id, ssid);
                 if (signup != null && signup.MessageId == reaction.MessageId)
                 {
                     signupStateId = ssid;
@@ -419,7 +419,7 @@
 
         private static async Task ApplyReaction(string emoteName, ISocketMessageChannel channel, ulong userId, SocketGuild guild, string signupStateId, AllianceLogic.Alt alt)
         {
-            var signup = Services.State.Get<WsSignup>(guild.Id, signupStateId);
+            var signup = StateService.Get<WsSignup>(guild.Id, signupStateId);
             if (emoteName != "❌")
             {
                 if (alt == null)
@@ -495,7 +495,7 @@
                 signup.InactiveAlts.RemoveAll(x => x.OwnerUserId == userId);
             }
 
-            Services.State.Set(guild.Id, signupStateId, signup);
+            StateService.Set(guild.Id, signupStateId, signup);
             await RefreshSignup(guild, channel, signup.MessageId);
         }
 
@@ -529,7 +529,7 @@
             var eb = new EmbedBuilder()
                 .WithTitle(":point_right: " + user.DisplayName + "'s accounts")
                 .WithDescription("Use the reactions to sign up all or one of your accoutns.\n\n" + description.ToString())
-                .WithFooter("This message will be automatically deleted after 30 seconds.");
+                .WithFooter("This message will self-destruct in 30 seconds.");
 
             var sent = await channel.SendMessageAsync(embed: eb.Build());
 

@@ -7,7 +7,7 @@
     {
         public static async Task SetTimeZone(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, TimeZoneInfo timeZone)
         {
-            Services.State.Set(user.Guild.Id, "timezone-user-" + user.Id, timeZone.Id);
+            StateService.Set(user.Guild.Id, "timezone-user-" + user.Id, timeZone.Id);
 
             await channel.BotResponse(user.Mention + "'s timezone is set to " + timeZone.StandardName + ", UTC" + (timeZone.BaseUtcOffset.TotalMilliseconds >= 0 ? "+" : "")
                 + (timeZone.BaseUtcOffset.Minutes == 0
@@ -19,7 +19,7 @@
 
         public static TimeZoneInfo GetUserTimeZone(ulong guildId, ulong userId)
         {
-            var tzId = Services.State.Get<string>(guildId, "timezone-user-" + userId);
+            var tzId = StateService.Get<string>(guildId, "timezone-user-" + userId);
             if (tzId == null)
                 return null;
 

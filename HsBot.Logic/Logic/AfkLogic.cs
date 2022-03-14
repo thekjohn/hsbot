@@ -8,7 +8,7 @@
     {
         public static ulong GetRsQueueRole(ulong guildId)
         {
-            return Services.State.Get<ulong>(guildId, "rs-queue-role");
+            return StateService.Get<ulong>(guildId, "rs-queue-role");
         }
 
         public static async Task SetAfk(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, string hourMinuteNotation)
@@ -21,7 +21,7 @@
                 EndsOn = hourMinuteNotation.AddToDateTime(now),
             };
 
-            Services.State.Set(guild.Id, "afk-user-" + user.Id, entry);
+            StateService.Set(guild.Id, "afk-user-" + user.Id, entry);
 
             var rsQueueRole = GetRsQueueRole(guild.Id);
             var postMessage = "";
@@ -44,7 +44,7 @@
 
         public static async Task<AfkEntry> GetUserAfk(SocketGuild guild, SocketGuildUser user)
         {
-            var entry = Services.State.Get<AfkEntry>(guild.Id, "afk-user-" + user.Id);
+            var entry = StateService.Get<AfkEntry>(guild.Id, "afk-user-" + user.Id);
             if (entry == null)
                 return null;
 
@@ -59,7 +59,7 @@
 
         public static async Task<List<AfkEntry>> GetAfkList(SocketGuild guild)
         {
-            var ids = Services.State.ListIds(guild.Id, "afk-user-");
+            var ids = StateService.ListIds(guild.Id, "afk-user-");
             if (ids.Length == 0)
                 return null;
 
@@ -67,7 +67,7 @@
             var now = DateTime.UtcNow;
             foreach (var id in ids)
             {
-                var entry = Services.State.Get<AfkEntry>(guild.Id, id);
+                var entry = StateService.Get<AfkEntry>(guild.Id, id);
                 if (entry.EndsOn <= now)
                 {
                     var user = guild.GetUser(entry.UserId);
@@ -77,7 +77,7 @@
                     }
                     else
                     {
-                        Services.State.Delete(guild.Id, id);
+                        StateService.Delete(guild.Id, id);
                     }
                 }
                 else
@@ -112,10 +112,10 @@
         public static async Task RemoveAfk(SocketGuild guild, SocketGuildUser user)
         {
             var stateId = "afk-user-" + user.Id;
-            if (!Services.State.Exists(guild.Id, stateId))
+            if (!StateService.Exists(guild.Id, stateId))
                 return;
 
-            Services.State.Delete(guild.Id, stateId);
+            StateService.Delete(guild.Id, stateId);
 
             var eb = new EmbedBuilder()
                 .WithTitle("AFK status removed")

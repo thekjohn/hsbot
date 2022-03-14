@@ -38,7 +38,7 @@
 
             Discord.UserJoined += Discord_UserJoined;
 
-            LogService.Log(null, "folder: " + Services.State.Folder, ConsoleColor.Magenta);
+            LogService.Log(null, "folder: " + StateService.Folder, ConsoleColor.Magenta);
 
             Commands = new CommandService();
             Commands.Log += OnLog;
@@ -101,13 +101,13 @@
                 {
                     for (var level = 1; level <= 12; level++)
                     {
-                        var timeoutStateId = Services.State.GetId("rs-queue-timeout", (ulong)level);
-                        var timeoutMinutes = Services.State.Get<int>(guild.Id, timeoutStateId);
+                        var timeoutStateId = StateService.GetId("rs-queue-timeout", (ulong)level);
+                        var timeoutMinutes = StateService.Get<int>(guild.Id, timeoutStateId);
                         if (timeoutMinutes == 0)
                             timeoutMinutes = 10;
 
-                        var queueStateId = Services.State.GetId("rs-queue", (ulong)level);
-                        var queue = Services.State.Get<Rs.RsQueueEntry>(guild.Id, queueStateId);
+                        var queueStateId = StateService.GetId("rs-queue", (ulong)level);
+                        var queue = StateService.Get<Rs.RsQueueEntry>(guild.Id, queueStateId);
                         if (queue == null)
                             continue;
 
@@ -118,7 +118,7 @@
                         foreach (var userId in queue.Users.ToList())
                         {
                             var userActivityStateId = "rs-queue-activity-" + userId.ToStr() + "-" + level.ToStr();
-                            var userActivity = Services.State.Get<DateTime>(guild.Id, userActivityStateId);
+                            var userActivity = StateService.Get<DateTime>(guild.Id, userActivityStateId);
                             if (userActivity.Year == 0)
                                 continue;
 
@@ -128,9 +128,9 @@
                                 if (user != null)
                                 {
                                     var userActivityConfirmationAskedStateId = userActivityStateId + "-asked";
-                                    if (Services.State.Exists(guild.Id, userActivityConfirmationAskedStateId))
+                                    if (StateService.Exists(guild.Id, userActivityConfirmationAskedStateId))
                                     {
-                                        var askedOn = Services.State.Get<DateTime>(guild.Id, userActivityConfirmationAskedStateId);
+                                        var askedOn = StateService.Get<DateTime>(guild.Id, userActivityConfirmationAskedStateId);
                                         if (askedOn.AddMinutes(2) < now)
                                         {
                                             await Rs.RemoveQueue(guild, channel, level, user, null, true);
@@ -140,7 +140,7 @@
                                         continue;
                                     }
 
-                                    Services.State.Set(guild.Id, userActivityConfirmationAskedStateId, DateTime.UtcNow);
+                                    StateService.Set(guild.Id, userActivityConfirmationAskedStateId, DateTime.UtcNow);
 
                                     var confirmTimeoutMinutes = 2;
                                     CleanupService.RegisterForDeletion(confirmTimeoutMinutes * 60,
@@ -258,7 +258,8 @@
 
             if (result.Error == CommandError.BadArgCount)
             {
-                await context.Channel.SendMessageAsync("Parameter count doesn't match.");
+                CleanupService.RegisterForDeletion(30,
+                    await context.Channel.SendMessageAsync("Parameter count doesn't match."));
                 await HelpCommandModule.ShowHelp(context.Channel as ISocketMessageChannel, command.Value.Name);
                 return;
             }
