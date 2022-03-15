@@ -172,6 +172,7 @@
             await Commands.AddModuleAsync(typeof(Rs), null);
             await Commands.AddModuleAsync(typeof(Ws), null);
             await Commands.AddModuleAsync(typeof(WsDraft), null);
+            await Commands.AddModuleAsync(typeof(Trade), null);
             await Commands.AddModuleAsync(typeof(Wiki), null);
             await Commands.AddModuleAsync(typeof(Greeter), null);
             await Commands.AddModuleAsync(typeof(Admin), null);
