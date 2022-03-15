@@ -61,9 +61,7 @@
             new Thread(WsSignupLogic.AutomaticallyCloseThreadWorker).Start();
             new Thread(WsLogic.NotifyThreadWorker).Start();
             new Thread(AfkLogic.AutomaticallyRemoveAfkThreadWorker).Start();
-
-            //var msg = await Discord.Guilds.First().GetTextChannel(830622786396618772).GetMessageAsync(943863908253438002);
-
+            new Thread(CompendiumLogic.ImportThreadWorker).Start();
         }
 
         private async void MessageCleanupThreadWorker()
@@ -197,6 +195,11 @@
                     return;
                 }
 
+                if (message.Source == MessageSource.Bot)
+                {
+                    return;
+                }
+
                 if (message.Source != MessageSource.User)
                     return;
 
@@ -239,7 +242,7 @@
                         .AddField("sender", user.DisplayName + " (" + user.Id.ToStr() + ")")
                         .AddField("channel", textChannel.Name)
                         .AddField("guild permissions", string.Join(", ", user.GuildPermissions.ToList()));
-                    LogService.LogToChannel(tc.Guild, null, eb.Build());
+                    await LogService.LogToChannel(tc.Guild, null, eb.Build());
                 }
             }
             catch (Exception ex)

@@ -127,7 +127,7 @@
 
             await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
 
-            await channel.BotResponse(user.DisplayName + " is successfully set as WS guest."
+            await channel.BotResponse(user.DisplayName + " is successfully configured as WS guest."
                 + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`"))
                 , ResponseType.infoStay);
         }
@@ -155,9 +155,19 @@
             }
             await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
 
-            await channel.BotResponse(user.DisplayName + " is successfully set as WS guest."
+            await channel.BotResponse(user.DisplayName + " is successfully configured as Ally."
                 + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`"))
                 , ResponseType.infoStay);
+        }
+
+        internal static async Task ChangeName(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, string name, string corpName)
+        {
+            var oldName = user.DisplayName;
+            var newName = "[" + (corpName ?? "").Trim() + "] " + name;
+
+            await user.ModifyAsync(x => x.Nickname = newName);
+
+            await channel.BotResponse(oldName + " is successfully renamed to " + newName, ResponseType.infoStay);
         }
 
         internal static async Task GiveRole(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, SocketRole role)

@@ -449,5 +449,15 @@
             StateService.Set(Context.Guild.Id, "bot-log-channel", channel.Id);
             await Context.Channel.BotResponse("Bot log channel is set to: " + channel.Name, ResponseType.success);
         }
+
+        [Command("connect-compendium")]
+        [Summary("connect-compendium|connect Jarvis and the Compendium bot togehter")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task ConnectCompendium([Remainder] string apiKey)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+            await CompendiumLogic.SetCompendiumApiKey(Context.Guild, Context.Channel, CurrentUser, apiKey);
+            await Context.Channel.BotResponse("Compendium API key is changed.", ResponseType.success);
+        }
     }
 }

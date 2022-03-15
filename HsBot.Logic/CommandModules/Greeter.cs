@@ -1,7 +1,6 @@
 ﻿namespace HsBot.Logic
 {
     using System.Threading.Tasks;
-    using Discord;
     using Discord.Commands;
 
     [Summary("greeter")]
@@ -15,13 +14,7 @@
         public async Task ShowGreeterCommandList()
         {
             await CleanupService.DeleteCommand(Context.Message);
-            var eb = new EmbedBuilder()
-                .WithTitle("GREETER COMMANDS")
-                .AddField("Recruit to a corporation", "`!recruit <userName> <corpName> <rsLevel>`")
-                .AddField("Promote to WS guest (WS signup access)", "`!promote-wsguest <userName>`")
-                .AddField("Promote to Ally (RS queue access)", "`!promote-ally <userName> <rsLevel>`")
-                .AddField("Demote to guest, remove all roles", "`!demote <userName>`");
-            await Context.Channel.SendMessageAsync(null, embed: eb.Build());
+            await HelpLogic.ShowMostUsedGreeterCommands(Context.Guild, Context.Channel);
         }
 
         [Command("recruit")]
@@ -143,6 +136,39 @@
             }
 
             await RoleLogic.PromoteToAlly(Context.Guild, Context.Channel, user, alliance, rsLevel);
+        }
+
+        [Command("setname")]
+        [Summary("setname <userName> <ingameName> [corpName]|Set the ingame name of a guest/ally/WS guest. Corp is optional. Example: `!setname \"He Was Called Special\" \"He.Is.Special\" \"Blue Cat Order\"`")]
+        [RequireMinimumAllianceRole(AllianceRole.Greeter)]
+        public async Task SetName(string userName, string ingameName, string corpName = null)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var user = Context.Guild.FindUser(CurrentUser, userName);
+            if (user == null)
+            {
+                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
+                return;
+            }
+
+            if (user.GuildPermissions.Administrator)
+            {
+                await Context.Channel.BotResponse("Administrators can't be changed this way!", ResponseType.error);
+                return;
+            }
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            if (alliance == null)
+                return;
+
+            if (!user.Roles.Any(x => x.Id == alliance.AllyRoleId || x.Id == alliance.GuestRoleId || x.Id == alliance.WsGuestRoleId)
+                || user.Roles.Any(x => x.Id == alliance.RoleId))
+            {
+                await Context.Channel.BotResponse("Only guests, WS guests, and allies can be renamed with this command!", ResponseType.error);
+            }
+
+            await RoleLogic.ChangeName(Context.Guild, Context.Channel, user, ingameName, corpName);
         }
 
         [Command("give")]

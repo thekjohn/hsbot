@@ -183,9 +183,15 @@
                 await battleRoom.SendMessageAsync(teamRole.Name + " battleroom is ready, please head to " + corp.FullName + " (" + corp.Abbreviation + ") for scan!",
                     embed: eb.Build());
 
+                var maxDuration = ThreadArchiveDuration.OneDay;
+                if (guild.PremiumTier == PremiumTier.Tier1)
+                    maxDuration = ThreadArchiveDuration.ThreeDays;
+                else if (guild.PremiumTier == PremiumTier.Tier2 || guild.PremiumTier == PremiumTier.Tier3)
+                    maxDuration = ThreadArchiveDuration.OneWeek;
+
                 var ordersMsg = await battleRoom.SendMessageAsync("Orders will be posted in the #orders thread."
                     + "\n" + string.Join(" ", usersToMention.Select(x => x.Mention)));
-                var ordersThread = await battleRoom.CreateThreadAsync("orders", ThreadType.PublicThread, ThreadArchiveDuration.OneDay, ordersMsg);
+                var ordersThread = await battleRoom.CreateThreadAsync("orders", ThreadType.PublicThread, maxDuration, ordersMsg);
                 team.OrdersChannelId = ordersThread.Id;
 
                 if (admiralRole != null)
@@ -195,7 +201,7 @@
                     var admiralMsg = await battleRoom.SendMessageAsync("Admirals will plan in the #admiral thread."
                         + "\n" + string.Join(" ", usersToMention.Select(x => x.Mention)));
 
-                    var admiralThread = await battleRoom.CreateThreadAsync("admiral", ThreadType.PublicThread, ThreadArchiveDuration.OneDay, admiralMsg);
+                    var admiralThread = await battleRoom.CreateThreadAsync("admiral", ThreadType.PublicThread, maxDuration, admiralMsg);
                     team.AdmiralChannelId = admiralThread.Id;
 
                     await admiralThread.SendMessageAsync(":information_source: Type " + DiscordBot.CommandPrefix + "`wsscan` here when scan is started in " + corp.FullName + ". Make sure the corp is closed before the scan to prevent a high influence pilot joining to the corp and ruining the scan.");
@@ -207,30 +213,6 @@
             }
 
             await HelpLogic.ShowAllianceInfo(guild, ch, alliance);
-        }
-
-        public static bool GetWsTeamByChannel(SocketGuild guild, ISocketMessageChannel channel, out WsTeam team, out SocketRole role)
-        {
-            foreach (var stateId in StateService.ListIds(guild.Id, "ws-team-"))
-            {
-                var t = StateService.Get<WsTeam>(guild.Id, stateId);
-                if (t.BattleRoomChannelId == channel.Id
-                    || t.AdmiralChannelId == channel.Id
-                    || t.OrdersChannelId == channel.Id)
-                {
-                    var r = guild.GetRole(t.RoleId);
-                    if (r != null)
-                    {
-                        team = t;
-                        role = r;
-                        return true;
-                    }
-                }
-            }
-
-            team = null;
-            role = null;
-            return false;
         }
 
         internal static async Task ManageDraft(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, SocketRole role, bool add, List<SocketGuildUser> mains, List<AllianceLogic.Alt> alts, List<string> unknownNames)

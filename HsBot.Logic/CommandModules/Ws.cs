@@ -101,5 +101,14 @@
             await CleanupService.DeleteCommand(Context.Message);
             await WsLogic.SetWsTeamEnd(Context.Guild, Context.Channel, CurrentUser, endsIn);
         }
+
+        [Command("wsops")]
+        [Summary("wsops|list the squishy operations of the WS")]
+        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
+        public async Task WsOps()
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+            await WsLogic.WsOps(Context.Guild, Context.Channel, CurrentUser);
+        }
     }
 }

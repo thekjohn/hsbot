@@ -34,11 +34,11 @@
             var timeZone = TimeZoneLogic.GetUserTimeZone(guild.Id, user.Id);
             if (timeZone == null)
             {
-                await channel.BotResponse(user.DisplayName + " is set to AFK until " + entry.EndsOn.ToString("yyyy.MM.dd HH:mm", CultureInfo.InvariantCulture) + " UTC." + postMessage, ResponseType.infoStay);
+                await channel.BotResponse(user.DisplayName + " is AFK for " + entry.EndsOn.Subtract(now).ToIntervalStr() + "." + postMessage, ResponseType.infoStay);
             }
             else
             {
-                await channel.BotResponse(user.DisplayName + " is set to AFK until " + entry.EndsOn.ToString("yyyy.MM.dd HH:mm", CultureInfo.InvariantCulture) + " UTC, local time will be " + TimeZoneInfo.ConvertTimeFromUtc(entry.EndsOn, timeZone).ToString("yyyy.MM.dd HH:mm", CultureInfo.InvariantCulture) + " (" + timeZone.StandardName + ")." + postMessage, ResponseType.infoStay);
+                await channel.BotResponse(user.DisplayName + " is AFK for " + entry.EndsOn.Subtract(now).ToIntervalStr() + ". Local time will be " + TimeZoneInfo.ConvertTimeFromUtc(entry.EndsOn, timeZone).ToString("yyyy.MM.dd HH:mm", CultureInfo.InvariantCulture) + " (" + timeZone.StandardName + ")." + postMessage, ResponseType.infoStay);
             }
         }
 
@@ -121,7 +121,7 @@
                 .WithTitle("AFK status removed")
                 .AddField("user", user.DisplayName + " (" + user.Id.ToStr() + ")");
 
-            LogService.LogToChannel(guild, null, eb.Build());
+            await LogService.LogToChannel(guild, null, eb.Build());
 
             var rsQueueRoleId = GetRsQueueRole(guild.Id);
             if (rsQueueRoleId != 0 && !user.Roles.Any(x => x.Id == rsQueueRoleId))

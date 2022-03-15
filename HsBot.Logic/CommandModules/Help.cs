@@ -171,25 +171,7 @@
         public async Task Jarvis()
         {
             await CleanupService.DeleteCommand(Context.Message);
-
-            var eb = new EmbedBuilder()
-                .WithTitle("JARVIS ONBOARDING")
-                .AddField("get the list of available timezones", "`" + DiscordBot.CommandPrefix + "timezone-list`")
-                .AddField("set your own timezone", "`" + DiscordBot.CommandPrefix + "timezone-set 55` where 55 is the # number of the timezone you looked up previously")
-                .AddField("flag when you are AFK (mainly during WS)", "`" + DiscordBot.CommandPrefix + "afk 5h10m` During AFK, you lose access to the RS queue channel.")
-                .AddField("flag when you are no longer AFK", "`" + DiscordBot.CommandPrefix + "back` You get back your RS queue access.")
-                .AddField("enter an RS queue", "`" + DiscordBot.CommandPrefix + "in 10` Where 10 is the RS level. Short form is `" + DiscordBot.CommandPrefix + "i 10`")
-                .AddField("leave an RS queue", "`" + DiscordBot.CommandPrefix + "out 10` Where 10 is the RS level. Short form is `" + DiscordBot.CommandPrefix + "o 10`")
-                .AddField("leave all RS queue", "`" + DiscordBot.CommandPrefix + "out`. Short form is `" + DiscordBot.CommandPrefix + "o`")
-                .AddField("get the list of commands", "`" + DiscordBot.CommandPrefix + "help`")
-                .AddField("get the defails of a commands", "`" + DiscordBot.CommandPrefix + "help sga`")
-                .AddField("get the overview of the alliance (corps)", "`" + DiscordBot.CommandPrefix + "sga`")
-                .AddField("get the overview of all alts in alliance", "`" + DiscordBot.CommandPrefix + "sga alts`")
-                .AddField("get the list of the members of a corp", "`" + DiscordBot.CommandPrefix + "sga ge`")
-                .AddField("get the list of the members of a role", "`" + DiscordBot.CommandPrefix + "sga ally`")
-                .AddField("list your alts", "`" + DiscordBot.CommandPrefix + "alts`")
-                ;
-            await ReplyAsync(embed: eb.Build());
+            await HelpLogic.ShowMostUsedCommands(Context.Guild, Context.Channel);
         }
 
         [Command("alliance")]
@@ -234,19 +216,29 @@
 
         [Command("whois")]
         [Alias("whois")]
-        [Summary("whois [user]|display information of a specific a user")]
-        public async Task WhoIs(string userName = null)
+        [Summary("whois [userOrAltName]|display information of a specific a user or alt")]
+        public async Task WhoIs(string userOrAltName = null)
         {
             await CleanupService.DeleteCommand(Context.Message);
 
-            var user = Context.Guild.FindUser(CurrentUser, userName);
-            if (user == null)
+            var user = Context.Guild.FindUser(CurrentUser, userOrAltName);
+            if (user != null)
             {
-                await Context.Channel.BotResponse("Unknown user: " + userName, ResponseType.error);
+                await HelpLogic.ShowUser(Context.Guild, Context.Channel, user);
                 return;
             }
 
-            await HelpLogic.ShowMember(Context.Guild, Context.Channel, user);
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+
+            var alt = alliance.FindAlt(userOrAltName);
+            user = alt != null ? Context.Guild.GetUser(alt.OwnerUserId) : null;
+            if (user != null)
+            {
+                await HelpLogic.ShowUser(Context.Guild, Context.Channel, user);
+                return;
+            }
+
+            await Context.Channel.BotResponse("Unknown user or alt: " + userOrAltName, ResponseType.error);
         }
     }
 }

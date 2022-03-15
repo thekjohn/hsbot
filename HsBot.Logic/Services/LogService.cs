@@ -12,17 +12,14 @@
             Console.WriteLine(DateTime.UtcNow.ToString("yyyy.MM.dd HH:mm:ss", CultureInfo.InvariantCulture) + (userName != null ? " [" + userName + "]" : "") + " " + text);
         }
 
-        public static void LogToChannel(SocketGuild guild, string message, Embed embed)
+        public static async Task LogToChannel(SocketGuild guild, string message, Embed embed)
         {
-            var channelId = StateService.Get<ulong>(guild.Id, "bot-log-channel");
-            if (channelId == 0)
-                return;
-
-            var channel = guild.GetTextChannel(channelId);
+            // todo: move into AllianceInfo
+            var channel = guild.GetTextChannel(StateService.Get<ulong>(guild.Id, "bot-log-channel"));
             if (channel == null)
                 return;
 
-            channel.SendMessageAsync(message, embed: embed);
+            await channel.SendMessageAsync(message, embed: embed);
         }
     }
 }

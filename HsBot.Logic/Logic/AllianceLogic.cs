@@ -49,6 +49,8 @@
             public ulong LeaderRoleId { get; set; }
             public ulong OfficerRoleId { get; set; }
 
+            public string CompendiumApiKey { get; set; }
+
             public ulong GetAllianceRoleId(AllianceRole role)
             {
                 return role switch
@@ -90,6 +92,39 @@
                 }
 
                 return null;
+            }
+
+            public Alt FindAlt(string name)
+            {
+                if (name == null)
+                    return null;
+
+                var alt = Alts.Find(x => string.Equals(x.Name, name, StringComparison.InvariantCultureIgnoreCase));
+                if (alt == null)
+                {
+                    var alts = Alts
+                        .Where(x => x.Name?
+                            .Replace(".", "")
+                            .StartsWith(name, StringComparison.InvariantCultureIgnoreCase) == true)
+                        .ToArray();
+
+                    if (alts.Length == 1)
+                        alt = alts[0];
+                }
+
+                if (alt == null)
+                {
+                    var alts = Alts
+                        .Where(x => x.Name?
+                            .Replace(".", "")
+                            .Contains(name, StringComparison.InvariantCultureIgnoreCase) == true)
+                        .ToArray();
+
+                    if (alts.Length == 1)
+                        alt = alts[0];
+                }
+
+                return alt;
             }
         }
 
