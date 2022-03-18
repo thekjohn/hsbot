@@ -131,7 +131,7 @@
                                         var askedOn = StateService.Get<DateTime>(guild.Id, userActivityConfirmationAskedStateId);
                                         if (askedOn.AddMinutes(2) < now)
                                         {
-                                            await Rs.RemoveQueue(guild, channel, level, user, null, true);
+                                            await Rs.RemoveQueue(guild, channel, level, user, null);
                                             break; // skip the check and removal of other users until next cycle
                                         }
 

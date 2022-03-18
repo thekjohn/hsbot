@@ -36,7 +36,8 @@
             }
 
             StateService.Set(guild.Id, entry.GetStateId(), entry);
-            await channel.BotResponse("I will DM **" + user.DisplayName + "** in " + when + " with the following message: `" + message + "`", ResponseType.success);
+
+            await channel.BotResponse("I will DM **" + user.DisplayName + "** in " + when + " with the following message: `" + message + "`", ResponseType.successStay);
         }
 
         public static async void SendRemindersThreadWorker()

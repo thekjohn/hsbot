@@ -40,8 +40,8 @@
             await AltsLogic.AddAlt(Context.Guild, Context.Channel, CurrentUser, name);
         }
 
-        [Command("setalliance")]
-        [Summary("setalliance <name> <abbrev>|set the main parameters of the alliance")]
+        [Command("set-alliance")]
+        [Summary("set-alliance <name> <abbrev>|set the main parameters of the alliance")]
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task SetAlliance(SocketRole role, string name, string abbrev)
         {
@@ -56,10 +56,10 @@
             await Context.Channel.BotResponse("Alliance updated: " + role.Name, ResponseType.success);
         }
 
-        [Command("setcorp")]
-        [Summary("setcorp <nameToFind> <newName> <icon> <abbrev>|set the main parameters of a corp")]
+        [Command("set-alliance-corp")]
+        [Summary("set-alliance-corp <nameToFind> <newName> <icon> <abbrev>|set the main parameters of a corp")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task SetCorp(string nameToFind, string newName, string icon, string abbrev)
+        public async Task SetAllianceCorp(string nameToFind, string newName, string icon, string abbrev)
         {
             await CleanupService.DeleteCommand(Context.Message);
 
@@ -80,10 +80,10 @@
             }
         }
 
-        [Command("addcorp")]
-        [Summary("addcorp <role> <abbreviation>|add new corp to the alliance")]
+        [Command("add-alliance-corp")]
+        [Summary("add-alliance-corp <role> <abbreviation>|add new corp to the alliance")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task AddCorp(SocketRole role, string abbreviation)
+        public async Task AddAllianceCorp(SocketRole role, string abbreviation)
         {
             await CleanupService.DeleteCommand(Context.Message);
 
@@ -108,10 +108,10 @@
             }
         }
 
-        [Command("setrelics")]
-        [Summary("setrelics <corp> <amount>|change the relic count of a corp")]
+        [Command("set-corp-relics")]
+        [Summary("set-corp-relics <corp> <amount>|change the relic count of a corp")]
         [RequireMinimumAllianceRole(AllianceRole.Officer)]
-        public async Task SetRelics(string corp, int relicCount)
+        public async Task SetCorpRelics(string corp, int relicCount)
         {
             await CleanupService.DeleteCommand(Context.Message);
 
@@ -138,8 +138,8 @@
             await Context.Channel.BotResponse("Corp updated: " + corporation.FullName, ResponseType.success);
         }
 
-        [Command("setrstimeout")]
-        [Summary("setrstimeout <level> <minutes>|change the activity timeout of a specific RS queue")]
+        [Command("set-rs-timeout")]
+        [Summary("set-rs-timeout <level> <minutes>|change the activity timeout of a specific RS queue")]
         [RequireMinimumAllianceRole(AllianceRole.Leader)]
         public async Task SetRsTimeout(int level, int minutes)
         {
@@ -153,8 +153,8 @@
                     + (currentValue != 0 ? " Previous value was " + currentValue.ToStr() + "." : ""), ResponseType.success);
         }
 
-        [Command("setrstimeout")]
-        [Summary("setrstimeout <minutes>|change the activity timeout of a all RS queues")]
+        [Command("set-rs-timeout")]
+        [Summary("set-rs-timeout <minutes>|change the activity timeout of a all RS queues")]
         [RequireMinimumAllianceRole(AllianceRole.Leader)]
         public async Task SetRsTimeout(int minutes)
         {
@@ -321,8 +321,8 @@
             await channel.BotResponse("Run #" + runNumber.ToStr() + " is successfuly reset.", ResponseType.success);
         }
 
-        [Command("startwssignup")]
-        [Summary("startwssignup 5d3h|start a new WS signup which ends in 5d3h from now")]
+        [Command("ws-start-signup")]
+        [Summary("ws-start-signup 5d3h|start a new WS signup which ends in 5d3h from now")]
         [RequireMinimumAllianceRole(AllianceRole.Leader)]
         public async Task StartWsSignup(string endsFromNow)
         {
@@ -450,10 +450,10 @@
             await Context.Channel.BotResponse("Bot log channel is set to: " + channel.Name, ResponseType.success);
         }
 
-        [Command("connect-compendium")]
-        [Summary("connect-compendium|connect Jarvis and the Compendium bot togehter")]
+        [Command("set-compendium-apikey")]
+        [Summary("set-compendium-apikey|connect Jarvis and the Compendium bot together")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task ConnectCompendium([Remainder] string apiKey)
+        public async Task SetCompendiumApiKey([Remainder] string apiKey)
         {
             await CleanupService.DeleteCommand(Context.Message);
             await CompendiumLogic.SetCompendiumApiKey(Context.Guild, Context.Channel, CurrentUser, apiKey);

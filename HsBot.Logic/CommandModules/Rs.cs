@@ -25,7 +25,7 @@
         public async Task Out(int? level = null)
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await RemoveQueue(Context.Guild, Context.Channel, level, CurrentUser, null, true);
+            await RemoveQueue(Context.Guild, Context.Channel, level, CurrentUser, null);
         }
 
         [Command("ping")]
@@ -232,7 +232,7 @@
 
                 foreach (var userId in queue.Users)
                 {
-                    await RemoveQueue(Context.Guild, Context.Channel, null, Context.Guild.GetUser(userId), level, false);
+                    await RemoveQueue(Context.Guild, Context.Channel, null, Context.Guild.GetUser(userId), selectedLevel);
                 }
             }
 
@@ -296,7 +296,7 @@
                 cnt++;
                 StateService.Set(Context.Guild.Id, runCountStateId, cnt);
 
-                await RemoveQueue(Context.Guild, Context.Channel, null, Context.Guild.GetUser(userId), level, false);
+                await RemoveQueue(Context.Guild, Context.Channel, null, Context.Guild.GetUser(userId), level);
             }
 
             await RefreshQueue(Context.Guild, Context.Channel, level);
@@ -414,7 +414,7 @@
             StateService.Set(guild.Id, queueStateId, queue);
         }
 
-        public static async Task RemoveQueue(SocketGuild guild, ISocketMessageChannel channel, int? specificLevel, SocketGuildUser user, int? exceptLevel, bool log)
+        public static async Task RemoveQueue(SocketGuild guild, ISocketMessageChannel channel, int? specificLevel, SocketGuildUser user, int? exceptLevel)
         {
             var nonEmptyQueuesLeft = new List<int>();
 

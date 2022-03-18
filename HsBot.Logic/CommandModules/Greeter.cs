@@ -171,6 +171,49 @@
             await RoleLogic.ChangeName(Context.Guild, Context.Channel, user, ingameName, corpName);
         }
 
+        /*[Command("setcorp")]
+        [Summary("setcorp <userName> <corpName>|Set the corp name of a guest/ally/WS guest. Example: `!setcorp \"Monster71\" \"Blue Cat Order\"`")]
+        [RequireMinimumAllianceRole(AllianceRole.Greeter)]
+        public async Task SetCorp(string userName, string corpName)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            var user = Context.Guild.FindUser(CurrentUser, userName);
+            if (user == null)
+            {
+                await Context.Channel.BotResponse("Can't find user: " + userName, ResponseType.error);
+                return;
+            }
+
+            if (user.GuildPermissions.Administrator)
+            {
+                await Context.Channel.BotResponse("Administrators can't be changed this way!", ResponseType.error);
+                return;
+            }
+
+            var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+            if (alliance == null)
+                return;
+
+            if (!user.Roles.Any(x => x.Id == alliance.AllyRoleId || x.Id == alliance.GuestRoleId || x.Id == alliance.WsGuestRoleId)
+                || user.Roles.Any(x => x.Id == alliance.RoleId))
+            {
+                await Context.Channel.BotResponse("Only guests, WS guests, and allies can be renamed with this command!", ResponseType.error);
+            }
+
+            var ign = user.DisplayName;
+            if (ign.IndexOf("[") == 0 && ign.IndexOf("]") > 0)
+            {
+                ign = user.DisplayName[(ign.IndexOf("]") + 1)..].Trim();
+            }
+            else if (ign.IndexOf("[") > 0)
+            {
+                ign = user.DisplayName[..(ign.IndexOf("[") - 1)].Trim();
+            }
+
+            await RoleLogic.ChangeName(Context.Guild, Context.Channel, user, ign, corpName);
+        }*/
+
         [Command("give")]
         [Summary("give <userName> <roleName>|add role to a user")]
         [RequireMinimumAllianceRole(AllianceRole.Greeter)]

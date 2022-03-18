@@ -26,7 +26,11 @@
                     .Append("Match end".PadRight(12))
                     .Append("Opponent".PadRight(maxOpponentNameLength + 1))
                     .Append("Tier".PadRight(5))
-                    .AppendLine("Result".PadLeft(10));
+                    .Append("Result".PadLeft(10))
+                    .Append(' ')
+                    .AppendLine("Commitment".PadRight(12))
+                    //.Append("Pilots".PadRight(10))
+                    ;
 
                 foreach (var result in results.Skip(batch * batchSize).Take(batchSize))
                 {
@@ -36,11 +40,22 @@
                         .Append(result.PlayerCount.ToStr().PadRight(5))
                         .Append(result.Score.ToStr().PadLeft(4))
                         .Append(" - ")
-                        .AppendLine(result.OpponentScore.ToStr().PadLeft(3));
+                        .Append(result.OpponentScore.ToStr().PadLeft(3))
+                        .Append(' ')
+                        .AppendLine(result.CommitmentLevel.ToString().PadRight(12))
+                        /*.Append(result.TeamMembers != null
+                            ? string.Join(" ", result.TeamMembers.Mains
+                                .Select(x => guild.GetUser(x))
+                                .Where(x => x != null)
+                                .Select(x => x.GetShortDisplayName()))
+                            : "n.a.")*/
+                        ;
                 }
 
-                sb.Append("```");
-                await channel.SendMessageAsync(sb.ToString());
+                sb.Append("This message will self-destruct in 60 seconds.```");
+
+                CleanupService.RegisterForDeletion(60,
+                    await channel.SendMessageAsync(sb.ToString()));
             }
         }
 
@@ -81,7 +96,7 @@
                         .Append(result.Score.ToStr().PadLeft(4))
                         .Append(" - ")
                         .Append(result.OpponentScore.ToStr().PadLeft(3))
-                        .AppendLine(result.FinalCommitmentLevel.ToString().PadLeft(12));
+                        .AppendLine(result.CommitmentLevel.ToString().PadLeft(12));
                 }
 
                 sb.Append("```");
@@ -99,6 +114,6 @@
         public int Score { get; set; }
         public int OpponentScore { get; set; }
         public WsTeamMembers TeamMembers { get; set; }
-        public WsTeamCommitmentLevel FinalCommitmentLevel { get; set; } = WsTeamCommitmentLevel.Unknown;
+        public WsTeamCommitmentLevel CommitmentLevel { get; set; } = WsTeamCommitmentLevel.Unknown;
     }
 }

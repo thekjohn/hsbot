@@ -146,7 +146,7 @@
                     .AppendLine();
 
                 var hasRates = false;
-                for (var i = 1; i <= 12; i++)
+                for (var i = 12; i >= 1; i--)
                 {
                     var b = rsInfo.BRates != null && i < rsInfo.BRates.Length ? rsInfo.BRates[i] : 0.0d;
                     var o = rsInfo.ORates != null && i < rsInfo.ORates.Length ? rsInfo.ORates[i] : 0.0d;

@@ -2,7 +2,7 @@
 {
     using Discord.Commands;
 
-    [Summary("White Stars")]
+    [Summary("WS Battleroom")]
     [RequireContext(ContextType.Guild)]
     public class Ws : BaseModule
     {
@@ -85,7 +85,7 @@
         }
 
         [Command("wsmatched")]
-        [Summary("wsmatched <ends_in> <opponent_name>|indicates as WS team matched and ends in a specific amount of time (ex: 4d22h)")]
+        [Summary("wsmatched <ends_in> <opponent_name>|indicates the WS scan finished and the WS ends in a specific amount of time (ex: 4d22h)")]
         [RequireMinimumAllianceRole(AllianceRole.Admiral)]
         public async Task WsTeamMatched(string endsIn, [Remainder] string opponentName)
         {
@@ -102,13 +102,40 @@
             await WsLogic.SetWsTeamEnd(Context.Guild, Context.Channel, CurrentUser, endsIn);
         }
 
-        [Command("wsops")]
-        [Summary("wsops|list the squishy operations of the WS")]
+        [Command("wsclose")]
+        [Summary("wsclose <score> <opponentScore>|record the result of the WS, and destroy the related channels")]
         [RequireMinimumAllianceRole(AllianceRole.Admiral)]
-        public async Task WsOps()
+        public async Task WsTeamClosed(int score, int opponentScore)
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await WsLogic.WsOps(Context.Guild, Context.Channel, CurrentUser);
+            await WsLogic.CloseWsTeam(Context.Guild, Context.Channel, CurrentUser, score, opponentScore);
+        }
+
+        [Command("mining")]
+        [Summary("mining|list the mining modules of the team")]
+        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
+        public async Task WsModMining()
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+            await WsLogic.WsModMining(Context.Guild, Context.Channel, CurrentUser);
+        }
+
+        [Command("defense")]
+        [Summary("defense|list the defensive modules of the team")]
+        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
+        public async Task WsModDefense()
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+            await WsLogic.WsModDefense(Context.Guild, Context.Channel, CurrentUser);
+        }
+
+        [Command("rocket")]
+        [Summary("rocket|list the rocket modules of the team")]
+        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
+        public async Task WsModRocket()
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+            await WsLogic.WsModRocket(Context.Guild, Context.Channel, CurrentUser);
         }
     }
 }
