@@ -69,6 +69,8 @@
                 results.AddRange(teamResults.Where(x => x.Opponent.StartsWith(opponentName, StringComparison.InvariantCultureIgnoreCase)));
             }
 
+            results.Sort((a, b) => a.Date.CompareTo(b.Date));
+
             var batchSize = 20;
             var batchCount = (results.Count / batchSize) + (results.Count % batchSize == 0 ? 0 : 1);
             for (var batch = 0; batch < batchCount; batch++)
@@ -84,7 +86,8 @@
                     .Append("Opponent".PadRight(maxOpponentNameLength + 1))
                     .Append("Tier".PadRight(5))
                     .Append("Result".PadLeft(10))
-                    .AppendLine("Commitment".PadLeft(12));
+                    .Append(' ')
+                    .AppendLine("Commitment".PadRight(12));
 
                 foreach (var result in results.Skip(batch * batchSize).Take(batchSize))
                 {
@@ -96,11 +99,14 @@
                         .Append(result.Score.ToStr().PadLeft(4))
                         .Append(" - ")
                         .Append(result.OpponentScore.ToStr().PadLeft(3))
-                        .AppendLine(result.CommitmentLevel.ToString().PadLeft(12));
+                        .Append(' ')
+                        .AppendLine(result.CommitmentLevel.ToString().PadRight(12));
                 }
 
-                sb.Append("```");
-                await channel.SendMessageAsync(sb.ToString());
+                sb.Append("This message will self-destruct in 60 seconds.```");
+
+                CleanupService.RegisterForDeletion(60,
+                    await channel.SendMessageAsync(sb.ToString()));
             }
         }
     }

@@ -37,8 +37,7 @@
                 Mains = new List<ulong>(),
             };
 
-            var currentUsersWithRole = guild.Users.Where(x => x.Roles.Any(r => r.Id == role.Id)).ToList();
-            foreach (var user in currentUsersWithRole)
+            foreach (var user in guild.Users.Where(x => x.Roles.Any(r => r.Id == role.Id)))
             {
                 await user.RemoveRoleAsync(role);
             }
@@ -118,16 +117,28 @@
             foreach (var team in teams)
             {
                 var teamRole = guild.GetRole(team.RoleId);
+                if (teamRole == null)
+                    continue;
+
+                foreach (var existingUser in guild.Users.Where(x => x.Roles.Any(y => y.Id == teamRole.Id)))
+                {
+                    await existingUser.RemoveRoleAsync(teamRole);
+                }
+            }
+
+            foreach (var team in teams)
+            {
+                var teamRole = guild.GetRole(team.RoleId);
                 var corp = guild.FindCorp(alliance, team.Members.CorpAbbreviation);
                 if (teamRole == null || corp == null)
                     continue;
 
-                var usersWithRole = team.Members.Mains
+                var newUsersWithRole = team.Members.Mains
                     .Concat(team.Members.Alts.Select(x => x.OwnerUserId))
                     .Concat(team.Members.Alts.Where(x => x.AltUserId != null).Select(x => x.AltUserId.Value))
                     .Distinct();
 
-                foreach (var userId in usersWithRole)
+                foreach (var userId in newUsersWithRole)
                 {
                     var user = guild.GetUser(userId);
                     if (user?.Roles.Any(x => x.Id == teamRole.Id) == false)
@@ -151,17 +162,19 @@
                             .Select(x => guild.GetUser(x))
                             .Where(x => x != null)
                             .OrderBy(x => x.DisplayName)
-                            .Select(x => alliance.GetUserCorpIcon(x) + x.DisplayName))
-                        );
+                            .Select(x => alliance.GetUserCorpIcon(x) + x.DisplayName)
+                        ));
                 }
 
                 if (team.Members.Alts.Count > 0)
                 {
                     eb.AddField("Alt", string.Join("\n",
                         team.Members.Alts
-                            .Select(x => x.AltUserId != null ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>" : x.Name))
+                            .Select(x => x.AltUserId != null
+                                ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>"
+                                : x.Name)
                             .OrderBy(x => x)
-                        );
+                        ));
                 }
 
                 await AnnounceWS(guild, channel, teamRole.Name + " is ready, please head to " + corp.FullName + " (" + corp.Abbreviation + ") for scan!", embed: eb.Build());
@@ -204,7 +217,10 @@
                     var admiralThread = await battleRoom.CreateThreadAsync("admiral", ThreadType.PublicThread, maxDuration, admiralMsg);
                     team.AdmiralChannelId = admiralThread.Id;
 
-                    await admiralThread.SendMessageAsync(":information_source: Type " + DiscordBot.CommandPrefix + "`wsscan` here when scan is started in " + corp.FullName + ". Make sure the corp is closed before the scan to prevent a high influence pilot joining to the corp and ruining the scan.");
+                    await admiralThread.SendMessageAsync(
+                        ":information_source: Type " + DiscordBot.CommandPrefix + "`wsscan` here when scan is started in " + corp.FullName + "."
+                        + "\n:information_source: Make sure the corp is closed before the scan to prevent a high influence pilot joining to the corp and ruining the scan."
+                        + "\n:information_source: Please give the pilots a convenient amount of time (up to 18 hours) to show up in " + corp.FullName + " (" + corp.Abbreviation + ").");
                 }
 
                 channelIndex++;
@@ -347,7 +363,7 @@
                 if (role == null)
                     continue;
 
-                eb.AddField((team.Members.Mains.Count + team.Members.Alts.Count).ToStr() + " " + role.Name + " (" + team.Members.CorpAbbreviation + ")",
+                eb.AddField((team.Members.Mains.Count + team.Members.Alts.Count).ToStr() + " " + role.Name + " (" + team.Members.CorpAbbreviation + ", " + team.CommitmentLevel.ToString().ToLowerInvariant() + ")",
                     "mains: " + string.Join(" ", team.Members.Mains.Select(x => "`" + (guild.GetUser(x)?.DisplayName ?? "<unknown discord user>") + "`")) +
                     "\nalts: " + string.Join(" ", team.Members.Alts.Select(x => "`" + (x.AltUserId != null ? guild.GetUser(x.AltUserId.Value)?.DisplayName ?? "<unknown discord user>" : x.Name) + "`"))
                     );

@@ -500,7 +500,7 @@
             if (alliance == null)
                 return;
 
-            if (!GetWsTeamByAdmiralChannel(guild, channel, out var team, out var _))
+            if (!GetWsTeamByAdmiralChannel(guild, channel, out var team, out var teamRole))
             {
                 await channel.BotResponse("You have to use this command in the team's admin thread!", ResponseType.error);
                 return;
@@ -523,6 +523,12 @@
                 TeamMembers = team.Members,
                 CommitmentLevel = team.CommitmentLevel,
             });
+
+            // remove roles from users
+            foreach (var existingUser in guild.Users.Where(x => x.Roles.Any(y => y.Id == teamRole.Id)))
+            {
+                await existingUser.RemoveRoleAsync(teamRole);
+            }
 
             // delete team
             StateService.Delete(guild.Id, "ws-team-" + team.Name);
