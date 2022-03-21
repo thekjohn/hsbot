@@ -111,31 +111,107 @@
             await WsLogic.CloseWsTeam(Context.Guild, Context.Channel, CurrentUser, score, opponentScore);
         }
 
-        [Command("mining")]
-        [Summary("mining|list the mining modules of the team")]
+        [Command("wsmod-mining")]
+        [Alias("mining")]
+        [Summary("mining [filterName]|list the mining modules of the team. filter is optional.")]
         [RequireMinimumAllianceRole(AllianceRole.Admiral)]
-        public async Task WsModMining()
+        public async Task WsModMining(string filterName = null)
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await WsLogic.WsModMining(Context.Guild, Context.Channel, CurrentUser);
+            await WsModLogic.WsModMining(Context.Guild, Context.Channel, CurrentUser, filterName);
         }
 
-        [Command("defense")]
-        [Summary("defense|list the defensive modules of the team")]
+        [Command("wsmod-defense")]
+        [Alias("defense")]
+        [Summary("defense [filterName]|list the defensive modules of the team. filter is optional.")]
         [RequireMinimumAllianceRole(AllianceRole.Admiral)]
-        public async Task WsModDefense()
+        public async Task WsModDefense(string filterName = null)
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await WsLogic.WsModDefense(Context.Guild, Context.Channel, CurrentUser);
+            await WsModLogic.WsModDefense(Context.Guild, Context.Channel, CurrentUser, filterName);
         }
 
-        [Command("rocket")]
-        [Summary("rocket|list the rocket modules of the team")]
+        [Command("wsmod-rocket")]
+        [Alias("rocket")]
+        [Summary("rocket [filterName]|list the rocket modules of the team. filter is optional.")]
         [RequireMinimumAllianceRole(AllianceRole.Admiral)]
-        public async Task WsModRocket()
+        public async Task WsModRocket(string filterName = null)
         {
             await CleanupService.DeleteCommand(Context.Message);
-            await WsLogic.WsModRocket(Context.Guild, Context.Channel, CurrentUser);
+
+            await WsModLogic.WsModRocket(Context.Guild, Context.Channel, CurrentUser, filterName);
+        }
+
+        [Command("wsclassify")]
+        [Summary("wsclassify|list members of the WS team and all the module filters they match")]
+        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
+        public async Task WsClassify()
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            await WsModLogic.Classify(Context.Guild, Context.Channel, CurrentUser);
+        }
+
+        [Command("mfadd")]
+        [Summary("mfadd <filterName> <moduleList>|create a predefined, named filter. Example: `wsmod-create kidnapper bond 8 deltashield 8 tw 8 impulse 8`")]
+        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
+        public async Task CreateModFilter(string filterName, [Remainder] string moduleList)
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+
+            filterName = filterName.Trim();
+            if (filterName.Contains(' '))
+            {
+                await Context.Channel.BotResponse("Filter name cannot contain spaces.", ResponseType.error);
+                return;
+            }
+
+            var parts = moduleList.Split(' ');
+            if (parts.Length % 2 != 0)
+            {
+                await Context.Channel.BotResponse("The number of the module list arguments must be even: a list of module name + module level pairs.", ResponseType.error);
+                return;
+            }
+
+            var filter = new ModuleFilter()
+            {
+                Name = filterName,
+            };
+
+            for (var i = 0; i < parts.Length; i += 2)
+            {
+                var name = parts[i].Trim();
+
+                var property = CompendiumResponseMap.Find(name);
+                if (property == null)
+                {
+                    await Context.Channel.BotResponse("Unknown module name: `" + parts[i] + "`", ResponseType.error);
+                    return;
+                }
+
+                if (!int.TryParse(parts[i + 1], out var level) || level < 0 || level > 12)
+                {
+                    await Context.Channel.BotResponse("Module level must be between 0 and 12: `" + parts[i + 1] + "`", ResponseType.error);
+                    return;
+                }
+
+                filter.Modules.Add(new ModuleFilterEntry()
+                {
+                    Name = property.Name,
+                    Level = level,
+                });
+            }
+
+            await ModuleFilterLogic.CreateModuleFilter(Context.Guild, Context.Channel, CurrentUser, filter);
+        }
+
+        [Command("mflist")]
+        [Summary("mflist|list all registered module filters")]
+        [RequireMinimumAllianceRole(AllianceRole.Admiral)]
+        public async Task ListModFilters()
+        {
+            await CleanupService.DeleteCommand(Context.Message);
+            await ModuleFilterLogic.ListModuleFilters(Context.Guild, Context.Channel, CurrentUser);
         }
     }
 }

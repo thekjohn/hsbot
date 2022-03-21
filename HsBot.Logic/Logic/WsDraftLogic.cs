@@ -108,7 +108,7 @@
             }
 
             var teams = draft.Teams
-                .Where(x => guild.GetRole(x.RoleId) != null)
+                .Where(x => guild.GetRole(x.RoleId) != null && guild.FindCorp(alliance, x.Members.CorpAbbreviation) != null)
                 .OrderBy(x => guild.GetRole(x.RoleId).Name)
                 .ToList();
 
@@ -117,9 +117,6 @@
             foreach (var team in teams)
             {
                 var teamRole = guild.GetRole(team.RoleId);
-                if (teamRole == null)
-                    continue;
-
                 foreach (var existingUser in guild.Users.Where(x => x.Roles.Any(y => y.Id == teamRole.Id)))
                 {
                     await existingUser.RemoveRoleAsync(teamRole);
@@ -130,8 +127,6 @@
             {
                 var teamRole = guild.GetRole(team.RoleId);
                 var corp = guild.FindCorp(alliance, team.Members.CorpAbbreviation);
-                if (teamRole == null || corp == null)
-                    continue;
 
                 var newUsersWithRole = team.Members.Mains
                     .Concat(team.Members.Alts.Select(x => x.OwnerUserId))
@@ -225,7 +220,7 @@
 
                 channelIndex++;
 
-                WsLogic.SaveWsTeam(guild.Id, team);
+                WsLogic.AddWsTeam(guild.Id, team);
             }
 
             await HelpLogic.ShowAllianceInfo(guild, ch, alliance);

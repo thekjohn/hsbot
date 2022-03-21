@@ -1,6 +1,5 @@
 ﻿namespace HsBot.Logic
 {
-    using System.Text;
     using System.Threading.Tasks;
     using Discord.WebSocket;
 
@@ -8,9 +7,6 @@
 
     public static class WsLogic
     {
-        public static int[] MinerCapacity { get; } = new[] { 0, 50, 250, 600, 1200, 2000, 2500 };
-        public static int[] HydroBayCapacity { get; } = new[] { 0, 50, 75, 110, 170, 250, 370, 550, 850, 1275, 2000 };
-
         internal static async Task SetWsTeamCommitmentLevel(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, WsTeamCommitmentLevel commitmentLevel)
         {
             var alliance = AllianceLogic.GetAlliance(guild.Id);
@@ -23,8 +19,10 @@
                 return;
             }
 
-            team.CommitmentLevel = commitmentLevel;
-            SaveWsTeam(guild.Id, team);
+            ChangeWsTeam(guild.Id, ref team, t =>
+            {
+                t.CommitmentLevel = commitmentLevel;
+            });
 
             await thread.BotResponse("Team's commitment level is successfully changed to " + commitmentLevel.ToString(), ResponseType.successStay);
         }
@@ -99,9 +97,6 @@
                 return;
             }
 
-            team.Scanning = true;
-            SaveWsTeam(guild.Id, team);
-
             var corp = guild.FindCorp(alliance, team.Members.CorpAbbreviation);
             if (corp == null)
             {
@@ -109,10 +104,13 @@
                 return;
             }
 
+            ChangeWsTeam(guild.Id, ref team, t =>
+            {
+                t.Scanning = true;
+            });
+
             await (thread.ParentChannel as SocketTextChannel).SendMessageAsync(teamRole.Mention + " scan started, do not leave " + corp.FullName + "!");
-
             await thread.SendMessageAsync(":information_source: Type `" + DiscordBot.CommandPrefix + "wsmatched <ends_in> <opponent_name>` when scan is finished. Example: `" + DiscordBot.CommandPrefix + "wsmatched 4d23h12m Blue Star Order`");
-
             await WsDraftLogic.AnnounceWS(guild, channel, team.Name + " started scanning in " + corp.FullName + "!");
         }
 
@@ -140,332 +138,17 @@
                 return;
             }
 
-            team.Scanning = false;
-            team.Opponent = opponentName.Trim();
-            team.EndsOn = endsIn.AddToDateTime(DateTime.UtcNow);
-
-            SaveWsTeam(guild.Id, team);
+            ChangeWsTeam(guild.Id, ref team, t =>
+            {
+                t.Scanning = false;
+                t.Opponent = opponentName.Trim();
+                t.EndsOn = endsIn.AddToDateTime(DateTime.UtcNow);
+            });
 
             await (thread.ParentChannel as SocketTextChannel).SendMessageAsync(teamRole.Mention + " scan finished, our opponent is `" + team.Opponent + "`. Good luck!");
-
             await thread.SendMessageAsync(":information_source: Use the " + (thread.ParentChannel as SocketTextChannel).Threads.FirstOrDefault(x => x.Name == "orders").Mention + " channel to give orders to the team!");
             await thread.SendMessageAsync(":information_source: Type `" + DiscordBot.CommandPrefix + "wssetcommitmentlevel <commitmentLevel>` to change the commitment level of the team during the WS.");
-
             await WsDraftLogic.AnnounceWS(guild, channel, team.Name + " matched against `" + team.Opponent + "`. Good luck!");
-        }
-
-        internal static async Task WsModMining(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
-        {
-            var alliance = AllianceLogic.GetAlliance(guild.Id);
-            if (alliance == null)
-                return;
-
-            if (!GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
-            {
-                await channel.BotResponse("You have to use this command in the WS team's channel or thread!", ResponseType.error);
-                return;
-            }
-
-            if (team.OpsPanelMessageId != 0)
-            {
-                try
-                {
-                    await guild.GetTextChannel(team.OpsPanelChannelId).DeleteMessageAsync(team.OpsPanelMessageId);
-                }
-                catch (Exception)
-                {
-                }
-            }
-
-            var mains = team.Members.Mains.Select(x => new OpsEntry()
-            {
-                Name = guild.GetUser(x)?.GetShortDisplayName(),
-                Response = CompendiumLogic.GetUserData(guild.Id, x),
-                Assignment = team.OpsAssignments.Find(y => y.UserId == x),
-            });
-
-            var alts = team.Members.Alts.Select(x => x.AltUserId != null
-                ? new OpsEntry()
-                {
-                    Name = guild.GetUser(x.AltUserId.Value)?.GetShortDisplayName() ?? "<unknown discord user>",
-                    Response = CompendiumLogic.GetUserData(guild.Id, x.AltUserId.Value),
-                    Assignment = team.OpsAssignments.Find(y => y.Alt?.Equals(x) == true),
-                }
-                : new OpsEntry()
-                {
-                    Name = x.Name,
-                    Response = null,// todo: support storing module data for discordless alts
-                    Assignment = team.OpsAssignments.Find(y => y.Alt?.Equals(x) == true),
-                });
-
-            var allEntry = mains
-                .Concat(alts)
-                .Where(x => x?.Name != null)
-                .OrderBy(x => (x.Response?.array?.Length ?? 0) >= 5 ? 0 : 1)
-                .ThenBy(x => x.Name);
-
-            var longestName = allEntry.Max(x => x.Name.Length);
-
-            var sb = new StringBuilder();
-            sb
-                .Append("```")
-                .Append("name".PadRight(longestName + 1))
-                .Append("MS".PadLeft(2))
-                .Append("bst".PadLeft(4))
-                .Append("rem".PadLeft(4))
-                .Append("GEN".PadLeft(4))
-                .Append("ENR".PadLeft(4))
-                .Append("cru".PadLeft(4))
-                .Append("tele".PadLeft(5))
-                .Append("leap".PadLeft(5))
-                .Append("tw".PadLeft(3))
-                .Append("rdr".PadLeft(4))
-                .Append("cap".PadLeft(5))
-                .Append("hbe".PadLeft(5))
-                .Append(' ')
-                .AppendLine("group")
-                ;
-
-            foreach (var entry in allEntry)
-            {
-                sb.Append(entry.Name.PadRight(longestName + 1));
-                if (entry.Response == null || entry.Response.array.Length < 5)
-                {
-                    sb.AppendLine();
-                    continue;
-                }
-
-                var cap = MinerCapacity[entry.Response.map?.miner?.level ?? 0];
-                var hbe = HydroBayCapacity[entry.Response.map?.hydrobay?.level ?? 0];
-
-                sb
-                    .Append((entry.Response.map?.miner?.level ?? 0).ToEmptyStr().PadLeft(2))
-                    .Append((entry.Response.map?.miningboost?.level ?? 0).ToEmptyStr().PadLeft(4))
-                    .Append((entry.Response.map?.remote?.level ?? 0).ToEmptyStr().PadLeft(4))
-                    .Append((entry.Response.map?.genesis?.level ?? 0).ToEmptyStr().PadLeft(4))
-                    .Append((entry.Response.map?.enrich?.level ?? 0).ToEmptyStr().PadLeft(4))
-                    .Append((entry.Response.map?.crunch?.level ?? 0).ToEmptyStr().PadLeft(4))
-                    .Append((entry.Response.map?.teleport?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.leap?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.warp?.level ?? 0).ToEmptyStr().PadLeft(3))
-                    .Append((entry.Response.map?.relicdrone?.level ?? 0).ToEmptyStr().PadLeft(4))
-                    .Append(cap.ToEmptyStr().PadLeft(5))
-                    .Append((cap + hbe).ToEmptyStr().PadLeft(5))
-                    .Append(' ')
-                    .AppendLine(entry.Assignment?.MinerGroupNameMS);
-            }
-
-            sb.Append("```");
-
-            var sent = await channel.SendMessageAsync(sb.ToString());
-            team.OpsPanelChannelId = channel.Id;
-            team.OpsPanelMessageId = sent.Id;
-            SaveWsTeam(guild.Id, team);
-        }
-
-        internal static async Task WsModDefense(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
-        {
-            var alliance = AllianceLogic.GetAlliance(guild.Id);
-            if (alliance == null)
-                return;
-
-            if (!GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
-            {
-                await channel.BotResponse("You have to use this command in the WS team's channel or thread!", ResponseType.error);
-                return;
-            }
-
-            if (team.OpsPanelMessageId != 0)
-            {
-                try
-                {
-                    await guild.GetTextChannel(team.OpsPanelChannelId).DeleteMessageAsync(team.OpsPanelMessageId);
-                }
-                catch (Exception)
-                {
-                }
-            }
-
-            var mains = team.Members.Mains.Select(x => new OpsEntry()
-            {
-                Name = guild.GetUser(x)?.GetShortDisplayName(),
-                Response = CompendiumLogic.GetUserData(guild.Id, x),
-                Assignment = team.OpsAssignments.Find(y => y.UserId == x),
-            });
-
-            var alts = team.Members.Alts.Select(x => x.AltUserId != null
-                ? new OpsEntry()
-                {
-                    Name = guild.GetUser(x.AltUserId.Value)?.GetShortDisplayName() ?? "<unknown discord user>",
-                    Response = CompendiumLogic.GetUserData(guild.Id, x.AltUserId.Value),
-                    Assignment = team.OpsAssignments.Find(y => y.Alt?.Equals(x) == true),
-                }
-                : new OpsEntry()
-                {
-                    Name = x.Name,
-                    Response = null,// todo: support storing module data for discordless alts
-                    Assignment = team.OpsAssignments.Find(y => y.Alt?.Equals(x) == true),
-                });
-
-            var allEntry = mains
-                .Concat(alts)
-                .Where(x => x?.Name != null)
-                .OrderBy(x => (x.Response?.array?.Length ?? 0) >= 5 ? 0 : 1)
-                .ThenBy(x => x.Name);
-
-            var longestName = allEntry.Max(x => x.Name.Length);
-
-            var sb = new StringBuilder();
-            sb
-                .Append("```")
-                .Append("name".PadRight(longestName + 1))
-                .Append("BS".PadLeft(2))
-                .Append("laser".PadLeft(6))
-                .Append("barr".PadLeft(5))
-                .Append("blast".PadLeft(6))
-                .Append("omega".PadLeft(6))
-                .Append("tw".PadLeft(5))
-                .Append("tele".PadLeft(5))
-                .Append("leap".PadLeft(5))
-                .Append("BARR".PadLeft(5))
-                .Append("SUP".PadLeft(4))
-                .Append("BOND".PadLeft(5))
-                .Append("fort".PadLeft(5))
-                .Append("emp".PadLeft(4))
-                .Append(' ')
-                .AppendLine("group")
-                ;
-
-            foreach (var entry in allEntry)
-            {
-                sb.Append(entry.Name.PadRight(longestName + 1));
-                if (entry.Response == null || entry.Response.array.Length < 5)
-                {
-                    sb.AppendLine();
-                    continue;
-                }
-
-                sb
-                    .Append((entry.Response.map?.bs?.level ?? 0).ToEmptyStr().PadLeft(2))
-                    .Append((entry.Response.map?.laser?.level ?? 0).ToEmptyStr().PadLeft(6))
-                    .Append((entry.Response.map?.barrage?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.blast?.level ?? 0).ToEmptyStr().PadLeft(6))
-                    .Append((entry.Response.map?.omega?.level ?? 0).ToEmptyStr().PadLeft(6))
-                    .Append((entry.Response.map?.warp?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.teleport?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.leap?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.barrier?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.suppress?.level ?? 0).ToEmptyStr().PadLeft(4))
-                    .Append((entry.Response.map?.bond?.level ?? 0).ToEmptyStr().PadLeft(4))
-                    .Append((entry.Response.map?.fortify?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.emp?.level ?? 0).ToEmptyStr().PadLeft(4))
-                    .Append(' ')
-                    .AppendLine(entry.Assignment?.MinerGroupNameBS);
-            }
-
-            sb.Append("```");
-
-            var sent = await channel.SendMessageAsync(sb.ToString());
-            team.OpsPanelChannelId = channel.Id;
-            team.OpsPanelMessageId = sent.Id;
-            SaveWsTeam(guild.Id, team);
-        }
-
-        internal static async Task WsModRocket(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
-        {
-            var alliance = AllianceLogic.GetAlliance(guild.Id);
-            if (alliance == null)
-                return;
-
-            if (!GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
-            {
-                await channel.BotResponse("You have to use this command in the WS team's channel or thread!", ResponseType.error);
-                return;
-            }
-
-            if (team.OpsPanelMessageId != 0)
-            {
-                try
-                {
-                    await guild.GetTextChannel(team.OpsPanelChannelId).DeleteMessageAsync(team.OpsPanelMessageId);
-                }
-                catch (Exception)
-                {
-                }
-            }
-
-            var mains = team.Members.Mains.Select(x => new OpsEntry()
-            {
-                Name = guild.GetUser(x)?.GetShortDisplayName(),
-                Response = CompendiumLogic.GetUserData(guild.Id, x),
-                Assignment = team.OpsAssignments.Find(y => y.UserId == x),
-            });
-
-            var alts = team.Members.Alts.Select(x => x.AltUserId != null
-                ? new OpsEntry()
-                {
-                    Name = guild.GetUser(x.AltUserId.Value)?.GetShortDisplayName() ?? "<unknown discord user>",
-                    Response = CompendiumLogic.GetUserData(guild.Id, x.AltUserId.Value),
-                    Assignment = team.OpsAssignments.Find(y => y.Alt?.Equals(x) == true),
-                }
-                : new OpsEntry()
-                {
-                    Name = x.Name,
-                    Response = null,// todo: support storing module data for discordless alts
-                    Assignment = team.OpsAssignments.Find(y => y.Alt?.Equals(x) == true),
-                });
-
-            var allEntry = mains
-                .Concat(alts)
-                .Where(x => x?.Name != null)
-                .OrderBy(x => (x.Response?.array?.Length ?? 0) >= 5 ? 0 : 1)
-                .ThenBy(x => x.Name);
-
-            var longestName = allEntry.Max(x => x.Name.Length);
-
-            var sb = new StringBuilder();
-            sb
-                .Append("```")
-                .Append("name".PadRight(longestName + 1))
-                .Append("BS".PadLeft(2))
-                .Append("alpha".PadLeft(6))
-                .Append("delta".PadLeft(6))
-                .Append("omega".PadLeft(6))
-                .Append(' ')
-                .AppendLine("group")
-                ;
-
-            foreach (var entry in allEntry)
-            {
-                sb.Append(entry.Name.PadRight(longestName + 1));
-                if (entry.Response == null || entry.Response.array.Length < 5)
-                {
-                    sb.AppendLine();
-                    continue;
-                }
-
-                sb
-                    .Append((entry.Response.map?.bs?.level ?? 0).ToEmptyStr().PadLeft(2))
-                    .Append((entry.Response.map?.alpha?.level ?? 0).ToEmptyStr().PadLeft(6))
-                    .Append((entry.Response.map?.delta?.level ?? 0).ToEmptyStr().PadLeft(6))
-                    .Append((entry.Response.map?.omega?.level ?? 0).ToEmptyStr().PadLeft(6))
-                    .Append(' ')
-                    .AppendLine(entry.Assignment?.MinerGroupNameBS);
-            }
-
-            sb.Append("```");
-
-            var sent = await channel.SendMessageAsync(sb.ToString());
-            team.OpsPanelChannelId = channel.Id;
-            team.OpsPanelMessageId = sent.Id;
-            SaveWsTeam(guild.Id, team);
-        }
-
-        private class OpsEntry
-        {
-            public string Name { get; set; }
-            public CompendiumResponse Response { get; set; }
-            public WsTeamOpsAssignment Assignment { get; set; }
         }
 
         public static async Task SetWsTeamEnd(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string endsIn)
@@ -486,9 +169,10 @@
                 return;
             }
 
-            team.EndsOn = endsIn.AddToDateTime(DateTime.UtcNow);
-
-            SaveWsTeam(guild.Id, team);
+            ChangeWsTeam(guild.Id, ref team, t =>
+            {
+                t.EndsOn = endsIn.AddToDateTime(DateTime.UtcNow);
+            });
 
             await (thread.ParentChannel as SocketTextChannel).SendMessageAsync(teamRole.Mention + " WS ends in " + team.EndsOn.Value.Subtract(DateTime.UtcNow).ToIntervalStr() + ".");
             await thread.SendMessageAsync(teamRole.Mention + " WS ends in " + team.EndsOn.Value.Subtract(DateTime.UtcNow).ToIntervalStr() + ".");
@@ -502,7 +186,7 @@
 
             if (!GetWsTeamByAdmiralChannel(guild, channel, out var team, out var teamRole))
             {
-                await channel.BotResponse("You have to use this command in the team's admin thread!", ResponseType.error);
+                await channel.BotResponse("You have to use this command in the team's battleroom!", ResponseType.error);
                 return;
             }
 
@@ -553,8 +237,15 @@
             return StateService.Exists(guildId, "ws-team-" + teamName);
         }
 
-        public static void SaveWsTeam(ulong guildId, WsTeam team)
+        public static void AddWsTeam(ulong guildId, WsTeam team)
         {
+            StateService.Set(guildId, "ws-team-" + team.Name, team);
+        }
+
+        public static void ChangeWsTeam(ulong guildId, ref WsTeam team, Action<WsTeam> setter)
+        {
+            team = StateService.Get<WsTeam>(guildId, "ws-team-" + team.Name);
+            setter.Invoke(team);
             StateService.Set(guildId, "ws-team-" + team.Name, team);
         }
 
@@ -590,9 +281,11 @@
                                     var sent = await channel.SendMessageAsync(teamRole.Mention + " preparation ends in "
                                         + timeInFuture.Subtract(now).ToIntervalStr(true, false)
                                         + ". Make sure you read and scheduled all orders in " + guild.GetThreadChannel(team.OrdersChannelId).Mention + "!");
-                                    team.NotifyPreparationEndsMessageId = sent.Id;
 
-                                    SaveWsTeam(guild.Id, team);
+                                    ChangeWsTeam(guild.Id, ref team, t =>
+                                    {
+                                        t.NotifyPreparationEndsMessageId = sent.Id;
+                                    });
                                 }
                             }
                         }
@@ -608,9 +301,11 @@
                                     var sent = await channel.SendMessageAsync(teamRole.Mention + " second day starts in "
                                         + timeInFuture.Subtract(now).ToIntervalStr(true, false)
                                         + ". Make sure you read and scheduled all orders in " + guild.GetThreadChannel(team.OrdersChannelId).Mention + "!");
-                                    team.NotifySecondDayMessageId = sent.Id;
 
-                                    SaveWsTeam(guild.Id, team);
+                                    ChangeWsTeam(guild.Id, ref team, t =>
+                                    {
+                                        t.NotifySecondDayMessageId = sent.Id;
+                                    });
                                 }
                             }
                         }
@@ -626,9 +321,11 @@
                                     var sent = await channel.SendMessageAsync(teamRole.Mention + " third day starts in "
                                         + timeInFuture.Subtract(now).ToIntervalStr(true, false)
                                         + ". Make sure you read and scheduled all orders in " + guild.GetThreadChannel(team.OrdersChannelId).Mention + "!");
-                                    team.NotifyThirdDayMessageId = sent.Id;
 
-                                    SaveWsTeam(guild.Id, team);
+                                    ChangeWsTeam(guild.Id, ref team, t =>
+                                    {
+                                        t.NotifyThirdDayMessageId = sent.Id;
+                                    });
                                 }
                             }
                         }
@@ -644,9 +341,11 @@
                                     var sent = await channel.SendMessageAsync(teamRole.Mention + " fourth day starts in "
                                         + timeInFuture.Subtract(now).ToIntervalStr(true, false)
                                         + ". Make sure you read and scheduled all orders in " + guild.GetThreadChannel(team.OrdersChannelId).Mention + "!");
-                                    team.NotifyFourthDayMessageId = sent.Id;
 
-                                    SaveWsTeam(guild.Id, team);
+                                    ChangeWsTeam(guild.Id, ref team, t =>
+                                    {
+                                        t.NotifyFourthDayMessageId = sent.Id;
+                                    });
                                 }
                             }
                         }
@@ -661,9 +360,11 @@
                                 {
                                     var sent = await channel.SendMessageAsync(teamRole.Mention + " WS ends in "
                                         + team.EndsOn.Value.Subtract(now).ToIntervalStr(true, false) + ".");
-                                    team.NotifyLastHalfDayMessageId = sent.Id;
 
-                                    SaveWsTeam(guild.Id, team);
+                                    ChangeWsTeam(guild.Id, ref team, t =>
+                                    {
+                                        t.NotifyLastHalfDayMessageId = sent.Id;
+                                    });
                                 }
                             }
                         }
@@ -678,9 +379,11 @@
                                 {
                                     var sent = await channel.SendMessageAsync(teamRole.Mention + " WS ends in "
                                         + team.EndsOn.Value.Subtract(now).ToIntervalStr(true, false) + ". Type `!wsclose <score> <opponentScore>` to close this WS and delete all related channels/threads!");
-                                    team.Notify2hMessageId = sent.Id;
 
-                                    SaveWsTeam(guild.Id, team);
+                                    ChangeWsTeam(guild.Id, ref team, t =>
+                                    {
+                                        t.Notify2hMessageId = sent.Id;
+                                    });
                                 }
                             }
                         }
