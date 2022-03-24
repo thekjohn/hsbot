@@ -103,7 +103,7 @@
             sb
                 .Append("```")
                 .Append(GetModulesTable(guild, team,
-                    new[] { "miner", "miningboost", "remote", "genesis", "enrich", "crunch", "teleport", "leap", "warp", "relicdrone", "mscap", "mscaphbe" }
+                    new[] { "miner", "miningboost", "remote", "miningunity", "genesis", "enrich", "crunch", "teleport", "leap", "warp", "relicdrone", "mscap", "mscaphbe" }
                     , filterName))
                 .Append("```");
 
@@ -163,7 +163,7 @@
                     {
                         "mscap" => MinerCapacity[entry.Response.map?.miner?.level ?? 0].ToStr(),
                         "mscaphbe" => (MinerCapacity[entry.Response.map?.miner?.level ?? 0]
-                            + HydroBayCapacity[entry.Response.map?.miner?.level ?? 0]).ToStr(),
+                            + HydroBayCapacity[entry.Response.map?.hydrobay?.level ?? 0]).ToStr(),
                         _ => entry.Response.map != null
                             ? (CompendiumResponseMap.GetByName(moduleName).GetValue(entry.Response.map) as CompendiumResponseModule)?.level.ToStr()
                             : null

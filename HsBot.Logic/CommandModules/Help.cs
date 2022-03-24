@@ -217,9 +217,16 @@
         [Command("whois")]
         [Alias("whois")]
         [Summary("whois [userOrAltName]|display information of a specific a user or alt")]
+        [RequireMinimumAllianceRole(AllianceRole.Member)]
         public async Task WhoIs(string userOrAltName = null)
         {
             await CleanupService.DeleteCommand(Context.Message);
+
+            if ((Context.Channel as SocketGuildChannel)?.IsPubliclyAccessible() == true)
+            {
+                await Context.Channel.BotResponse("Sorry, you can't use this command in public channels.", ResponseType.error);
+                return;
+            }
 
             var user = Context.Guild.FindUser(CurrentUser, userOrAltName);
             if (user != null)
@@ -231,7 +238,10 @@
             var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
 
             var alt = alliance.FindAlt(userOrAltName);
-            user = alt != null ? Context.Guild.GetUser(alt.OwnerUserId) : null;
+            user = alt != null
+                ? Context.Guild.GetUser(alt.OwnerUserId)
+                : null;
+
             if (user != null)
             {
                 await HelpLogic.ShowUser(Context.Guild, Context.Channel, user);

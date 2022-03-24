@@ -210,16 +210,19 @@
                 if (message.Author is not SocketGuildUser user)
                     return;
 
-                if (user != null && message.MentionedUsers?.Count > 0)
+                if (!textChannel.IsPubliclyAccessible())
                 {
-                    var afkList = await AfkLogic.GetAfkList(textChannel.Guild);
-                    if (afkList != null)
+                    if (user != null && message.MentionedUsers?.Count > 0)
                     {
-                        foreach (var afk in afkList)
+                        var afkList = await AfkLogic.GetAfkList(textChannel.Guild);
+                        if (afkList != null)
                         {
-                            if (message.MentionedUsers.FirstOrDefault(x => x.Id == afk.UserId) is SocketGuildUser muser)
+                            foreach (var afk in afkList)
                             {
-                                await textChannel.BotResponse(muser.DisplayName + " is AFK for " + afk.EndsOn.Subtract(DateTime.UtcNow).ToIntervalStr() + ".", ResponseType.infoStay);
+                                if (message.MentionedUsers.FirstOrDefault(x => x.Id == afk.UserId) is SocketGuildUser muser)
+                                {
+                                    await textChannel.BotResponse(muser.DisplayName + " is AFK for " + afk.EndsOn.Subtract(DateTime.UtcNow).ToIntervalStr() + ".", ResponseType.info);
+                                }
                             }
                         }
                     }

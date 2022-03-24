@@ -18,14 +18,23 @@
                 return;
             }
 
+            var now = DateTime.UtcNow;
+
             var entry = new Entry
             {
                 GuildId = guild.Id,
+                RegistratorUserId = currentUser.Id,
                 UserId = user.Id,
                 ChannelId = channel.Id,
-                When = when.AddToDateTime(DateTime.UtcNow),
+                When = when.AddToDateTime(now),
                 Message = message,
             };
+
+            if (entry.When.Subtract(now).TotalSeconds <= 1)
+            {
+                await channel.BotResponse("Invalid interval: " + when, ResponseType.error);
+                return;
+            }
 
             lock (_lock)
             {
@@ -37,7 +46,7 @@
 
             StateService.Set(guild.Id, entry.GetStateId(), entry);
 
-            await channel.BotResponse("I will DM **" + user.DisplayName + "** in " + when + " with the following message: `" + message + "`", ResponseType.successStay);
+            await channel.BotResponse("I will DM **" + user.DisplayName + "** in " + entry.When.Subtract(now).ToIntervalStr() + " with the following message: `" + message + "`", ResponseType.successStay);
         }
 
         public static async void SendRemindersThreadWorker()
@@ -68,11 +77,19 @@
                         var alliance = AllianceLogic.GetAlliance(entry.GuildId);
 
                         var eb = new EmbedBuilder()
-                            .WithTitle("Reminder - " + alliance.Name)
-                            .WithDescription(entry.Message)
-                            .Build();
+                            .WithTitle("reminder")
+                            .AddField("alliance", alliance.Name)
+                            .AddField("message", entry.Message)
+                            .WithColor(Color.Gold);
 
-                        await user.SendMessageAsync(embed: eb);
+                        var registrator = entry.RegistratorUserId != entry.UserId
+                            ? DiscordBot.Discord.GetGuild(entry.GuildId)?.GetUser(entry.RegistratorUserId)
+                            : null;
+
+                        if (registrator != null)
+                            eb.AddField("sender", registrator.DisplayName);
+
+                        await user.SendMessageAsync(embed: eb.Build());
                     }
                 }
 
@@ -97,6 +114,7 @@
         private class Entry
         {
             public ulong GuildId { get; init; }
+            public ulong RegistratorUserId { get; init; }
             public ulong UserId { get; init; }
             public ulong ChannelId { get; init; }
             public DateTime When { get; init; }

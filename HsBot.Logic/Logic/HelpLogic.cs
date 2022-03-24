@@ -346,8 +346,7 @@
                 {
                     var ownerText = owner.Mention;
 
-                    var relevantOwnerRoles = owner
-                        .Roles
+                    var relevantOwnerRoles = owner.Roles
                         .Where(x => x.Name.Contains("ws", StringComparison.InvariantCultureIgnoreCase)
                                  || x.Name.Contains("rs", StringComparison.InvariantCultureIgnoreCase))
                         .ToList();
