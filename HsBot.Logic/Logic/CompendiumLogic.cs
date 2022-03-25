@@ -42,9 +42,13 @@
                         {
                             var result = await client.GetStringAsync(url);
                             var response = JsonSerializer.Deserialize<CompendiumResponse>(result);
-                            StateService.Set(guild.Id, "compendium-" + guildUser.Id.ToStr(), response);
+                            if (response.array?.Length >= 5)
+                            {
+                                StateService.Set(guild.Id, "compendium-" + guildUser.Id.ToStr(), response);
+                            }
+
                             await LogService.LogToChannel(guild, "compendium data successfully downloaded from " + url, null);
-                            Thread.Sleep(12 * 1000);
+                            Thread.Sleep(15 * 1000);
                         }
                         catch (HttpRequestException ex)
                         {

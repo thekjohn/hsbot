@@ -238,12 +238,20 @@
 
             string response;
             var roleMentionStateId = StateService.GetId("rs-queue-last-role-mention", role.Id);
-            var lastRsMention = StateService.Get<DateTime?>(Context.Guild.Id, roleMentionStateId);
-            if (lastRsMention == null || DateTime.UtcNow > lastRsMention.Value.AddMinutes(5))
+
+            if (queue.Users.Count < 4)
             {
-                lastRsMention = DateTime.UtcNow;
-                StateService.Set(Context.Guild.Id, roleMentionStateId, lastRsMention);
-                response = ":white_check_mark: " + role.Mention;
+                var lastRsMention = StateService.Get<DateTime?>(Context.Guild.Id, roleMentionStateId);
+                if (lastRsMention == null || DateTime.UtcNow > lastRsMention.Value.AddMinutes(5))
+                {
+                    lastRsMention = DateTime.UtcNow;
+                    StateService.Set(Context.Guild.Id, roleMentionStateId, lastRsMention);
+                    response = ":white_check_mark: " + role.Mention;
+                }
+                else
+                {
+                    response = ":white_check_mark: " + role.Name;
+                }
             }
             else
             {
@@ -265,11 +273,35 @@
                     + "\n" + string.Join(" ", queue.Users.Select(x =>
                         {
                             var user = Context.Guild.GetUser(x);
-                            return alliance.GetUserCorpIcon(user) + user.Mention;
+                            return user != null
+                                ? alliance.GetUserCorpIcon(user) + user.Mention
+                                : "<unknown discord user>";
                         }));
 
                 CleanupService.RegisterForDeletion(10 * 60,
                     await ReplyAsync(response));
+
+                var msg = "RS" + selectedLevel.ToStr() + " is ready! (" + queue.Users.Count.ToStr() + "/" + queue.Users.Count.ToStr() + ") in " + alliance.Name
+                    + "\nhttps://discord.com/channels/" + Context.Guild.Id.ToStr() + "/" + Context.Channel.Id.ToStr()
+                    + "\n" + string.Join(" ", queue.Users.Select(x =>
+                    {
+                        var user = Context.Guild.GetUser(x);
+                        return user != null
+                            ? alliance.GetUserCorpIcon(user) + user.DisplayName
+                            : "<unknown discord user>";
+                    }));
+
+                foreach (var queueUserId in queue.Users)
+                {
+                    if (queueUserId == 577247935608127504)
+                        continue;
+
+                    var queueUser = Context.Guild.GetUser(queueUserId);
+                    if (queueUser == null)
+                        continue;
+
+                    await queueUser.SendMessageAsync(msg);
+                }
             }
         }
 
@@ -319,6 +351,31 @@
 
             CleanupService.RegisterForDeletion(10 * 60,
                 await ReplyAsync(response));
+
+            if (queue.Users.Count > 1)
+            {
+                var msg = "RS" + level.ToStr() + " is ready! (" + queue.Users.Count.ToStr() + "/" + queue.Users.Count.ToStr() + ") in " + alliance.Name
+                    + "\nhttps://discord.com/channels/" + Context.Guild.Id.ToStr() + "/" + Context.Channel.Id.ToStr()
+                    + "\n" + string.Join(" ", queue.Users.Select(x =>
+                    {
+                        var user = Context.Guild.GetUser(x);
+                        return user != null
+                            ? alliance.GetUserCorpIcon(user) + user.DisplayName
+                            : "<unknown discord user>";
+                    }));
+
+                foreach (var queueUserId in queue.Users)
+                {
+                    if (queueUserId == 577247935608127504)
+                        continue;
+
+                    var queueUser = Context.Guild.GetUser(queueUserId);
+                    if (queueUser == null)
+                        continue;
+
+                    await queueUser.SendMessageAsync(msg);
+                }
+            }
         }
 
         private static async Task RefreshQueue(SocketGuild guild, ISocketMessageChannel channel, int level)

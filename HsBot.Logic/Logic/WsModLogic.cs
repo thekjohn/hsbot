@@ -26,8 +26,7 @@
             var entries = GetTeamEntries(guild, team, null);
             var longestName = entries.Max(x => x.Name.Length);
 
-            var sb = new StringBuilder();
-            sb
+            var sb = new StringBuilder()
                 .Append("```")
                 .Append("NAME".PadRight(longestName))
                 .Append(' ')
@@ -98,12 +97,70 @@
 
             var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
             var entries = GetTeamEntries(guild, team, filter);
-
-            var sb = new StringBuilder();
-            sb
+            var sb = new StringBuilder()
                 .Append("```")
                 .Append(GetModulesTable(guild, team,
                     new[] { "miner", "miningboost", "remote", "miningunity", "genesis", "enrich", "crunch", "teleport", "leap", "warp", "relicdrone", "mscap", "mscaphbe" }
+                    , filterName))
+                .Append("```");
+
+            var sent = await channel.SendMessageAsync(sb.ToString());
+            WsLogic.ChangeWsTeam(guild.Id, ref team, t =>
+            {
+                t.OpsPanelChannelId = channel.Id;
+                t.OpsPanelMessageId = sent.Id;
+            });
+        }
+
+        internal static async Task WsModDefense(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string filterName)
+        {
+            var alliance = AllianceLogic.GetAlliance(guild.Id);
+            if (alliance == null)
+                return;
+
+            if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
+            {
+                await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
+                return;
+            }
+
+            await DeleteTeamsOpsPanel(guild, team);
+
+            var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
+            var sb = new StringBuilder()
+                .Append("```")
+                .Append(GetModulesTable(guild, team,
+                    new[] { "bs", "laser", "barrage", "blast", "omega", "warp", "teleport", "leap", "barrage", "suppress", "bond", "fortify", "emp" }
+                    , filterName))
+                .Append("```");
+
+            var sent = await channel.SendMessageAsync(sb.ToString());
+            WsLogic.ChangeWsTeam(guild.Id, ref team, t =>
+            {
+                t.OpsPanelChannelId = channel.Id;
+                t.OpsPanelMessageId = sent.Id;
+            });
+        }
+
+        internal static async Task WsModRocket(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string filterName)
+        {
+            var alliance = AllianceLogic.GetAlliance(guild.Id);
+            if (alliance == null)
+                return;
+
+            if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
+            {
+                await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
+                return;
+            }
+
+            await DeleteTeamsOpsPanel(guild, team);
+
+            var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
+            var sb = new StringBuilder()
+                .Append("```")
+                .Append(GetModulesTable(guild, team,
+                    new[] { "bs", "rocket", "deltarocket", "omegarocket", "warp", "delta", "omega", "blast", "impulse", "teleport" }
                     , filterName))
                 .Append("```");
 
@@ -178,142 +235,6 @@
             }
 
             return sb.ToString();
-        }
-
-        internal static async Task WsModDefense(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string filterName)
-        {
-            var alliance = AllianceLogic.GetAlliance(guild.Id);
-            if (alliance == null)
-                return;
-
-            if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
-            {
-                await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
-                return;
-            }
-
-            await DeleteTeamsOpsPanel(guild, team);
-
-            var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
-            var entries = GetTeamEntries(guild, team, filter);
-            var longestName = entries.Max(x => x.Name.Length);
-
-            var sb = new StringBuilder();
-            sb
-                .Append("```")
-                .Append("name".PadRight(longestName + 1))
-                .Append("BS".PadLeft(2))
-                .Append("laser".PadLeft(6))
-                .Append("barr".PadLeft(5))
-                .Append("blast".PadLeft(6))
-                .Append("omega".PadLeft(6))
-                .Append("tw".PadLeft(5))
-                .Append("tele".PadLeft(5))
-                .Append("leap".PadLeft(5))
-                .Append("BARR".PadLeft(5))
-                .Append("SUP".PadLeft(4))
-                .Append("BOND".PadLeft(5))
-                .Append("fort".PadLeft(5))
-                .Append("emp".PadLeft(4))
-                .Append(' ')
-                .AppendLine("group")
-                ;
-
-            foreach (var entry in entries)
-            {
-                sb.Append(entry.Name.PadRight(longestName + 1));
-                if (entry.Response == null || entry.Response.array.Length < 5)
-                {
-                    sb.AppendLine();
-                    continue;
-                }
-
-                sb
-                    .Append((entry.Response.map?.bs?.level ?? 0).ToEmptyStr().PadLeft(2))
-                    .Append((entry.Response.map?.laser?.level ?? 0).ToEmptyStr().PadLeft(6))
-                    .Append((entry.Response.map?.barrage?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.blast?.level ?? 0).ToEmptyStr().PadLeft(6))
-                    .Append((entry.Response.map?.omega?.level ?? 0).ToEmptyStr().PadLeft(6))
-                    .Append((entry.Response.map?.warp?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.teleport?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.leap?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.barrier?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.suppress?.level ?? 0).ToEmptyStr().PadLeft(4))
-                    .Append((entry.Response.map?.bond?.level ?? 0).ToEmptyStr().PadLeft(4))
-                    .Append((entry.Response.map?.fortify?.level ?? 0).ToEmptyStr().PadLeft(5))
-                    .Append((entry.Response.map?.emp?.level ?? 0).ToEmptyStr().PadLeft(4))
-                    .Append(' ')
-                    .AppendLine(entry.Assignment?.MinerGroupNameBS)
-                    ;
-            }
-
-            sb.Append("```");
-
-            var sent = await channel.SendMessageAsync(sb.ToString());
-            WsLogic.ChangeWsTeam(guild.Id, ref team, t =>
-            {
-                t.OpsPanelChannelId = channel.Id;
-                t.OpsPanelMessageId = sent.Id;
-            });
-        }
-
-        internal static async Task WsModRocket(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string filterName)
-        {
-            var alliance = AllianceLogic.GetAlliance(guild.Id);
-            if (alliance == null)
-                return;
-
-            if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
-            {
-                await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
-                return;
-            }
-
-            await DeleteTeamsOpsPanel(guild, team);
-
-            var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
-            var entries = GetTeamEntries(guild, team, filter);
-            var longestName = entries.Max(x => x.Name.Length);
-
-            var sb = new StringBuilder();
-            sb
-                .Append("```")
-                .Append("name".PadRight(longestName + 1))
-                .Append("BS".PadLeft(2))
-                .Append("alpha".PadLeft(6))
-                .Append("delta".PadLeft(6))
-                .Append("omega".PadLeft(6))
-                .Append(' ')
-                .AppendLine("group")
-                ;
-
-            foreach (var entry in entries)
-            {
-                sb.Append(entry.Name.PadRight(longestName + 1));
-                if (entry.Response == null || entry.Response.array.Length < 5)
-                {
-                    sb.AppendLine();
-                    continue;
-                }
-
-                sb
-                    .Append((entry.Response.map?.bs?.level ?? 0).ToEmptyStr().PadLeft(2))
-                    .Append((entry.Response.map?.rocket?.level ?? 0).ToEmptyStr().PadLeft(6))
-                    .Append((entry.Response.map?.deltarocket?.level ?? 0).ToEmptyStr().PadLeft(6))
-                    .Append((entry.Response.map?.omegarocket?.level ?? 0).ToEmptyStr().PadLeft(6))
-                    .Append(' ')
-                    .AppendLine(entry.Assignment?.MinerGroupNameBS)
-                    ;
-            }
-
-            sb.Append("```");
-
-            var sent = await channel.SendMessageAsync(sb.ToString());
-            WsLogic.ChangeWsTeam(guild.Id, ref team, t =>
-            {
-                t.OpsPanelChannelId = channel.Id;
-                t.OpsPanelMessageId = sent.Id;
-            });
         }
 
         private static List<Entry> GetTeamEntries(SocketGuild guild, WsTeam team, ModuleFilter filter)
