@@ -275,7 +275,12 @@
                             var timeInFuture = team.EndsOn.Value.AddDays(-4).AddHours(-12);
                             if (now.AddHours(4) >= timeInFuture)
                             {
-                                var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                                if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel channel)
+                                {
+                                    await channel.SendMessageAsync("Preparation ends in " + timeInFuture.Subtract(now).ToIntervalStr(true, false) + ".");
+                                }
+
+                                channel = guild.GetTextChannel(team.BattleRoomChannelId);
                                 if (channel != null)
                                 {
                                     var sent = await channel.SendMessageAsync(teamRole.Mention + " preparation ends in "
@@ -295,13 +300,17 @@
                             var timeInFuture = team.EndsOn.Value.AddDays(-3).AddHours(-12);
                             if (now.AddHours(4) >= timeInFuture)
                             {
-                                var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                                if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel channel)
+                                {
+                                    await channel.SendMessageAsync("Second day starts in " + timeInFuture.Subtract(now).ToIntervalStr(true, false) + ".");
+                                }
+
+                                channel = guild.GetTextChannel(team.BattleRoomChannelId);
                                 if (channel != null)
                                 {
                                     var sent = await channel.SendMessageAsync(teamRole.Mention + " second day starts in "
-                                        + timeInFuture.Subtract(now).ToIntervalStr(true, false)
-                                        + ". Make sure you read and scheduled all orders in " + guild.GetThreadChannel(team.OrdersChannelId).Mention + "!");
-
+                                    + timeInFuture.Subtract(now).ToIntervalStr(true, false)
+                                    + ". Make sure you read and scheduled all orders in " + guild.GetThreadChannel(team.OrdersChannelId).Mention + "!");
                                     ChangeWsTeam(guild.Id, ref team, t =>
                                     {
                                         t.NotifySecondDayMessageId = sent.Id;
@@ -315,7 +324,12 @@
                             var timeInFuture = team.EndsOn.Value.AddDays(-2).AddHours(-12);
                             if (now.AddHours(4) >= timeInFuture)
                             {
-                                var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                                if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel channel)
+                                {
+                                    await channel.SendMessageAsync("Third day starts in " + timeInFuture.Subtract(now).ToIntervalStr(true, false) + ".");
+                                }
+
+                                channel = guild.GetTextChannel(team.BattleRoomChannelId);
                                 if (channel != null)
                                 {
                                     var sent = await channel.SendMessageAsync(teamRole.Mention + " third day starts in "
@@ -335,7 +349,12 @@
                             var timeInFuture = team.EndsOn.Value.AddDays(-1).AddHours(-12);
                             if (now.AddHours(4) >= timeInFuture)
                             {
-                                var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                                if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel channel)
+                                {
+                                    await channel.SendMessageAsync("Fourth day starts in " + timeInFuture.Subtract(now).ToIntervalStr(true, false) + ".");
+                                }
+
+                                channel = guild.GetTextChannel(team.BattleRoomChannelId);
                                 if (channel != null)
                                 {
                                     var sent = await channel.SendMessageAsync(teamRole.Mention + " fourth day starts in "

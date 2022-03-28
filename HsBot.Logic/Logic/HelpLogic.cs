@@ -35,11 +35,11 @@
         {
             var eb = new EmbedBuilder()
                 .WithTitle("GREETER COMMANDS")
-                .AddField("Recruit to a corporation", "`!recruit <userName> <corpName> <rsLevel>`")
-                .AddField("Promote to WS guest (WS signup access)", "`!promote-wsguest <userName>`")
-                .AddField("Promote to Ally (RS queue access)", "`!promote-ally <userName> <rsLevel>`")
-                .AddField("Demote to guest, remove all roles", "`!demote <userName>`")
-                .AddField("Set name for a guest/ally/WS guest", "`setname <userName> <ingameName> [corpName]`\nex: `!setname \"He Was Called Special\" \"BraveTempest81\" \"Blue Cat Order\"`")
+                .AddField("Recruit to a corporation", "`" + DiscordBot.CommandPrefix + "recruit <userName> <corpName> <rsLevel>`")
+                .AddField("Promote to WS guest (WS signup access)", "`" + DiscordBot.CommandPrefix + "wsguest <userName>`")
+                .AddField("Promote to Ally (RS queue access)", "`" + DiscordBot.CommandPrefix + "ally <userName> <rsLevel>`")
+                .AddField("Demote to guest, remove all roles", "`" + DiscordBot.CommandPrefix + "demote <userName>`")
+                .AddField("Set name for a guest/ally/WS guest", "`" + DiscordBot.CommandPrefix + "setname <userName> <ingameName> [corpName]`\nex: `!setname \"He Was Called Special\" \"BraveTempest81\" \"Blue Cat Order\"`")
                 .WithFooter("This message will self-destruct in 60 seconds.");
 
             CleanupService.RegisterForDeletion(60,

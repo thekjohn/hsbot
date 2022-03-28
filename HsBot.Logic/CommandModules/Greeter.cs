@@ -84,8 +84,8 @@
             await RoleLogic.DemoteToGuest(Context.Guild, Context.Channel, user, alliance);
         }
 
-        [Command("promote-wsguest")]
-        [Summary("promote-wsguest <userName>|add ws guest and compendium roles")]
+        [Command("wsguest")]
+        [Summary("wsguest <userName>|add ws guest and compendium roles")]
         [RequireMinimumAllianceRole(AllianceRole.Greeter)]
         public async Task PromoteToWsGuest(string userName)
         {
@@ -111,8 +111,8 @@
             await RoleLogic.PromoteToWsGuest(Context.Guild, Context.Channel, user, alliance);
         }
 
-        [Command("promote-ally")]
-        [Summary("promote-ally <userName> <rsLevel>|add RS queue access")]
+        [Command("ally")]
+        [Summary("ally <userName> <rsLevel>|add RS queue access")]
         [RequireMinimumAllianceRole(AllianceRole.Greeter)]
         public async Task PromoteToAlly(string userName, int rsLevel)
         {
@@ -166,6 +166,13 @@
                 || user.Roles.Any(x => x.Id == alliance.RoleId))
             {
                 await Context.Channel.BotResponse("Only guests, WS guests, and allies can be renamed with this command!", ResponseType.error);
+                return;
+            }
+
+            if (user.Roles.Any(x => x.Id == alliance.RoleId))
+            {
+                await Context.Channel.BotResponse("Alliance members can't be renamed with this command!", ResponseType.error);
+                return;
             }
 
             await RoleLogic.ChangeName(Context.Guild, Context.Channel, user, ingameName, corpName);

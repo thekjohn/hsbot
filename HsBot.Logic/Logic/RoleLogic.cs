@@ -127,7 +127,7 @@
 
             await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
 
-            await channel.BotResponse(user.DisplayName + " is successfully configured as WS guest."
+            await channel.BotResponse(user.DisplayName + " is successfully configured as WS guest. `" + DiscordBot.CommandPrefix + "setname " + user.DisplayName + " <newName> <corpName>` can be used to set the ingame-name and corp."
                 + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`"))
                 , ResponseType.infoStay);
         }
@@ -155,7 +155,7 @@
             }
             await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
 
-            await channel.BotResponse(user.DisplayName + " is successfully configured as Ally."
+            await channel.BotResponse(user.DisplayName + " is successfully configured as Ally. `" + DiscordBot.CommandPrefix + "setname " + user.DisplayName + " <newName> <corpName>` can be used to set the ingame-name and corp."
                 + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`"))
                 , ResponseType.infoStay);
         }
