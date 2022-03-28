@@ -1,8 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using Discord;
-using Discord.WebSocket;
-
 public static class RoleLogic
 {
     public static async Task UserJoined(SocketGuild guild, SocketGuildUser user)

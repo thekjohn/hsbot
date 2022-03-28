@@ -1,11 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Linq;
-using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
-
 [Summary("help")]
 [RequireContext(ContextType.Guild)]
 public class HelpCommandModule : BaseModule

@@ -1,9 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Globalization;
-using Discord;
-using Discord.WebSocket;
-
 public static class AfkLogic
 {
     public static ulong GetRsQueueRole(ulong guildId)

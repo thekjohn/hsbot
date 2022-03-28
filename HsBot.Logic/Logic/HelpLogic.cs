@@ -1,10 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Globalization;
-using System.Text;
-using Discord;
-using Discord.WebSocket;
-
 public static class HelpLogic
 {
     public static async Task ShowMostUsedCommands(SocketGuild guild, ISocketMessageChannel channel)

@@ -1,8 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Threading.Tasks;
-using Discord.WebSocket;
-
 public enum WsTeamCommitmentLevel { Unknown, Competitive, Casual, Inactive }
 
 public static class WsLogic

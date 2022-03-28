@@ -1,7 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Globalization;
-
 internal static class DateTimeExtensions
 {
     public static string ToIntervalStr(this TimeSpan value, bool includeMinutes = true, bool includeSeconds = true)

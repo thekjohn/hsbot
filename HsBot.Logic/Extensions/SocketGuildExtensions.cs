@@ -1,8 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using Discord;
-using Discord.WebSocket;
-
 internal static class SocketGuildExtensions
 {
     public static SocketGuildUser FindUser(this SocketGuild guild, SocketGuildUser currentUser, string userToFind)

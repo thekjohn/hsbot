@@ -1,10 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
-
 [Summary("Red Stars")]
 [RequireContext(ContextType.Guild)]
 public class Rs : BaseModule

@@ -1,9 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Threading.Tasks;
-using Discord;
-using Discord.WebSocket;
-
 public static class ModuleFilterLogic
 {
     internal static async Task ListModuleFilters(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)

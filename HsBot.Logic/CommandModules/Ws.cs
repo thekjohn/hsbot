@@ -1,7 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using Discord.Commands;
-
 [Summary("WS Battleroom")]
 [RequireContext(ContextType.Guild)]
 public class Ws : BaseModule

@@ -1,7 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using Discord.WebSocket;
-
 public enum AllianceRole { Leader, Officer, Greeter, Admiral, Member, WSGuest, Ally, Guest }
 
 public static class AllianceLogic

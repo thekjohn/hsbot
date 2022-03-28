@@ -1,13 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
-
 public class DiscordBot
 {
     public static DiscordSocketClient Discord { get; private set; }

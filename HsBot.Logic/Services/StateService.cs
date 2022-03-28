@@ -1,9 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Globalization;
-using System.Text;
-using System.Text.Json;
-
 internal static class StateService
 {
     public static string Folder { get; }

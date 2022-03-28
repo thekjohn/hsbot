@@ -1,11 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Globalization;
-using System.Text;
-using System.Threading.Tasks;
-using Discord;
-using Discord.WebSocket;
-
 public static class TradeLogic
 {
     internal static async Task AddSeller(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, int level, SocketGuildUser seller)

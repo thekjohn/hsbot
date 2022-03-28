@@ -1,11 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Globalization;
-using System.Text;
-using System.Threading.Tasks;
-using Discord;
-using Discord.WebSocket;
-
 public static class WsSignupLogic
 {
     private static readonly List<AccountSelectionEntry> _accountSelectionEntries = new();

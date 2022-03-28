@@ -1,9 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Text;
-using Discord;
-using Discord.WebSocket;
-
 public static class AltsLogic
 {
     public static string[] NumberEmoteNames { get; } = new[] { ":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:" };

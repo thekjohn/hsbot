@@ -1,8 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Threading.Tasks;
-using Discord.Commands;
-
 [Summary("greeter")]
 [RequireContext(ContextType.Guild)]
 [RequireMinimumAllianceRole(AllianceRole.Greeter)]

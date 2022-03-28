@@ -1,9 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Globalization;
-using Discord;
-using Discord.WebSocket;
-
 internal static class LogService
 {
     public static void Log(string userName, string text, ConsoleColor color = ConsoleColor.Gray)

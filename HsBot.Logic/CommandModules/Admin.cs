@@ -1,10 +1,6 @@
-﻿namespace HsBot.Logic;
+﻿using TimeZoneNames;
 
-using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
-using TimeZoneNames;
+namespace HsBot.Logic;
 
 [Summary("admin")]
 [RequireContext(ContextType.Guild)]

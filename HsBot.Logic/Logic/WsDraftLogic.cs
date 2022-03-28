@@ -1,11 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System;
-using System.Globalization;
-using System.Threading.Tasks;
-using Discord;
-using Discord.WebSocket;
-
 public static class WsDraftLogic
 {
     internal static async Task AddDraftTeam(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, SocketRole role, AllianceLogic.Corp corp, WsTeamCommitmentLevel commitmentLevel)

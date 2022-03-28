@@ -1,7 +1,5 @@
 ﻿namespace HsBot.ConsoleHost;
 
-using HsBot.Logic;
-
 internal static class Program
 {
     private static void Main(string[] args)

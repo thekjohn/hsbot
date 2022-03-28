@@ -1,5 +1,4 @@
-﻿namespace Discord.Commands;
-using HsBot.Logic;
+﻿namespace HsBot.Logic;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
 public class RequireMinimumAllianceRoleAttribute : PreconditionAttribute

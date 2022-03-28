@@ -1,7 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using Discord;
-
 internal static class CleanupService
 {
     private static readonly List<Entry> _messagesToDelete = new();

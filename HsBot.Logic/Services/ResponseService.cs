@@ -1,8 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using Discord;
-using Discord.WebSocket;
-
 public enum ResponseType { successStay, success, error, errorStay, question, info, infoStay }
 
 internal static class ResponseService

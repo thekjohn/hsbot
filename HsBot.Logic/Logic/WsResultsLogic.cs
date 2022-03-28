@@ -1,10 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System;
-using System.Globalization;
-using System.Text;
-using Discord.WebSocket;
-
 public static class WsResultsLogic
 {
     public static void RecordWsResult(ulong guildId, string teamName, WsResult result)

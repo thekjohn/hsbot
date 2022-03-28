@@ -1,9 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Reflection;
-using System.Text.Json;
-using Discord.WebSocket;
-
 public static class CompendiumLogic
 {
     internal static async Task SetCompendiumApiKey(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, string apiKey)

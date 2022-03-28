@@ -1,8 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Threading.Tasks;
-using Discord.WebSocket;
-
 public static class TimeZoneLogic
 {
     public static async Task SetTimeZone(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, TimeZoneInfo timeZone)

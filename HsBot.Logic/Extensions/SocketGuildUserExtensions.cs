@@ -1,7 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using Discord.WebSocket;
-
 internal static class SocketGuildUserExtensions
 {
     public static string GetShortDisplayName(this SocketGuildUser user)

@@ -1,8 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using Discord.Commands;
-using Discord.WebSocket;
-
 [Summary("White Star Draft")]
 [RequireContext(ContextType.Guild)]
 public class WsDraft : BaseModule

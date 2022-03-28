@@ -1,9 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Text;
-using System.Threading.Tasks;
-using Discord.WebSocket;
-
 public static class WsModLogic
 {
     public static int[] MinerCapacity { get; } = new[] { 0, 50, 250, 600, 1200, 2000, 2500 };

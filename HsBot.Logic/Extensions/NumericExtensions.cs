@@ -1,7 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Globalization;
-
 internal static class NumericExtensions
 {
     public static string ToStr(this int value)

@@ -1,9 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Threading.Tasks;
-using Discord;
-using Discord.WebSocket;
-
 public static class RemindLogic
 {
     private static List<Entry> _entries = null;

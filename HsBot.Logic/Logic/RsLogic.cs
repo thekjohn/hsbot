@@ -1,8 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Threading.Tasks;
-using Discord.WebSocket;
-
 public static class RsLogic
 {
     internal static async Task SetRsRunCounter(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, int rsLevel, int count)

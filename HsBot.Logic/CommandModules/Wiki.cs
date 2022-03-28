@@ -1,9 +1,5 @@
 ﻿namespace HsBot.Logic;
 
-using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
-
 [Summary("wiki")]
 [RequireContext(ContextType.Guild)]
 [RequireMinimumAllianceRole(AllianceRole.Ally)]
