@@ -15,10 +15,10 @@ public static class RoleLogic
         if (channel == null)
             return;
 
-        var msg = "Welcome " + user.Mention + "!";
+        var message = "Welcome " + user.Mention + "!";
         if (alliance.GreeterRoleId != 0 && guild.GetRole(alliance.GreeterRoleId) != null)
         {
-            msg += " A random " + guild.GetRole(alliance.GreeterRoleId).Mention + " will be here shortly to greet you! Please tell us your RS level (and corporation name) while waiting.";
+            message += " A " + guild.GetRole(alliance.GreeterRoleId).Mention + " will be here shortly to greet you! Please tell us your RS level (and corporation name) while waiting.";
         }
 
         var eb = new EmbedBuilder()
@@ -38,7 +38,7 @@ public static class RoleLogic
                 await user.AddRoleAsync(role);
         }
 
-        var sent = await channel.SendMessageAsync(msg, embed: eb.Build());
+        var sent = await channel.SendMessageAsync(message, embed: eb.Build());
         await sent.AddReactionsAsync(AltsLogic.NumberEmoteNames
             .Take(5)
             .Select(x => Emoji.Parse(x))
@@ -154,7 +154,7 @@ public static class RoleLogic
 
         await channel.BotResponse(user.DisplayName + " is successfully configured as Ally. `" + DiscordBot.CommandPrefix + "setname " + user.DisplayName + " <newName> <corpName>` can be used to set the ingame-name and corp."
             + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`"))
-            , ResponseType.infoStay);
+            , ResponseType.info);
     }
 
     internal static async Task ChangeName(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, string name, string corpName)
@@ -164,7 +164,7 @@ public static class RoleLogic
 
         await user.ModifyAsync(x => x.Nickname = newName);
 
-        await channel.BotResponse(oldName + " is successfully renamed to " + newName, ResponseType.infoStay);
+        await channel.BotResponse(oldName + " is successfully renamed to " + newName, ResponseType.info);
     }
 
     internal static async Task GiveRole(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, SocketRole role)

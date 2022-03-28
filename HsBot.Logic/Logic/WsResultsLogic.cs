@@ -47,7 +47,7 @@ public static class WsResultsLogic
                     ;
             }
 
-            sb.Append("This message will self-destruct in 60 seconds.```");
+            sb.Append("```This message will self-destruct in 60 seconds.");
 
             CleanupService.RegisterForDeletion(60,
                 await channel.SendMessageAsync(sb.ToString()));
@@ -98,7 +98,7 @@ public static class WsResultsLogic
                     .AppendLine(result.CommitmentLevel.ToString().PadRight(12));
             }
 
-            sb.Append("This message will self-destruct in 60 seconds.```");
+            sb.Append("```This message will self-destruct in 60 seconds.");
 
             CleanupService.RegisterForDeletion(60,
                 await channel.SendMessageAsync(sb.ToString()));

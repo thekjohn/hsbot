@@ -377,19 +377,6 @@ public static class WsDraftLogic
         await channel.SendMessageAsync(message, embed: embed);
     }
 
-    public static WsTeam GetWsTeam(ulong guildId, string teamName)
-    {
-        var res = StateService.Get<WsTeam>(guildId, "ws-team-" + teamName);
-        if (res != null)
-        {
-            if (res.Members.Mains == null)
-                res.Members.Mains = new List<ulong>();
-            if (res.Members.Alts == null)
-                res.Members.Alts = new List<AllianceLogic.Alt>();
-        }
-        return res;
-    }
-
     public static WsDraft GetWsDraft(ulong guildId)
     {
         var res = StateService.Get<WsDraft>(guildId, "ws-draft");
