@@ -28,6 +28,9 @@ public class DiscordBot
         Discord.ReactionAdded += (message, channel, reaction) => AltsLogic.HandleReactions(reaction, true);
         Discord.ReactionRemoved += (message, channel, reaction) => AltsLogic.HandleReactions(reaction, false);
 
+        Discord.ReactionAdded += (message, channel, reaction) => GreeterLogic.HandleReactions(reaction, true);
+        Discord.ReactionRemoved += (message, channel, reaction) => GreeterLogic.HandleReactions(reaction, false);
+
         Discord.UserJoined += Discord_UserJoined;
 
         LogService.Log(null, "folder: " + StateService.Folder, ConsoleColor.Magenta);
@@ -42,7 +45,7 @@ public class DiscordBot
 
     private async Task Discord_UserJoined(SocketGuildUser user)
     {
-        await RoleLogic.UserJoined(user.Guild, user);
+        await GreeterLogic.UserJoined(user.Guild, user);
     }
 
     private async Task OnReady()
@@ -134,7 +137,7 @@ public class DiscordBot
 
                                 var confirmTimeoutMinutes = 2;
                                 CleanupService.RegisterForDeletion(confirmTimeoutMinutes * 60,
-                                    await channel.SendMessageAsync(":grey_question: " + user.Mention + ", still in for RS" + level.ToStr() + "? Type `" + DiscordBot.CommandPrefix + "in " + level.ToStr() + "` to confirm within the next " + confirmTimeoutMinutes.ToStr() + " minutes."));
+                                    await channel.SendMessageAsync(":grey_question: " + user.Mention + ", still in for RS" + level.ToStr() + "? Type `" + CommandPrefix + "in " + level.ToStr() + "` to confirm within the next " + confirmTimeoutMinutes.ToStr() + " minutes."));
                             }
                         }
                     }

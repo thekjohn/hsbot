@@ -2,7 +2,8 @@
 
 public static class AltsLogic
 {
-    public static string[] NumberEmoteNames { get; } = new[] { ":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:" };
+    public static string[] NumberEmoteNames { get; } = new[] { ":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:", "11", "12" };
+    public static string[] NumberEmoteMentions { get; } = new[] { ":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:", "<:11:958004577838432276>", "<:12:958004713310261259>" };
 
     internal static async Task ShowAlts(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, SocketGuildUser user)
     {

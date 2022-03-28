@@ -2,6 +2,19 @@
 
 internal static class SocketGuildExtensions
 {
+    public static IEmote GetEmote(this SocketGuild guild, string name)
+    {
+        var emote = guild.Emotes.FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.InvariantCultureIgnoreCase));
+        if (emote != null)
+            return emote;
+
+        emote = guild.Emotes.FirstOrDefault(x => string.Equals(":" + x.Name + ":", name, StringComparison.InvariantCultureIgnoreCase));
+        if (emote != null)
+            return emote;
+
+        return Emoji.Parse(name);
+    }
+
     public static SocketGuildUser FindUser(this SocketGuild guild, SocketGuildUser currentUser, string userToFind)
     {
         if (userToFind == null)

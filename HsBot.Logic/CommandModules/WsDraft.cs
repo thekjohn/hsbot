@@ -40,7 +40,6 @@ public class WsDraft : BaseModule
             "competitive" => WsTeamCommitmentLevel.Competitive,
             "casual" => WsTeamCommitmentLevel.Casual,
             "inactive" => WsTeamCommitmentLevel.Inactive,
-            "farm" => WsTeamCommitmentLevel.Farm,
             _ => WsTeamCommitmentLevel.Unknown,
         };
 

@@ -1,6 +1,6 @@
 ﻿namespace HsBot.Logic;
 
-public enum WsTeamCommitmentLevel { Unknown, Competitive, Casual, Inactive, Farm }
+public enum WsTeamCommitmentLevel { Unknown, Competitive, Casual, Inactive }
 
 public static class WsLogic
 {

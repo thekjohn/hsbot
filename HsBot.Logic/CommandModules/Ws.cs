@@ -70,7 +70,6 @@ public class Ws : BaseModule
             "competitive" => WsTeamCommitmentLevel.Competitive,
             "casual" => WsTeamCommitmentLevel.Casual,
             "inactive" => WsTeamCommitmentLevel.Inactive,
-            "farm" => WsTeamCommitmentLevel.Farm,
             _ => WsTeamCommitmentLevel.Unknown,
         };
 

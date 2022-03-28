@@ -15,9 +15,9 @@ public class Greeter : BaseModule
     }
 
     [Command("recruit")]
-    [Summary("recruit <userName> <corpName> <rsLevel>|recruit user to a corp and RS level")]
+    [Summary("recruit <userName> <corpName>|recruit user to a corp and RS level")]
     [RequireMinimumAllianceRole(AllianceRole.Greeter)]
-    public async Task Recruit(string userName, string corpName, int rsLevel)
+    public async Task Recruit(string userName, string corpName)
     {
         await CleanupService.DeleteCommand(Context.Message);
 
@@ -51,7 +51,7 @@ public class Greeter : BaseModule
             return;
         }
 
-        await RoleLogic.Recruit(Context.Guild, Context.Channel, user, alliance, corp, rsLevel);
+        await RoleLogic.Recruit(Context.Guild, Context.Channel, user, alliance, corp);
     }
 
     [Command("demote")]

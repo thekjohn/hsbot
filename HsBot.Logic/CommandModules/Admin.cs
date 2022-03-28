@@ -6,6 +6,24 @@ namespace HsBot.Logic;
 [RequireContext(ContextType.Guild)]
 public class Admin : BaseModule
 {
+    [Command("setmyname")]
+    [Summary("setmyname <ingameName>|Set the ingame name of a user.")]
+    [RequireMinimumAllianceRole(AllianceRole.Ally)]
+    public async Task SetMyName(string ingameName)
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+        await RoleLogic.SetMyName(Context.Guild, Context.Channel, CurrentUser, ingameName);
+    }
+
+    [Command("setmycorp")]
+    [Summary("setmycorp <corpName>|Set the ingame name of a user.")]
+    [RequireMinimumAllianceRole(AllianceRole.Ally)]
+    public async Task SetMyCorp(string corpName)
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+        await RoleLogic.SetMyCorp(Context.Guild, Context.Channel, CurrentUser, corpName);
+    }
+
     [Command("alts")]
     [Summary("alts [user]|display alts")]
     [RequireMinimumAllianceRole(AllianceRole.Member)]
