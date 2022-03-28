@@ -1,12 +1,11 @@
-﻿namespace HsBot.Logic
-{
-    using Discord;
+﻿namespace HsBot.Logic;
 
-    internal static class EmoteExtensions
+using Discord;
+
+internal static class EmoteExtensions
+{
+    public static string GetReference(this GuildEmote emote)
     {
-        public static string GetReference(this GuildEmote emote)
-        {
-            return "<:" + emote.Name + ":" + emote.Id.ToStr() + ">";
-        }
+        return "<:" + emote.Name + ":" + emote.Id.ToStr() + ">";
     }
 }

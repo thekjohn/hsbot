@@ -1,13 +1,12 @@
-﻿namespace HsBot.ConsoleHost
-{
-    using HsBot.Logic;
+﻿namespace HsBot.ConsoleHost;
 
-    internal static class Program
+using HsBot.Logic;
+
+internal static class Program
+{
+    private static void Main(string[] args)
     {
-        private static void Main(string[] args)
-        {
-            var bot = new DiscordBot();
-            bot.MainAsync().GetAwaiter().GetResult();
-        }
+        var bot = new DiscordBot();
+        bot.MainAsync().GetAwaiter().GetResult();
     }
 }

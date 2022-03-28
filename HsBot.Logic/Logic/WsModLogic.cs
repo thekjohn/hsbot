@@ -1,329 +1,328 @@
-﻿namespace HsBot.Logic
+﻿namespace HsBot.Logic;
+
+using System.Text;
+using System.Threading.Tasks;
+using Discord.WebSocket;
+
+public static class WsModLogic
 {
-    using System.Text;
-    using System.Threading.Tasks;
-    using Discord.WebSocket;
+    public static int[] MinerCapacity { get; } = new[] { 0, 50, 250, 600, 1200, 2000, 2500 };
+    public static int[] HydroBayCapacity { get; } = new[] { 0, 50, 75, 110, 170, 250, 370, 550, 850, 1275, 2000 };
 
-    public static class WsModLogic
+    internal static async Task Classify(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
     {
-        public static int[] MinerCapacity { get; } = new[] { 0, 50, 250, 600, 1200, 2000, 2500 };
-        public static int[] HydroBayCapacity { get; } = new[] { 0, 50, 75, 110, 170, 250, 370, 550, 850, 1275, 2000 };
+        var alliance = AllianceLogic.GetAlliance(guild.Id);
+        if (alliance == null)
+            return;
 
-        internal static async Task Classify(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
+        if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out _))
         {
-            var alliance = AllianceLogic.GetAlliance(guild.Id);
-            if (alliance == null)
-                return;
+            await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
+            return;
+        }
 
-            if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out _))
-            {
-                await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
-                return;
-            }
+        await DeleteTeamsOpsPanel(guild, team);
 
-            await DeleteTeamsOpsPanel(guild, team);
+        var entries = GetTeamEntries(guild, team, null);
+        var longestName = entries.Max(x => x.Name.Length);
 
-            var entries = GetTeamEntries(guild, team, null);
-            var longestName = entries.Max(x => x.Name.Length);
+        var sb = new StringBuilder()
+            .Append("```")
+            .Append("NAME".PadRight(longestName))
+            .Append(' ')
+            .AppendLine("MATCHES");
 
-            var sb = new StringBuilder()
-                .Append("```")
-                .Append("NAME".PadRight(longestName))
+        var filters = ModuleFilterLogic.GetAllModuleFilters(guild.Id).OrderBy(x => x.Name).ToList();
+        foreach (var entry in entries)
+        {
+            sb
+                .Append(entry.Name.PadRight(longestName))
                 .Append(' ')
-                .AppendLine("MATCHES");
-
-            var filters = ModuleFilterLogic.GetAllModuleFilters(guild.Id).OrderBy(x => x.Name).ToList();
-            foreach (var entry in entries)
-            {
-                sb
-                    .Append(entry.Name.PadRight(longestName))
-                    .Append(' ')
-                    .AppendJoin(", ", filters
-                        .Where(x => FilterMatches(entry, x))
-                        .Select(x =>
+                .AppendJoin(", ", filters
+                    .Where(x => FilterMatches(entry, x))
+                    .Select(x =>
+                    {
+                        var needShortNames = x.Modules.Count > 1;
+                        var twoCharShortNames = false;
+                        if (needShortNames)
                         {
-                            var needShortNames = x.Modules.Count > 1;
-                            var twoCharShortNames = false;
+                            var shortNames = x.Modules.Select(m => CompendiumResponseMap.GetShortName(m.Name)[0]).ToArray();
+                            twoCharShortNames = shortNames.Distinct().Count() != shortNames.Length;
+                        }
+
+                        var modLevels = string.Join('/', x.Modules.Select(m =>
+                        {
+                            var property = CompendiumResponseMap.GetByName(m.Name);
+                            var level = (property?.GetValue(entry.Response.map) as CompendiumResponseModule)?.level ?? 0;
+
+                            var shortName = "";
                             if (needShortNames)
                             {
-                                var shortNames = x.Modules.Select(m => CompendiumResponseMap.GetShortName(m.Name)[0]).ToArray();
-                                twoCharShortNames = shortNames.Distinct().Count() != shortNames.Length;
+                                shortName = CompendiumResponseMap.GetShortName(m.Name);
+                                if (shortName.Length > 0)
+                                    shortName = shortName[..(twoCharShortNames ? 2 : 1)];
                             }
 
-                            var modLevels = string.Join('/', x.Modules.Select(m =>
-                            {
-                                var property = CompendiumResponseMap.GetByName(m.Name);
-                                var level = (property?.GetValue(entry.Response.map) as CompendiumResponseModule)?.level ?? 0;
+                            return shortName + level.ToEmptyStr();
+                        }));
 
-                                var shortName = "";
-                                if (needShortNames)
-                                {
-                                    shortName = CompendiumResponseMap.GetShortName(m.Name);
-                                    if (shortName.Length > 0)
-                                        shortName = shortName[..(twoCharShortNames ? 2 : 1)];
-                                }
-
-                                return shortName + level.ToEmptyStr();
-                            }));
-
-                            return x.Name + " (" + modLevels + ")";
-                        }))
-                    .AppendLine();
-            }
-
-            sb.Append("```");
-
-            var sent = await channel.SendMessageAsync(sb.ToString());
-            WsLogic.ChangeWsTeam(guild.Id, ref team, t =>
-            {
-                t.OpsPanelChannelId = channel.Id;
-                t.OpsPanelMessageId = sent.Id;
-            });
+                        return x.Name + " (" + modLevels + ")";
+                    }))
+                .AppendLine();
         }
 
-        internal static async Task WsModMining(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string filterName)
+        sb.Append("```");
+
+        var sent = await channel.SendMessageAsync(sb.ToString());
+        WsLogic.ChangeWsTeam(guild.Id, ref team, t =>
         {
-            var alliance = AllianceLogic.GetAlliance(guild.Id);
-            if (alliance == null)
-                return;
+            t.OpsPanelChannelId = channel.Id;
+            t.OpsPanelMessageId = sent.Id;
+        });
+    }
 
-            if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var _))
-            {
-                await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
-                return;
-            }
+    internal static async Task WsModMining(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string filterName)
+    {
+        var alliance = AllianceLogic.GetAlliance(guild.Id);
+        if (alliance == null)
+            return;
 
-            await DeleteTeamsOpsPanel(guild, team);
-
-            var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
-            var entries = GetTeamEntries(guild, team, filter);
-            var sb = new StringBuilder()
-                .Append("```")
-                .Append(GetModulesTable(guild, team,
-                    new[] { "miner", "miningboost", "remote", "miningunity", "genesis", "enrich", "crunch", "teleport", "leap", "warp", "relicdrone", "mscap", "mscaphbe" }
-                    , filterName))
-                .Append("```");
-
-            var sent = await channel.SendMessageAsync(sb.ToString());
-            WsLogic.ChangeWsTeam(guild.Id, ref team, t =>
-            {
-                t.OpsPanelChannelId = channel.Id;
-                t.OpsPanelMessageId = sent.Id;
-            });
+        if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var _))
+        {
+            await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
+            return;
         }
 
-        internal static async Task WsModDefense(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string filterName)
+        await DeleteTeamsOpsPanel(guild, team);
+
+        var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
+        var entries = GetTeamEntries(guild, team, filter);
+        var sb = new StringBuilder()
+            .Append("```")
+            .Append(GetModulesTable(guild, team,
+                new[] { "miner", "miningboost", "remote", "miningunity", "genesis", "enrich", "crunch", "teleport", "leap", "warp", "relicdrone", "mscap", "mscaphbe" }
+                , filterName))
+            .Append("```");
+
+        var sent = await channel.SendMessageAsync(sb.ToString());
+        WsLogic.ChangeWsTeam(guild.Id, ref team, t =>
         {
-            var alliance = AllianceLogic.GetAlliance(guild.Id);
-            if (alliance == null)
-                return;
+            t.OpsPanelChannelId = channel.Id;
+            t.OpsPanelMessageId = sent.Id;
+        });
+    }
 
-            if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
-            {
-                await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
-                return;
-            }
+    internal static async Task WsModDefense(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string filterName)
+    {
+        var alliance = AllianceLogic.GetAlliance(guild.Id);
+        if (alliance == null)
+            return;
 
-            await DeleteTeamsOpsPanel(guild, team);
-
-            var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
-            var sb = new StringBuilder()
-                .Append("```")
-                .Append(GetModulesTable(guild, team,
-                    new[] { "bs", "laser", "barrage", "blast", "omega", "warp", "teleport", "leap", "barrage", "suppress", "bond", "fortify", "emp" }
-                    , filterName))
-                .Append("```");
-
-            var sent = await channel.SendMessageAsync(sb.ToString());
-            WsLogic.ChangeWsTeam(guild.Id, ref team, t =>
-            {
-                t.OpsPanelChannelId = channel.Id;
-                t.OpsPanelMessageId = sent.Id;
-            });
+        if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
+        {
+            await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
+            return;
         }
 
-        internal static async Task WsModRocket(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string filterName)
+        await DeleteTeamsOpsPanel(guild, team);
+
+        var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
+        var sb = new StringBuilder()
+            .Append("```")
+            .Append(GetModulesTable(guild, team,
+                new[] { "bs", "laser", "barrage", "blast", "omega", "warp", "teleport", "leap", "barrage", "suppress", "bond", "fortify", "emp" }
+                , filterName))
+            .Append("```");
+
+        var sent = await channel.SendMessageAsync(sb.ToString());
+        WsLogic.ChangeWsTeam(guild.Id, ref team, t =>
         {
-            var alliance = AllianceLogic.GetAlliance(guild.Id);
-            if (alliance == null)
-                return;
+            t.OpsPanelChannelId = channel.Id;
+            t.OpsPanelMessageId = sent.Id;
+        });
+    }
 
-            if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
-            {
-                await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
-                return;
-            }
+    internal static async Task WsModRocket(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string filterName)
+    {
+        var alliance = AllianceLogic.GetAlliance(guild.Id);
+        if (alliance == null)
+            return;
 
-            await DeleteTeamsOpsPanel(guild, team);
-
-            var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
-            var sb = new StringBuilder()
-                .Append("```")
-                .Append(GetModulesTable(guild, team,
-                    new[] { "bs", "rocket", "deltarocket", "omegarocket", "warp", "delta", "omega", "blast", "impulse", "teleport" }
-                    , filterName))
-                .Append("```");
-
-            var sent = await channel.SendMessageAsync(sb.ToString());
-            WsLogic.ChangeWsTeam(guild.Id, ref team, t =>
-            {
-                t.OpsPanelChannelId = channel.Id;
-                t.OpsPanelMessageId = sent.Id;
-            });
+        if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
+        {
+            await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
+            return;
         }
 
-        internal static string GetModulesTable(SocketGuild guild, WsTeam team, string[] moduleNames, string filterName)
-        {
-            var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
-            var entries = GetTeamEntries(guild, team, filter);
-            var longestName = entries.Max(x => x.Name.Length);
+        await DeleteTeamsOpsPanel(guild, team);
 
-            var sb = new StringBuilder();
+        var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
+        var sb = new StringBuilder()
+            .Append("```")
+            .Append(GetModulesTable(guild, team,
+                new[] { "bs", "rocket", "deltarocket", "omegarocket", "warp", "delta", "omega", "blast", "impulse", "teleport" }
+                , filterName))
+            .Append("```");
+
+        var sent = await channel.SendMessageAsync(sb.ToString());
+        WsLogic.ChangeWsTeam(guild.Id, ref team, t =>
+        {
+            t.OpsPanelChannelId = channel.Id;
+            t.OpsPanelMessageId = sent.Id;
+        });
+    }
+
+    internal static string GetModulesTable(SocketGuild guild, WsTeam team, string[] moduleNames, string filterName)
+    {
+        var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
+        var entries = GetTeamEntries(guild, team, filter);
+        var longestName = entries.Max(x => x.Name.Length);
+
+        var sb = new StringBuilder();
+        sb
+            .Append("name".PadRight(longestName))
+            .Append(' ');
+
+        if (filter != null)
+        {
+            moduleNames =
+                filter.Modules.Select(x => x.Name)
+                .Concat(
+                moduleNames.Where(x => !filter.Modules.Any(m => string.Equals(m.Name, x, StringComparison.InvariantCultureIgnoreCase)))
+                )
+                .ToArray();
+        }
+
+        foreach (var moduleName in moduleNames)
+        {
+            var shortName = CompendiumResponseMap.GetShortName(moduleName) ?? moduleName;
             sb
-                .Append("name".PadRight(longestName))
+                .Append(shortName)
                 .Append(' ');
+        }
 
-            if (filter != null)
+        sb.AppendLine("group");
+
+        foreach (var entry in entries)
+        {
+            sb.Append(entry.Name.PadRight(longestName + 1));
+            if (entry.Response == null || entry.Response.array.Length < 5)
             {
-                moduleNames =
-                    filter.Modules.Select(x => x.Name)
-                    .Concat(
-                    moduleNames.Where(x => !filter.Modules.Any(m => string.Equals(m.Name, x, StringComparison.InvariantCultureIgnoreCase)))
-                    )
-                    .ToArray();
+                sb.AppendLine();
+                continue;
             }
 
             foreach (var moduleName in moduleNames)
             {
-                var shortName = CompendiumResponseMap.GetShortName(moduleName) ?? moduleName;
+                var shortName = CompendiumResponseMap.GetShortName(moduleName);
+
+                var value = moduleName switch
+                {
+                    "mscap" => MinerCapacity[entry.Response.map?.miner?.level ?? 0].ToStr(),
+                    "mscaphbe" => (MinerCapacity[entry.Response.map?.miner?.level ?? 0]
+                        + HydroBayCapacity[entry.Response.map?.hydrobay?.level ?? 0]).ToStr(),
+                    _ => entry.Response.map != null
+                        ? (CompendiumResponseMap.GetByName(moduleName).GetValue(entry.Response.map) as CompendiumResponseModule)?.level.ToStr()
+                        : null
+                };
+
                 sb
-                    .Append(shortName)
+                    .Append((value ?? "-").PadLeft(shortName.Length))
                     .Append(' ');
             }
 
-            sb.AppendLine("group");
-
-            foreach (var entry in entries)
-            {
-                sb.Append(entry.Name.PadRight(longestName + 1));
-                if (entry.Response == null || entry.Response.array.Length < 5)
-                {
-                    sb.AppendLine();
-                    continue;
-                }
-
-                foreach (var moduleName in moduleNames)
-                {
-                    var shortName = CompendiumResponseMap.GetShortName(moduleName);
-
-                    var value = moduleName switch
-                    {
-                        "mscap" => MinerCapacity[entry.Response.map?.miner?.level ?? 0].ToStr(),
-                        "mscaphbe" => (MinerCapacity[entry.Response.map?.miner?.level ?? 0]
-                            + HydroBayCapacity[entry.Response.map?.hydrobay?.level ?? 0]).ToStr(),
-                        _ => entry.Response.map != null
-                            ? (CompendiumResponseMap.GetByName(moduleName).GetValue(entry.Response.map) as CompendiumResponseModule)?.level.ToStr()
-                            : null
-                    };
-
-                    sb
-                        .Append((value ?? "-").PadLeft(shortName.Length))
-                        .Append(' ');
-                }
-
-                sb.AppendLine(entry.Assignment?.MinerGroupNameMS);
-            }
-
-            return sb.ToString();
+            sb.AppendLine(entry.Assignment?.MinerGroupNameMS);
         }
 
-        private static List<Entry> GetTeamEntries(SocketGuild guild, WsTeam team, ModuleFilter filter)
+        return sb.ToString();
+    }
+
+    private static List<Entry> GetTeamEntries(SocketGuild guild, WsTeam team, ModuleFilter filter)
+    {
+        var mains = team.Members.Mains.Select(x => new Entry()
         {
-            var mains = team.Members.Mains.Select(x => new Entry()
+            Name = guild.GetUser(x)?.GetShortDisplayName(),
+            Response = CompendiumLogic.GetUserData(guild.Id, x),
+            Assignment = team.OpsAssignments.Find(y => y.UserId == x),
+        });
+
+        var alts = team.Members.Alts.Select(x => x.AltUserId != null
+            ? new Entry()
             {
-                Name = guild.GetUser(x)?.GetShortDisplayName(),
-                Response = CompendiumLogic.GetUserData(guild.Id, x),
-                Assignment = team.OpsAssignments.Find(y => y.UserId == x),
+                Name = guild.GetUser(x.AltUserId.Value)?.GetShortDisplayName() ?? "<unknown discord user>",
+                Response = CompendiumLogic.GetUserData(guild.Id, x.AltUserId.Value),
+                Assignment = team.OpsAssignments.Find(y => y.Alt?.Equals(x) == true),
+            }
+            : new Entry()
+            {
+                Name = x.Name,
+                Response = null,// todo: support storing module data for discordless alts
+                Assignment = team.OpsAssignments.Find(y => y.Alt?.Equals(x) == true),
             });
 
-            var alts = team.Members.Alts.Select(x => x.AltUserId != null
-                ? new Entry()
-                {
-                    Name = guild.GetUser(x.AltUserId.Value)?.GetShortDisplayName() ?? "<unknown discord user>",
-                    Response = CompendiumLogic.GetUserData(guild.Id, x.AltUserId.Value),
-                    Assignment = team.OpsAssignments.Find(y => y.Alt?.Equals(x) == true),
-                }
-                : new Entry()
-                {
-                    Name = x.Name,
-                    Response = null,// todo: support storing module data for discordless alts
-                    Assignment = team.OpsAssignments.Find(y => y.Alt?.Equals(x) == true),
-                });
+        var allEntry = mains
+            .Concat(alts)
+            .Where(entry => entry?.Name != null && FilterMatches(entry, filter))
+            .OrderBy(x =>
+            {
+                if (filter != null)
+                    return -x.Score;
 
-            var allEntry = mains
-                .Concat(alts)
-                .Where(entry => entry?.Name != null && FilterMatches(entry, filter))
-                .OrderBy(x =>
-                {
-                    if (filter != null)
-                        return -x.Score;
+                return (x.Response?.array?.Length ?? 0) >= 5 ? 0 : 1;
+            })
+            .ThenBy(x => x.Name)
+            .ToList();
 
-                    return (x.Response?.array?.Length ?? 0) >= 5 ? 0 : 1;
-                })
-                .ThenBy(x => x.Name)
-                .ToList();
+        return allEntry;
+    }
 
-            return allEntry;
-        }
+    private static bool FilterMatches(Entry entry, ModuleFilter filter)
+    {
+        if (filter == null)
+            return true;
 
-        private static bool FilterMatches(Entry entry, ModuleFilter filter)
+        if ((entry.Response?.array?.Length ?? 0) < 5)
+            return false;
+
+        var mapTypeProperties = typeof(CompendiumResponseMap).GetProperties();
+        foreach (var module in filter.Modules)
         {
-            if (filter == null)
-                return true;
+            var property = Array.Find(mapTypeProperties, p => string.Equals(p.Name, module.Name, StringComparison.InvariantCultureIgnoreCase));
+            if (property == null)
+                continue;
 
-            if ((entry.Response?.array?.Length ?? 0) < 5)
+            var value = (CompendiumResponseModule)property.GetValue(entry.Response.map);
+            if (value == null)
                 return false;
 
-            var mapTypeProperties = typeof(CompendiumResponseMap).GetProperties();
-            foreach (var module in filter.Modules)
-            {
-                var property = Array.Find(mapTypeProperties, p => string.Equals(p.Name, module.Name, StringComparison.InvariantCultureIgnoreCase));
-                if (property == null)
-                    continue;
+            if (value.level < module.Level)
+                return false;
 
-                var value = (CompendiumResponseModule)property.GetValue(entry.Response.map);
-                if (value == null)
-                    return false;
-
-                if (value.level < module.Level)
-                    return false;
-
-                entry.Score += value.ws;
-            }
-
-            return true;
+            entry.Score += value.ws;
         }
 
-        private static async Task DeleteTeamsOpsPanel(SocketGuild guild, WsTeam team)
+        return true;
+    }
+
+    private static async Task DeleteTeamsOpsPanel(SocketGuild guild, WsTeam team)
+    {
+        if (team.OpsPanelMessageId != 0)
         {
-            if (team.OpsPanelMessageId != 0)
+            try
             {
-                try
-                {
-                    await guild.GetTextChannel(team.OpsPanelChannelId).DeleteMessageAsync(team.OpsPanelMessageId);
-                }
-                catch (Exception)
-                {
-                }
+                await guild.GetTextChannel(team.OpsPanelChannelId).DeleteMessageAsync(team.OpsPanelMessageId);
+            }
+            catch (Exception)
+            {
             }
         }
+    }
 
-        private class Entry
-        {
-            public string Name { get; set; }
-            public CompendiumResponse Response { get; set; }
-            public WsTeamOpsAssignment Assignment { get; set; }
-            public int Score { get; set; }
-        }
+    private class Entry
+    {
+        public string Name { get; set; }
+        public CompendiumResponse Response { get; set; }
+        public WsTeamOpsAssignment Assignment { get; set; }
+        public int Score { get; set; }
     }
 }

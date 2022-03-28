@@ -1,63 +1,62 @@
-﻿namespace HsBot.Logic
+﻿namespace HsBot.Logic;
+
+using Discord;
+
+internal static class CleanupService
 {
-    using Discord;
+    private static readonly List<Entry> _messagesToDelete = new();
 
-    internal static class CleanupService
+    public static async Task DeleteCommand(IUserMessage message)
     {
-        private static readonly List<Entry> _messagesToDelete = new();
+        //await message.AddReactionAsync(Emoji.Parse(":watch:"));
 
-        public static async Task DeleteCommand(IUserMessage message)
+        lock (_messagesToDelete)
         {
-            //await message.AddReactionAsync(Emoji.Parse(":watch:"));
-
-            lock (_messagesToDelete)
+            _messagesToDelete.Add(new Entry()
             {
-                _messagesToDelete.Add(new Entry()
-                {
-                    After = DateTime.UtcNow.AddSeconds(1),
-                    Message = message,
-                });
-            }
+                After = DateTime.UtcNow.AddSeconds(1),
+                Message = message,
+            });
         }
+    }
 
-        public static void RegisterForDeletion(int afterSeconds, IUserMessage message)
+    public static void RegisterForDeletion(int afterSeconds, IUserMessage message)
+    {
+        lock (_messagesToDelete)
         {
-            lock (_messagesToDelete)
+            _messagesToDelete.Add(new Entry()
             {
-                _messagesToDelete.Add(new Entry()
-                {
-                    After = DateTime.UtcNow.AddSeconds(afterSeconds),
-                    Message = message,
-                });
-            }
+                After = DateTime.UtcNow.AddSeconds(afterSeconds),
+                Message = message,
+            });
         }
+    }
 
-        public static List<IUserMessage> GetMessagesToDelete()
+    public static List<IUserMessage> GetMessagesToDelete()
+    {
+        lock (_messagesToDelete)
         {
-            lock (_messagesToDelete)
-            {
-                var now = DateTime.UtcNow;
+            var now = DateTime.UtcNow;
 
-                List<IUserMessage> result = null;
-                foreach (var entry in _messagesToDelete)
+            List<IUserMessage> result = null;
+            foreach (var entry in _messagesToDelete)
+            {
+                if (now > entry.After)
                 {
-                    if (now > entry.After)
-                    {
-                        (result ??= new()).Add(entry.Message);
-                    }
+                    (result ??= new()).Add(entry.Message);
                 }
-
-                if (result != null)
-                    _messagesToDelete.RemoveAll(x => result.Contains(x.Message));
-
-                return result;
             }
-        }
 
-        private class Entry
-        {
-            public DateTime After { get; init; }
-            public IUserMessage Message { get; init; }
+            if (result != null)
+                _messagesToDelete.RemoveAll(x => result.Contains(x.Message));
+
+            return result;
         }
+    }
+
+    private class Entry
+    {
+        public DateTime After { get; init; }
+        public IUserMessage Message { get; init; }
     }
 }
