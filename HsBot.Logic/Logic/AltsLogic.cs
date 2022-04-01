@@ -96,7 +96,7 @@ public static class AltsLogic
         if (entry == null || entry.MessageId != reaction.MessageId)
             return;
 
-        var index = Array.IndexOf(NumberEmoteNames.Select(x => Emoji.Parse(x).Name).ToArray(), reaction.Emote.Name);
+        var index = Array.IndexOf(NumberEmoteNames.Select(x => channel.Guild.GetEmote(x).Name).ToArray(), reaction.Emote.Name);
         if (index == -1)
             return;
 

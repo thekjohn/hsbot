@@ -276,12 +276,12 @@ public class Rs : BaseModule
             CleanupService.RegisterForDeletion(10 * 60,
                 await ReplyAsync(response));
 
-            foreach (var queueUser in queue.Users)
+            foreach (var queueUserId in queue.Users)
             {
-                var usr = Context.Guild.GetUser(queueUser);
-                if (user != null)
+                var usr = Context.Guild.GetUser(queueUserId);
+                if (usr != null)
                 {
-                    await user.SendMessageAsync("RS" + selectedLevel.ToStr() + " is ready! (4/4) in https://discord.com/channels/" + Context.Guild.Id.ToStr() + "/" + Context.Channel.Id.ToStr()
+                    await usr.SendMessageAsync("RS" + selectedLevel.ToStr() + " is ready! (4/4) in https://discord.com/channels/" + Context.Guild.Id.ToStr() + "/" + Context.Channel.Id.ToStr()
                         + "\n" + string.Join(" ", queue.Users.Select(x =>
                         {
                             var user = Context.Guild.GetUser(x);

@@ -41,6 +41,12 @@ public class DiscordBot
         Commands.CommandExecuted += CommandExecutedAsync;
 
         CommandPrefix = File.ReadAllText(@"c:\HsBot\Bot.CommandPrefix.txt")[0];
+
+        AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
+        {
+            if (eventArgs.ExceptionObject is Exception ex)
+                Console.Write(ex.ToString());
+        };
     }
 
     private async Task Discord_UserJoined(SocketGuildUser user)

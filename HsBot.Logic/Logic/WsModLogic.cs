@@ -94,6 +94,7 @@ public static class WsModLogic
         var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
         var entries = GetTeamEntries(guild, team, filter);
         var sb = new StringBuilder()
+            .Append("mining").Append(filterName != null ? " + " + filterName : "")
             .Append("```")
             .Append(GetModulesTable(guild, team,
                 new[] { "miner", "miningboost", "remote", "miningunity", "genesis", "enrich", "crunch", "teleport", "leap", "warp", "relicdrone", "mscap", "mscaphbe" }
@@ -124,6 +125,7 @@ public static class WsModLogic
 
         var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
         var sb = new StringBuilder()
+            .Append("defense").Append(filterName != null ? " + " + filterName : "")
             .Append("```")
             .Append(GetModulesTable(guild, team,
                 new[] { "bs", "laser", "barrage", "blast", "omega", "warp", "teleport", "leap", "barrage", "suppress", "bond", "fortify", "emp" }
@@ -154,6 +156,7 @@ public static class WsModLogic
 
         var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
         var sb = new StringBuilder()
+            .Append("rocket").Append(filterName != null ? " + " + filterName : "")
             .Append("```")
             .Append(GetModulesTable(guild, team,
                 new[] { "bs", "rocket", "deltarocket", "omegarocket", "warp", "delta", "omega", "blast", "impulse", "teleport" }
@@ -172,11 +175,11 @@ public static class WsModLogic
     {
         var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
         var entries = GetTeamEntries(guild, team, filter);
-        var longestName = entries.Max(x => x.Name.Length);
+        var longestName = Math.Max("MODULES".Length, entries.Max(x => x.Name.Length));
 
         var sb = new StringBuilder();
         sb
-            .Append("name".PadRight(longestName))
+            .Append("MODULE".PadRight(longestName))
             .Append(' ');
 
         if (filter != null)
@@ -201,7 +204,10 @@ public static class WsModLogic
 
         foreach (var entry in entries)
         {
-            sb.Append(entry.Name.PadRight(longestName + 1));
+            sb
+                .Append(entry.Name.PadRight(longestName))
+                .Append(' ');
+
             if (entry.Response == null || entry.Response.array.Length < 5)
             {
                 sb.AppendLine();

@@ -143,4 +143,36 @@ public class WsDraft : BaseModule
         await CleanupService.DeleteCommand(Context.Message);
         await WsDraftLogic.CloseDraft(Context.Guild, Context.Channel, CurrentUser);
     }
+
+    [Command("set-signup-info")]
+    [Summary("set-signup-info|set the signup info text, posted when a new signup is created")]
+    [RequireMinimumAllianceRole(AllianceRole.Leader)]
+    public async Task SetSignupInfo(string commitmentLevel, [Remainder] string text)
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+        var teamCommitmentLevel = commitmentLevel.ToLowerInvariant() switch
+        {
+            "competitive" => WsTeamCommitmentLevel.Competitive,
+            "casual" => WsTeamCommitmentLevel.Casual,
+            "inactive" => WsTeamCommitmentLevel.Inactive,
+            _ => WsTeamCommitmentLevel.Unknown,
+        };
+
+        if (teamCommitmentLevel == WsTeamCommitmentLevel.Unknown)
+        {
+            await Context.Channel.BotResponse("Commitment level must be one of the following values: `competitive`, `casual`, `inactive`.", ResponseType.error);
+            return;
+        }
+
+        await WsSignupLogic.SetSignupInfo(Context.Guild, Context.Channel, CurrentUser, teamCommitmentLevel, text);
+    }
+
+    [Command("signup-info")]
+    [Summary("signup-info|diplay the signup info text")]
+    [RequireMinimumAllianceRole(AllianceRole.Admiral)]
+    public async Task ShowSignupInfo()
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+        await WsSignupLogic.ShowSignupInfo(Context.Guild, Context.Channel, CurrentUser);
+    }
 }

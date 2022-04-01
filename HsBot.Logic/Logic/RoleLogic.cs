@@ -4,7 +4,7 @@ public static class RoleLogic
 {
     public static async Task Recruit(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, AllianceLogic.AllianceInfo alliance, AllianceLogic.Corp corp)
     {
-        var rolesToRemove = user.Roles.Where(x => !x.IsEveryone).ToArray();
+        var rolesToRemove = user.Roles.Where(x => x.Id == alliance.GuestRoleId || x.Id == alliance.AllyRoleId).ToArray();
         if (rolesToRemove.Length > 0)
             await user.RemoveRolesAsync(rolesToRemove);
 
@@ -23,7 +23,30 @@ public static class RoleLogic
 
         await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
 
-        await channel.BotResponse(user.DisplayName + " is successfully recruited to `" + corp.FullName + "`."
+        var oldName = user.DisplayName;
+        var newName = user.DisplayName;
+        if (user.DisplayName.StartsWith("[]", StringComparison.InvariantCultureIgnoreCase))
+        {
+            newName = user.DisplayName.Substring(2).Trim();
+            await user.ModifyAsync(x => x.Nickname = newName);
+            await channel.BotResponse(oldName + " is renamed to " + newName, ResponseType.infoStay);
+        }
+        else
+        {
+            var idx = user.DisplayName.IndexOf('[', StringComparison.InvariantCultureIgnoreCase);
+            if (idx == 0)
+            {
+                var idx2 = user.DisplayName.IndexOf(']', StringComparison.InvariantCultureIgnoreCase);
+                if (idx2 > idx)
+                {
+                    newName = user.DisplayName.Substring(idx2 + 1).Trim();
+                    await user.ModifyAsync(x => x.Nickname = newName);
+                    await channel.BotResponse(oldName + " is renamed to " + newName, ResponseType.infoStay);
+                }
+            }
+        }
+
+        await channel.BotResponse(newName + " is recruited to `" + corp.FullName + "`."
             + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`")) + "."
             + "\nRemoved roles: " + string.Join(", ", rolesToRemove.Select(x => "`" + x.Name + "`"))
             , ResponseType.infoStay);
@@ -42,7 +65,7 @@ public static class RoleLogic
 
         await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
 
-        await channel.BotResponse(user.DisplayName + " is successfully guestified."
+        await channel.BotResponse(user.DisplayName + " is guestified."
             + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`"))
             + "\nRemoved roles: " + string.Join(", ", rolesToRemove.Select(x => "`" + x.Name + "`"))
             , ResponseType.infoStay);
@@ -64,7 +87,7 @@ public static class RoleLogic
 
         await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
 
-        await channel.BotResponse(user.DisplayName + " is successfully configured as WS guest. `" + DiscordBot.CommandPrefix + "setname " + user.DisplayName + " <newName> <corpName>` can be used to set the ingame-name and corp."
+        await channel.BotResponse(user.DisplayName + " is configured as WS guest. `" + DiscordBot.CommandPrefix + "setname " + user.DisplayName + " <newName> <corpName>` can be used to set the ingame-name and corp."
             + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`"))
             , ResponseType.infoStay);
     }
@@ -92,7 +115,7 @@ public static class RoleLogic
         }
         await user.AddRolesAsync(rolesToAdd.Where(x => x != 0));
 
-        await channel.BotResponse(user.DisplayName + " is successfully configured as Ally. `" + DiscordBot.CommandPrefix + "setname " + user.DisplayName + " <newName> <corpName>` can be used to set the ingame-name and corp."
+        await channel.BotResponse(user.DisplayName + " is configured as Ally. `" + DiscordBot.CommandPrefix + "setname " + user.DisplayName + " <newName> <corpName>` can be used to set the ingame-name and corp."
             + "\nNew roles: " + string.Join(", ", rolesToAdd.Select(x => "`" + guild.GetRole(x).Name + "`"))
             , ResponseType.info);
     }
@@ -104,7 +127,7 @@ public static class RoleLogic
 
         await user.ModifyAsync(x => x.Nickname = newName);
 
-        await channel.BotResponse(oldName + " is successfully renamed to " + newName, ResponseType.info);
+        await channel.BotResponse(oldName + " is renamed to " + newName, ResponseType.infoStay);
     }
 
     internal static async Task SetMyName(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, string ingameName)
@@ -138,7 +161,7 @@ public static class RoleLogic
 
         await user.ModifyAsync(x => x.Nickname = newName);
 
-        await channel.BotResponse(oldName + " is successfully renamed to " + newName, ResponseType.info);
+        await channel.BotResponse(oldName + " is renamed to " + newName, ResponseType.infoStay);
     }
 
     internal static async Task SetMyCorp(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, string corpName)
@@ -176,7 +199,7 @@ public static class RoleLogic
 
         await user.ModifyAsync(x => x.Nickname = newName);
 
-        await channel.BotResponse(oldName + " is successfully renamed to " + newName, ResponseType.info);
+        await channel.BotResponse(oldName + " is renamed to " + newName, ResponseType.infoStay);
     }
 
     internal static async Task GiveRole(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, SocketRole role)
@@ -188,7 +211,7 @@ public static class RoleLogic
         }
 
         await user.AddRoleAsync(role);
-        await channel.BotResponse(user.DisplayName + " successfully got this role: " + role.Name, ResponseType.success);
+        await channel.BotResponse(user.DisplayName + " got the following role: " + role.Name, ResponseType.success);
     }
 
     internal static async Task TakeRole(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, SocketRole role)
@@ -200,6 +223,6 @@ public static class RoleLogic
         }
 
         await user.RemoveRoleAsync(role);
-        await channel.BotResponse(user.DisplayName + " successfully lost this role: " + role.Name, ResponseType.success);
+        await channel.BotResponse(user.DisplayName + " lost the following role: " + role.Name, ResponseType.success);
     }
 }

@@ -28,6 +28,8 @@ public static class WsSignupLogic
             await channel.SendMessageAsync(memberRole.Mention + " New signup form is online, we count on you! :point_down:");
         }
 
+        await ShowSignupInfo(guild, channel, currentUser);
+
         await RepostSignups(guild, channel, currentUser);
     }
 
@@ -105,29 +107,6 @@ public static class WsSignupLogic
                         if (channel != null)
                         {
                             var alliance = AllianceLogic.GetAlliance(guild.Id);
-                            var eb = new EmbedBuilder()
-                                .WithTitle("WS signup ended")
-                                .AddField("started on", signup.StartedOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC")
-                                .AddField("ended on", signup.EndsOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC");
-
-                            string message = null;
-                            if (alliance != null && alliance.AdmiralRoleId != 0)
-                            {
-                                var role = guild.GetRole(alliance.AdmiralRoleId);
-                                if (role != null)
-                                {
-                                    message = " " + role.Mention + " please make teams";
-                                    if (alliance.WsDraftChannelId != 0 && guild.Channels.Any(x => x.Id == alliance.WsDraftChannelId))
-                                    {
-                                        message += " in " + guild.GetTextChannel(alliance.WsDraftChannelId).Mention + "!";
-                                    }
-                                    else
-                                    {
-                                        message += "!";
-                                    }
-                                }
-                            }
-
                             if (alliance.WsDraftChannelId != 0)
                             {
                                 var draft = new WsDraftLogic.WsDraft()
@@ -143,7 +122,6 @@ public static class WsSignupLogic
                             }
 
                             await RefreshSignup(guild, channel, signup.MessageId);
-                            await channel.SendMessageAsync(message, embed: eb.Build());
                         }
 
                         var newId = signupStateId.Replace("active", "archive", StringComparison.InvariantCultureIgnoreCase);
@@ -297,16 +275,16 @@ public static class WsSignupLogic
             .WithTitle(signup.EndsOn > DateTime.UtcNow
                 ? "WS signup - ends on " + signup.EndsOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC"
                 : "WS signup - ended on " + signup.EndsOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC")
-            .AddField("Please set your commitment level during this White Star event. Your team will count on you, so please choose wisely!", "We promise you don't get into a stronger team than your commitment level, but you can still end up in a lower commitment level team.", false)
-            .AddField((compMainCnt + compAltCnt).ToStr() + " Competitive 💪", "Highly responsive, focused, no sanc!", true)
-            .AddField((casualMainCnt + casualAltCnt).ToStr() + " Casual 👍", "Responsive, but no commitments. Sanc allowed.", true)
-            .AddField((inactiveMainCnt + inactiveAltCnt).ToStr() + " Inactive 😴", "Only bar filling. Sanc recommended.", true)
-            .AddField(compMainCnt.ToStr() + " Competitive Main 💪", compMain != "" ? compMain : "-", true)
-            .AddField(casualMainCnt.ToStr() + " Casual Main 👍", casualMain != "" ? casualMain : "-", true)
-            .AddField(inactiveMainCnt.ToStr() + " Inactive Main 😴", inactiveMain != "" ? inactiveMain : "-", true)
-            .AddField(compAltCnt.ToStr() + " Competitive Alt 💪", compAlt != "" ? compAlt : "-", true)
-            .AddField(casualAltCnt.ToStr() + " Casual Alt 👍", casualAlt != "" ? casualAlt : "-", true)
-            .AddField(inactiveAltCnt.ToStr() + " Inactive Alt 😴", inactiveAlt != "" ? inactiveAlt : "-", true);
+            .AddField("Please set your commitment level during this White Star event. Your team will count on you, so please choose wisely!", "We promise you don't get into a team stronger than your commitment level, but you can still end up in a lower commitment level team.", false)
+            .AddField((compMainCnt + compAltCnt).ToStr() + " Competitive", "💪", true)
+            .AddField((casualMainCnt + casualAltCnt).ToStr() + " Casual", "👍", true)
+            .AddField((inactiveMainCnt + inactiveAltCnt).ToStr() + " Inactive", "😴", true)
+            .AddField(compMainCnt.ToStr() + " Competitive Main", compMain != "" ? compMain : "-", true)
+            .AddField(casualMainCnt.ToStr() + " Casual Main", casualMain != "" ? casualMain : "-", true)
+            .AddField(inactiveMainCnt.ToStr() + " Inactive Main", inactiveMain != "" ? inactiveMain : "-", true)
+            .AddField(compAltCnt.ToStr() + " Competitive Alt", compAlt != "" ? compAlt : "-", true)
+            .AddField(casualAltCnt.ToStr() + " Casual Alt", casualAlt != "" ? casualAlt : "-", true)
+            .AddField(inactiveAltCnt.ToStr() + " Inactive Alt", inactiveAlt != "" ? inactiveAlt : "-", true);
 
         return eb.Build();
     }
@@ -348,7 +326,7 @@ public static class WsSignupLogic
             }
             else
             {
-                var index = Array.IndexOf(AltsLogic.NumberEmoteNames.Select(x => Emoji.Parse(x).Name).ToArray(), reaction.Emote.Name);
+                var index = Array.IndexOf(AltsLogic.NumberEmoteNames.Select(x => guild.GetEmote(x).Name).ToArray(), reaction.Emote.Name);
                 if (index != -1)
                 {
                     var alt = entry.Alts[index];
@@ -493,6 +471,61 @@ public static class WsSignupLogic
         await RefreshSignup(guild, channel, signup.MessageId);
     }
 
+    internal static async Task ShowSignupInfo(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
+    {
+        var eb = new EmbedBuilder()
+            .WithTitle("Signup info");
+
+        var info = StateService.Get<SignupInfo>(guild.Id, "signup-info") ?? new SignupInfo();
+        if (info != null)
+        {
+            if (!string.IsNullOrEmpty(info.CompetitiveInfo))
+                eb.AddField("Competitive", info.CompetitiveInfo);
+
+            if (!string.IsNullOrEmpty(info.CasualInfo))
+                eb.AddField("Casual", info.CasualInfo);
+
+            if (!string.IsNullOrEmpty(info.InactiveInfo))
+                eb.AddField("Inactive", info.InactiveInfo);
+        }
+
+        if (info.MessageId != 0)
+        {
+            try
+            {
+                await guild.GetTextChannel(info.ChannelId).DeleteMessageAsync(info.MessageId);
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        var sent = await channel.SendMessageAsync(null, embed: eb.Build());
+        info.ChannelId = channel.Id;
+        info.MessageId = sent.Id;
+        StateService.Set(guild.Id, "signup-info", info);
+    }
+
+    internal static async Task SetSignupInfo(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, WsTeamCommitmentLevel teamCommitmentLevel, string text)
+    {
+        var info = StateService.Get<SignupInfo>(guild.Id, "signup-info") ?? new SignupInfo();
+        switch (teamCommitmentLevel)
+        {
+            case WsTeamCommitmentLevel.Competitive:
+                info.CompetitiveInfo = text;
+                break;
+            case WsTeamCommitmentLevel.Casual:
+                info.CasualInfo = text;
+                break;
+            case WsTeamCommitmentLevel.Inactive:
+                info.InactiveInfo = text;
+                break;
+        }
+
+        StateService.Set(guild.Id, "signup-info", info);
+        await channel.BotResponse("Signup info set.", ResponseType.success);
+    }
+
     private static async Task ShowAltsPanel(SocketGuild guild, ISocketMessageChannel channel, string signupStateId, string originalEmoteName, AllianceLogic.AllianceInfo alliance, SocketGuildUser user)
     {
         var description = new StringBuilder();
@@ -526,18 +559,7 @@ public static class WsSignupLogic
             .WithFooter("This message will self-destruct in 30 seconds.");
 
         var sent = await channel.SendMessageAsync(embed: eb.Build());
-
-        var reactions = new List<IEmote>
-        {
-            Emoji.Parse(":white_check_mark:"),
-            Emoji.Parse(":m:")
-        };
-
-        reactions.AddRange(AltsLogic.NumberEmoteNames
-            .Take(alts.Count)
-            .Select(x => Emoji.Parse(x)));
-
-        await sent.AddReactionsAsync(reactions);
+        CleanupService.RegisterForDeletion(30, sent);
 
         lock (_accountSelectionEntries)
         {
@@ -555,7 +577,17 @@ public static class WsSignupLogic
             });
         }
 
-        CleanupService.RegisterForDeletion(30, sent);
+        var reactions = new List<IEmote>
+        {
+            Emoji.Parse(":white_check_mark:"),
+            Emoji.Parse(":m:")
+        };
+
+        reactions.AddRange(AltsLogic.NumberEmoteNames
+            .Take(alts.Count)
+            .Select(x => guild.GetEmote(x)));
+
+        await sent.AddReactionsAsync(reactions);
     }
 
     private class AccountSelectionEntry
@@ -567,6 +599,15 @@ public static class WsSignupLogic
         public string SignupStateId { get; init; }
         public string OriginalEmoteName { get; init; }
         public List<AllianceLogic.Alt> Alts { get; init; }
+    }
+
+    public class SignupInfo
+    {
+        public string CompetitiveInfo { get; set; }
+        public string CasualInfo { get; set; }
+        public string InactiveInfo { get; set; }
+        public ulong ChannelId { get; set; }
+        public ulong MessageId { get; set; }
     }
 
     public class WsSignup
