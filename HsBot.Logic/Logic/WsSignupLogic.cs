@@ -479,6 +479,9 @@ public static class WsSignupLogic
         var info = StateService.Get<SignupInfo>(guild.Id, "signup-info") ?? new SignupInfo();
         if (info != null)
         {
+            if (!string.IsNullOrEmpty(info.GenericInfo))
+                eb.AddField("Generic rules", info.GenericInfo);
+
             if (!string.IsNullOrEmpty(info.CompetitiveInfo))
                 eb.AddField("Competitive", info.CompetitiveInfo);
 
@@ -509,21 +512,32 @@ public static class WsSignupLogic
     internal static async Task SetSignupInfo(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, WsTeamCommitmentLevel teamCommitmentLevel, string text)
     {
         var info = StateService.Get<SignupInfo>(guild.Id, "signup-info") ?? new SignupInfo();
+        string oldValue;
         switch (teamCommitmentLevel)
         {
             case WsTeamCommitmentLevel.Competitive:
+                oldValue = info.CompetitiveInfo;
                 info.CompetitiveInfo = text;
+                await channel.BotResponse(teamCommitmentLevel.ToString() + " signup info is changed from ```" + oldValue + "``` to ```" + text + "```", ResponseType.successStay);
                 break;
             case WsTeamCommitmentLevel.Casual:
+                oldValue = info.CasualInfo;
                 info.CasualInfo = text;
+                await channel.BotResponse(teamCommitmentLevel.ToString() + " signup info is changed from ```" + oldValue + "``` to ```" + text + "```", ResponseType.successStay);
                 break;
             case WsTeamCommitmentLevel.Inactive:
+                oldValue = info.InactiveInfo;
                 info.InactiveInfo = text;
+                await channel.BotResponse(teamCommitmentLevel.ToString() + " signup info is changed from ```" + oldValue + "``` to ```" + text + "```", ResponseType.successStay);
+                break;
+            case WsTeamCommitmentLevel.Unknown:
+                oldValue = info.GenericInfo;
+                info.GenericInfo = text;
+                await channel.BotResponse("Generic signup info is changed from ```" + oldValue + "``` to ```" + text + "```", ResponseType.successStay);
                 break;
         }
 
         StateService.Set(guild.Id, "signup-info", info);
-        await channel.BotResponse("Signup info set.", ResponseType.success);
     }
 
     private static async Task ShowAltsPanel(SocketGuild guild, ISocketMessageChannel channel, string signupStateId, string originalEmoteName, AllianceLogic.AllianceInfo alliance, SocketGuildUser user)
@@ -603,6 +617,7 @@ public static class WsSignupLogic
 
     public class SignupInfo
     {
+        public string GenericInfo { get; set; }
         public string CompetitiveInfo { get; set; }
         public string CasualInfo { get; set; }
         public string InactiveInfo { get; set; }

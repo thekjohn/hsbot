@@ -155,14 +155,9 @@ public class WsDraft : BaseModule
             "competitive" => WsTeamCommitmentLevel.Competitive,
             "casual" => WsTeamCommitmentLevel.Casual,
             "inactive" => WsTeamCommitmentLevel.Inactive,
+            "generic" => WsTeamCommitmentLevel.Unknown,
             _ => WsTeamCommitmentLevel.Unknown,
         };
-
-        if (teamCommitmentLevel == WsTeamCommitmentLevel.Unknown)
-        {
-            await Context.Channel.BotResponse("Commitment level must be one of the following values: `competitive`, `casual`, `inactive`.", ResponseType.error);
-            return;
-        }
 
         await WsSignupLogic.SetSignupInfo(Context.Guild, Context.Channel, CurrentUser, teamCommitmentLevel, text);
     }
