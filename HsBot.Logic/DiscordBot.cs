@@ -45,7 +45,11 @@ public class DiscordBot
         AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
         {
             if (eventArgs.ExceptionObject is Exception ex)
+            {
                 Console.Write(ex.ToString());
+                StateService.Set(0, "exception-" + DateTime.UtcNow.ToString("yyyy-MM-dd-HH-mm-ss-fff", CultureInfo.InvariantCulture),
+                    ex.Message + "\n" + ex.ToString());
+            }
         };
     }
 

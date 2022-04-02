@@ -145,8 +145,32 @@ public static class WsSignupLogic
                                         var sent = await channel.SendMessageAsync(memberRole.Mention
                                             + (wsGuestRole != null ? " " + wsGuestRole.Mention : "")
                                             + " WS signup ends in "
-                                            + signup.EndsOn.Subtract(now).ToIntervalStr(true, false) + "!");
+                                            + signup.EndsOn.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + "!");
                                         signup.Notify1dLeftMessageId = sent.Id;
+                                        StateService.Set(guild.Id, signupStateId, signup);
+                                    }
+                                }
+                            }
+                        }
+
+                        if (signup.Notify12hLeftMessageId == null
+                            && signup.EndsOn.AddHours(-12) <= now)
+                        {
+                            var channel = guild.GetTextChannel(signup.ChannelId);
+                            if (channel != null)
+                            {
+                                var alliance = AllianceLogic.GetAlliance(guild.Id);
+                                if (alliance != null)
+                                {
+                                    var memberRole = guild.GetRole(alliance.RoleId);
+                                    var wsGuestRole = alliance.WsGuestRoleId != 0 ? guild.GetRole(alliance.WsGuestRoleId) : null;
+                                    if (memberRole != null)
+                                    {
+                                        var sent = await channel.SendMessageAsync(memberRole.Mention
+                                            + (wsGuestRole != null ? " " + wsGuestRole.Mention : "")
+                                            + " WS signup ends in "
+                                            + signup.EndsOn.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + "!");
+                                        signup.Notify12hLeftMessageId = sent.Id;
                                         StateService.Set(guild.Id, signupStateId, signup);
                                     }
                                 }
@@ -169,7 +193,7 @@ public static class WsSignupLogic
                                         var sent = await channel.SendMessageAsync(memberRole.Mention
                                             + (wsGuestRole != null ? " " + wsGuestRole.Mention : "")
                                             + " WS signup ends in "
-                                            + signup.EndsOn.Subtract(now).ToIntervalStr(true, false) + "!");
+                                            + signup.EndsOn.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + "!");
                                         signup.Notify2hLeftMessageId = sent.Id;
                                         StateService.Set(guild.Id, signupStateId, signup);
                                     }
@@ -369,10 +393,17 @@ public static class WsSignupLogic
         var msg = await reaction.Channel.GetMessageAsync(reaction.MessageId);
         await msg.RemoveReactionAsync(reaction.Emote, reaction.UserId);
 
+        var isAlt = alliance.Alts.Find(x => x.AltUserId == reaction.UserId);
+        if (isAlt != null)
+        {
+            await reaction.Channel.BotResponse("This alt has to be signed up by using the main's discord account: " + (guild.GetUser(isAlt.OwnerUserId)?.Mention ?? "<unknown discord user>"), ResponseType.error);
+            return;
+        }
+
         var timeZone = TimeZoneLogic.GetUserTimeZone(guild.Id, reaction.UserId);
         if (timeZone == null)
         {
-            await reaction.Channel.BotResponse("You have set your timezone with `" + DiscordBot.CommandPrefix + "timezone-set` command before WS signup!", ResponseType.error);
+            await reaction.Channel.BotResponse("You have to set your timezone with `" + DiscordBot.CommandPrefix + "timezone-set` command before WS signup!", ResponseType.error);
             return;
         }
 
@@ -643,6 +674,7 @@ public static class WsSignupLogic
         public ulong? GuildEventId { get; set; }
 
         public ulong? Notify1dLeftMessageId { get; set; }
+        public ulong? Notify12hLeftMessageId { get; set; }
         public ulong? Notify2hLeftMessageId { get; set; }
     }
 }

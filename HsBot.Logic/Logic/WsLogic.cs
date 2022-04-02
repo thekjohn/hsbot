@@ -272,7 +272,7 @@ public static class WsLogic
                         var timeInFuture = team.EndsOn.Value.AddDays(-4).AddHours(-12);
                         if (now.AddHours(4) >= timeInFuture)
                         {
-                            var msg = "Preparation ends in " + timeInFuture.Subtract(now).ToIntervalStr(true, false) + ".";
+                            var msg = "Preparation ends in " + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".";
                             if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel ch1)
                                 await ch1.SendMessageAsync(msg);
 
@@ -283,7 +283,7 @@ public static class WsLogic
                             if (channel != null)
                             {
                                 var sent = await channel.SendMessageAsync(teamRole.Mention + " preparation ends in "
-                                    + timeInFuture.Subtract(now).ToIntervalStr(true, false)
+                                    + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false)
                                     + ". Make sure you read and scheduled all orders in " + (guild.GetThreadChannel(team.OrdersChannelId)?.Mention ?? "#orders") + "!");
 
                                 ChangeWsTeam(guild.Id, ref team, t =>
@@ -299,7 +299,7 @@ public static class WsLogic
                         var timeInFuture = team.EndsOn.Value.AddDays(-3).AddHours(-12);
                         if (now.AddHours(4) >= timeInFuture)
                         {
-                            var msg = "Second day starts in " + timeInFuture.Subtract(now).ToIntervalStr(true, false) + ".";
+                            var msg = "Second day starts in " + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".";
                             if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel ch1)
                                 await ch1.SendMessageAsync(msg);
 
@@ -310,7 +310,7 @@ public static class WsLogic
                             if (channel != null)
                             {
                                 var sent = await channel.SendMessageAsync(teamRole.Mention + " second day starts in "
-                                + timeInFuture.Subtract(now).ToIntervalStr(true, false)
+                                + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false)
                                 + ". Make sure you read and scheduled all orders in " + (guild.GetThreadChannel(team.OrdersChannelId)?.Mention ?? "#orders") + "!");
                                 ChangeWsTeam(guild.Id, ref team, t =>
                                 {
@@ -325,7 +325,7 @@ public static class WsLogic
                         var timeInFuture = team.EndsOn.Value.AddDays(-2).AddHours(-12);
                         if (now.AddHours(4) >= timeInFuture)
                         {
-                            var msg = "Third day starts in " + timeInFuture.Subtract(now).ToIntervalStr(true, false) + ".";
+                            var msg = "Third day starts in " + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".";
                             if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel ch1)
                                 await ch1.SendMessageAsync(msg);
 
@@ -336,7 +336,7 @@ public static class WsLogic
                             if (channel != null)
                             {
                                 var sent = await channel.SendMessageAsync(teamRole.Mention + " third day starts in "
-                                    + timeInFuture.Subtract(now).ToIntervalStr(true, false)
+                                    + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false)
                                     + ". Make sure you read and scheduled all orders in " + (guild.GetThreadChannel(team.OrdersChannelId)?.Mention ?? "#orders") + "!");
 
                                 ChangeWsTeam(guild.Id, ref team, t =>
@@ -352,7 +352,7 @@ public static class WsLogic
                         var timeInFuture = team.EndsOn.Value.AddDays(-1).AddHours(-12);
                         if (now.AddHours(4) >= timeInFuture)
                         {
-                            var msg = "Fourth day starts in " + timeInFuture.Subtract(now).ToIntervalStr(true, false) + ".";
+                            var msg = "Fourth day starts in " + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".";
                             if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel ch1)
                                 await ch1.SendMessageAsync(msg);
 
@@ -363,7 +363,7 @@ public static class WsLogic
                             if (channel != null)
                             {
                                 var sent = await channel.SendMessageAsync(teamRole.Mention + " fourth day starts in "
-                                    + timeInFuture.Subtract(now).ToIntervalStr(true, false)
+                                    + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false)
                                     + ". Make sure you read and scheduled all orders in " + (guild.GetThreadChannel(team.OrdersChannelId)?.Mention ?? "#orders") + "!");
 
                                 ChangeWsTeam(guild.Id, ref team, t =>
@@ -383,7 +383,7 @@ public static class WsLogic
                             if (channel != null)
                             {
                                 var sent = await channel.SendMessageAsync(teamRole.Mention + " WS ends in "
-                                    + team.EndsOn.Value.Subtract(now).ToIntervalStr(true, false) + ".");
+                                    + team.EndsOn.Value.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".");
 
                                 ChangeWsTeam(guild.Id, ref team, t =>
                                 {
@@ -402,7 +402,7 @@ public static class WsLogic
                             if (channel != null)
                             {
                                 var sent = await channel.SendMessageAsync(teamRole.Mention + " WS ends in "
-                                    + team.EndsOn.Value.Subtract(now).ToIntervalStr(true, false) + ". Type `!wsclose <score> <opponentScore>` to close this WS and delete all related channels/threads!");
+                                    + team.EndsOn.Value.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ". Type `!wsclose <score> <opponentScore>` to close this WS and delete all related channels/threads!");
 
                                 ChangeWsTeam(guild.Id, ref team, t =>
                                 {
