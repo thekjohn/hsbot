@@ -9,10 +9,7 @@ internal static class SocketGuildExtensions
             return emote;
 
         emote = guild.Emotes.FirstOrDefault(x => string.Equals(":" + x.Name + ":", name, StringComparison.InvariantCultureIgnoreCase));
-        if (emote != null)
-            return emote;
-
-        return Emoji.Parse(name);
+        return emote ?? (IEmote)Emoji.Parse(name);
     }
 
     public static SocketGuildUser FindUser(this SocketGuild guild, SocketGuildUser currentUser, string userToFind)

@@ -7,6 +7,8 @@ public class DiscordBot
 
     public static char CommandPrefix { get; private set; }
 
+    public static string FunFooter { get; } = "Jarvis Services Ltd.";
+
     public DiscordBot()
     {
         var config = new DiscordSocketConfig()
@@ -102,25 +104,23 @@ public class DiscordBot
 
             foreach (var guild in Discord.Guilds)
             {
-                for (var level = 1; level <= 12; level++)
+                var panel = StateService.Get<Rs.RsQueue>(guild.Id, "rs-queue");
+                var channel = guild.GetTextChannel(panel.ChannelId);
+                if (channel == null)
+                    continue;
+
+                var repost = false;
+
+                foreach (var queue in panel.Queues)
                 {
-                    var timeoutStateId = StateService.GetId("rs-queue-timeout", (ulong)level);
+                    var timeoutStateId = StateService.GetId("rs-queue-timeout", (ulong)queue.Level);
                     var timeoutMinutes = StateService.Get<int>(guild.Id, timeoutStateId);
                     if (timeoutMinutes == 0)
                         timeoutMinutes = 10;
 
-                    var queueStateId = StateService.GetId("rs-queue", (ulong)level);
-                    var queue = StateService.Get<Rs.RsQueueEntry>(guild.Id, queueStateId);
-                    if (queue == null)
-                        continue;
-
-                    var channel = guild.GetTextChannel(queue.ChannelId);
-                    if (channel == null)
-                        continue;
-
                     foreach (var userId in queue.Users.ToList())
                     {
-                        var userActivityStateId = "rs-queue-activity-" + userId.ToStr() + "-" + level.ToStr();
+                        var userActivityStateId = "rs-queue-activity-" + userId.ToStr() + "-" + queue.Level.ToStr();
                         var userActivity = StateService.Get<DateTime>(guild.Id, userActivityStateId);
                         if (userActivity.Year == 0)
                             continue;
@@ -136,7 +136,8 @@ public class DiscordBot
                                     var askedOn = StateService.Get<DateTime>(guild.Id, userActivityConfirmationAskedStateId);
                                     if (askedOn.AddMinutes(2) < now)
                                     {
-                                        await Rs.RemoveQueue(guild, channel, level, user, null);
+                                        await Rs.RemoveFromQueue(guild, channel, queue.Level, user, null);
+                                        repost = true;
                                         break; // skip the check and removal of other users until next cycle
                                     }
 
@@ -147,10 +148,15 @@ public class DiscordBot
 
                                 var confirmTimeoutMinutes = 2;
                                 CleanupService.RegisterForDeletion(confirmTimeoutMinutes * 60,
-                                    await channel.SendMessageAsync(":grey_question: " + user.Mention + ", still in for RS" + level.ToStr() + "? Type `" + CommandPrefix + "in " + level.ToStr() + "` to confirm within the next " + confirmTimeoutMinutes.ToStr() + " minutes."));
+                                    await channel.SendMessageAsync(":grey_question: " + user.Mention + ", still in for RS" + queue.Level.ToStr() + "? Type `" + CommandPrefix + "in " + queue.Level.ToStr() + "` to confirm within the next " + confirmTimeoutMinutes.ToStr() + " minutes."));
                             }
                         }
                     }
+                }
+
+                if (repost)
+                {
+                    await Rs.RefreshQueueList(guild, channel, false);
                 }
             }
 

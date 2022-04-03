@@ -63,14 +63,16 @@ public static class GreeterLogic
             case null:
                 {
                     var eb = new EmbedBuilder()
-                      .WithTitle(user.DisplayName + ", what brought you here on this beautiful day?")
-                      .WithDescription(
-                          ":one: looking for a corp and I heard " + alliance.Name + " (" + alliance.Abbreviation + ") is the best of all!"
-                          + "\n:two: looking for a Red Star queue"
-                          + "\n:three: looking for a White Star team"
-                          + "\n:four: trade"
-                          + "\n:five: WS diplomacy"
-                          );
+                        .WithTitle(user.DisplayName + ", what brought you here on this beautiful day?")
+                        .WithColor(Color.Red)
+                        .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl())
+                        .WithDescription(
+                              ":one: looking for a corp and I heard " + alliance.Name + " (" + alliance.Abbreviation + ") is the best of all!"
+                              + "\n:two: looking for a Red Star queue"
+                              + "\n:three: looking for a White Star team"
+                              + "\n:four: trade"
+                              + "\n:five: WS diplomacy"
+                              );
 
                     var sent = await channel.SendMessageAsync(embed: eb.Build());
                     panel.ChannelId = channel.Id;
@@ -97,6 +99,8 @@ public static class GreeterLogic
 
                     var eb = new EmbedBuilder()
                         .WithTitle(user.DisplayName + " which " + alliance.Name + " corp you would like to join?")
+                        .WithColor(Color.Red)
+                        .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl())
                         .WithDescription(list);
 
                     var sent = await channel.SendMessageAsync(embed: eb.Build());
@@ -120,7 +124,9 @@ public static class GreeterLogic
                         .ToList();
 
                     var eb = new EmbedBuilder()
-                        .WithTitle(user.DisplayName + " which Red Star level you are playing currently?");
+                        .WithTitle(user.DisplayName + " which Red Star level you are playing currently?")
+                        .WithColor(Color.Red)
+                        .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl());
 
                     var sent = await channel.SendMessageAsync(embed: eb.Build());
                     panel.ChannelId = channel.Id;

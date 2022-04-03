@@ -6,6 +6,7 @@ public static class HelpLogic
     {
         var eb = new EmbedBuilder()
             .WithTitle("JARVIS ONBOARDING")
+            .WithColor(Color.Green)
             .AddField("get the list of available timezones", "`" + DiscordBot.CommandPrefix + "timezone-list`")
             .AddField("set your own timezone", "`" + DiscordBot.CommandPrefix + "timezone-set 55` where 55 is the # number of the timezone you looked up previously")
             .AddField("flag when you are AFK (mainly during WS)", "`" + DiscordBot.CommandPrefix + "afk 5h10m` During AFK, you lose access to the RS queue channel.")
@@ -46,7 +47,8 @@ public static class HelpLogic
         var allianceRole = guild.GetRole(alliance.RoleId);
 
         var eb = new EmbedBuilder()
-            .WithTitle(alliance.Name ?? allianceRole.Name);
+            .WithTitle(alliance.Name ?? allianceRole.Name)
+            .WithColor(Color.Green);
 
         foreach (var corp in alliance.Corporations.OrderByDescending(x => x.CurrentRelicCount))
         {
@@ -161,7 +163,8 @@ public static class HelpLogic
 
             var eb = new EmbedBuilder()
                 .WithTitle("ALTS")
-                .WithDescription(sb.ToString());
+                .WithDescription(sb.ToString())
+                .WithColor(Color.Green);
 
             await channel.SendMessageAsync(embed: eb.Build());
         }
@@ -241,6 +244,7 @@ public static class HelpLogic
 
         var eb = new EmbedBuilder()
             .WithTitle("Members of " + corp.FullName)
+            .WithColor(Color.Green)
             .WithDescription(sb.ToString())
             .WithFooter("This message will self-destruct in 30 seconds.");
 
@@ -302,6 +306,7 @@ public static class HelpLogic
 
             var eb = new EmbedBuilder()
                 .WithTitle("Members of " + role.Name)
+                .WithColor(Color.Green)
                 .WithDescription(sb.ToString())
                 .WithFooter("This message will self-destruct in 30 seconds.");
 

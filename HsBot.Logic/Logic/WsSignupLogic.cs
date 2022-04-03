@@ -299,6 +299,7 @@ public static class WsSignupLogic
             .WithTitle(signup.EndsOn > DateTime.UtcNow
                 ? "WS signup - ends on " + signup.EndsOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC"
                 : "WS signup - ended on " + signup.EndsOn.ToString("yyyy MMMM dd. HH:mm", CultureInfo.InvariantCulture) + " UTC")
+            .WithColor(Color.Orange)
             .AddField("Please set your commitment level during this White Star event. Your team will count on you, so please choose wisely!", "We promise you don't get into a team stronger than your commitment level, but you can still end up in a lower commitment level team.", false)
             .AddField((compMainCnt + compAltCnt).ToStr() + " Competitive", "💪", true)
             .AddField((casualMainCnt + casualAltCnt).ToStr() + " Casual", "👍", true)
@@ -308,7 +309,10 @@ public static class WsSignupLogic
             .AddField(inactiveMainCnt.ToStr() + " Inactive Main", inactiveMain != "" ? inactiveMain : "-", true)
             .AddField(compAltCnt.ToStr() + " Competitive Alt", compAlt != "" ? compAlt : "-", true)
             .AddField(casualAltCnt.ToStr() + " Casual Alt", casualAlt != "" ? casualAlt : "-", true)
-            .AddField(inactiveAltCnt.ToStr() + " Inactive Alt", inactiveAlt != "" ? inactiveAlt : "-", true);
+            .AddField(inactiveAltCnt.ToStr() + " Inactive Alt", inactiveAlt != "" ? inactiveAlt : "-", true)
+            .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl())
+            .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "whitestar")?.Url)
+            .WithCurrentTimestamp();
 
         return eb.Build();
     }
@@ -505,9 +509,13 @@ public static class WsSignupLogic
     internal static async Task ShowSignupInfo(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
     {
         var eb = new EmbedBuilder()
-            .WithTitle("Signup info");
+            .WithTitle("WS signup info")
+            .WithColor(Color.Magenta)
+            .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl())
+            .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "whitestar")?.Url)
+            .WithCurrentTimestamp();
 
-        var info = StateService.Get<SignupInfo>(guild.Id, "signup-info") ?? new SignupInfo();
+        var info = StateService.Get<SignupInfo>(guild.Id, "wssignup-info") ?? new SignupInfo();
         if (info != null)
         {
             if (!string.IsNullOrEmpty(info.GenericInfo))
@@ -537,12 +545,12 @@ public static class WsSignupLogic
         var sent = await channel.SendMessageAsync(null, embed: eb.Build());
         info.ChannelId = channel.Id;
         info.MessageId = sent.Id;
-        StateService.Set(guild.Id, "signup-info", info);
+        StateService.Set(guild.Id, "wssignup-info", info);
     }
 
     internal static async Task SetSignupInfo(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, WsTeamCommitmentLevel teamCommitmentLevel, string text)
     {
-        var info = StateService.Get<SignupInfo>(guild.Id, "signup-info") ?? new SignupInfo();
+        var info = StateService.Get<SignupInfo>(guild.Id, "wssignup-info") ?? new SignupInfo();
         string oldValue;
         switch (teamCommitmentLevel)
         {
@@ -568,7 +576,7 @@ public static class WsSignupLogic
                 break;
         }
 
-        StateService.Set(guild.Id, "signup-info", info);
+        StateService.Set(guild.Id, "wssignup-info", info);
     }
 
     private static async Task ShowAltsPanel(SocketGuild guild, ISocketMessageChannel channel, string signupStateId, string originalEmoteName, AllianceLogic.AllianceInfo alliance, SocketGuildUser user)
@@ -601,6 +609,7 @@ public static class WsSignupLogic
         var eb = new EmbedBuilder()
             .WithTitle(":point_right: " + user.DisplayName + "'s accounts")
             .WithDescription("Use the reactions to sign up all or one of your accoutns.\n\n" + description.ToString())
+            .WithColor(Color.Red)
             .WithFooter("This message will self-destruct in 30 seconds.");
 
         var sent = await channel.SendMessageAsync(embed: eb.Build());

@@ -144,8 +144,8 @@ public class WsDraft : BaseModule
         await WsDraftLogic.CloseDraft(Context.Guild, Context.Channel, CurrentUser);
     }
 
-    [Command("set-signup-info")]
-    [Summary("set-signup-info|set the signup info text, posted when a new signup is created")]
+    [Command("set-wssignup-info")]
+    [Summary("set-wssignup-info|set the signup info text, posted when a new signup is created")]
     [RequireMinimumAllianceRole(AllianceRole.Leader)]
     public async Task SetSignupInfo(string commitmentLevel, [Remainder] string text)
     {
@@ -162,8 +162,8 @@ public class WsDraft : BaseModule
         await WsSignupLogic.SetSignupInfo(Context.Guild, Context.Channel, CurrentUser, teamCommitmentLevel, text);
     }
 
-    [Command("signup-info")]
-    [Summary("signup-info|diplay the signup info text")]
+    [Command("wssignup-info")]
+    [Summary("wssignup-info|diplay the signup info text")]
     [RequireMinimumAllianceRole(AllianceRole.Admiral)]
     public async Task ShowSignupInfo()
     {

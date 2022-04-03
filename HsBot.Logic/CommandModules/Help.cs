@@ -78,7 +78,8 @@ public class HelpCommandModule : BaseModule
             return;
 
         var commands = DiscordBot.Commands.Commands.ToList();
-        var eb = new EmbedBuilder();
+        var eb = new EmbedBuilder()
+            .WithColor(Color.Green);
 
         var cmd = DiscordBot.Commands.Commands.FirstOrDefault(x => x.Name == command || x.Aliases.Any(y => y == command));
         if (cmd != null)

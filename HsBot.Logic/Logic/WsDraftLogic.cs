@@ -287,7 +287,10 @@ public static class WsDraftLogic
                 + "\n:point_right: add users to a team: `" + DiscordBot.CommandPrefix + "draft add <roleName> <userNames>`"
                 + "\n:point_right: remove users from a team: `" + DiscordBot.CommandPrefix + "draft remove <roleName> <userNames>`"
                 + "\n:point_right: close draft and create teams, ready to scan: `" + DiscordBot.CommandPrefix + "close-draft`"
-                + "\nAdding users to a team will remove them from all other teams automatically.");
+                + "\nAdding users to a team will remove them from all other teams automatically.")
+            .WithColor(new Color(0, 255, 0))
+            .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl())
+            .WithCurrentTimestamp();
 
         var userList = draft.OriginalSignup.CompetitiveUsers.Where(x => !draft.Contains(x)).ToList();
         if (userList.Count > 0)
