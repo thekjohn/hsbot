@@ -212,6 +212,8 @@ public static class WsDraftLogic
                     + "\n:information_source: Please give the pilots a convenient amount of time (up to 18 hours) to show up in " + corp.FullName + " (" + corp.Abbreviation + ").");
             }
 
+            await battleRoom.SendMessageAsync("Admirals can use the following commands to manage notifications for the entire team: `" + DiscordBot.CommandPrefix + "remind ws <when> <message>` and `" + DiscordBot.CommandPrefix + "remind ws list`");
+
             channelIndex++;
 
             WsLogic.AddWsTeam(guild.Id, team);

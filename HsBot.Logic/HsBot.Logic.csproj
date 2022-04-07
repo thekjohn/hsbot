@@ -3,12 +3,15 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <CodeAnalysisRuleSet>..\HsBot.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Discord.Net" Version="3.4.0" />
+    <PackageReference Include="Discord.Net" Version="3.4.1" />
     <PackageReference Include="TimeZoneNames" Version="5.0.1" />
+    <PackageReference Include="Roslynator.Formatting.Analyzers" Version="4.1.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

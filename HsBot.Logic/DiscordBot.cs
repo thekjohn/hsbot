@@ -33,6 +33,9 @@ public class DiscordBot
         Discord.ReactionAdded += (message, channel, reaction) => GreeterLogic.HandleReactions(reaction, true);
         Discord.ReactionRemoved += (message, channel, reaction) => GreeterLogic.HandleReactions(reaction, false);
 
+        Discord.ReactionAdded += (message, channel, reaction) => RsRoleSelectorLogic.HandleReactions(reaction, true);
+        Discord.ReactionRemoved += (message, channel, reaction) => RsRoleSelectorLogic.HandleReactions(reaction, false);
+
         Discord.UserJoined += Discord_UserJoined;
 
         LogService.Log(null, "folder: " + StateService.Folder, ConsoleColor.Magenta);
@@ -75,21 +78,27 @@ public class DiscordBot
     {
         while (true)
         {
-            var messagesToDelete = CleanupService.GetMessagesToDelete();
-            if (messagesToDelete != null)
+            try
             {
-                foreach (var msg in messagesToDelete)
+                var messagesToDelete = CleanupService.GetMessagesToDelete();
+                if (messagesToDelete != null)
                 {
-                    try
+                    foreach (var msg in messagesToDelete)
                     {
-                        await msg.DeleteAsync();
-                    }
-                    catch (Exception)
-                    {
-                    }
+                        try
+                        {
+                            await msg.DeleteAsync();
+                        }
+                        catch (Exception)
+                        {
+                        }
 
-                    Thread.Sleep(1000);
+                        Thread.Sleep(1000);
+                    }
                 }
+            }
+            catch (Exception)
+            {
             }
 
             Thread.Sleep(100);
@@ -100,64 +109,70 @@ public class DiscordBot
     {
         while (true)
         {
-            var now = DateTime.UtcNow;
-
-            foreach (var guild in Discord.Guilds)
+            try
             {
-                var panel = StateService.Get<Rs.RsQueue>(guild.Id, "rs-queue");
-                var channel = guild.GetTextChannel(panel.ChannelId);
-                if (channel == null)
-                    continue;
+                var now = DateTime.UtcNow;
 
-                var repost = false;
-
-                foreach (var queue in panel.Queues)
+                foreach (var guild in Discord.Guilds)
                 {
-                    var timeoutStateId = StateService.GetId("rs-queue-timeout", (ulong)queue.Level);
-                    var timeoutMinutes = StateService.Get<int>(guild.Id, timeoutStateId);
-                    if (timeoutMinutes == 0)
-                        timeoutMinutes = 10;
+                    var panel = StateService.Get<Rs.RsQueue>(guild.Id, "rs-queue");
+                    var channel = guild.GetTextChannel(panel.ChannelId);
+                    if (channel == null)
+                        continue;
 
-                    foreach (var userId in queue.Users.ToList())
+                    var repost = false;
+
+                    foreach (var queue in panel.Queues)
                     {
-                        var userActivityStateId = "rs-queue-activity-" + userId.ToStr() + "-" + queue.Level.ToStr();
-                        var userActivity = StateService.Get<DateTime>(guild.Id, userActivityStateId);
-                        if (userActivity.Year == 0)
-                            continue;
+                        var timeoutStateId = StateService.GetId("rs-queue-timeout", (ulong)queue.Level);
+                        var timeoutMinutes = StateService.Get<int>(guild.Id, timeoutStateId);
+                        if (timeoutMinutes == 0)
+                            timeoutMinutes = 10;
 
-                        if (userActivity.AddMinutes(timeoutMinutes) < now)
+                        foreach (var userId in queue.Users.ToList())
                         {
-                            var user = guild.GetUser(userId);
-                            if (user != null)
+                            var userActivityStateId = "rs-queue-activity-" + userId.ToStr() + "-" + queue.Level.ToStr();
+                            var userActivity = StateService.Get<DateTime>(guild.Id, userActivityStateId);
+                            if (userActivity.Year == 0)
+                                continue;
+
+                            if (userActivity.AddMinutes(timeoutMinutes) < now)
                             {
-                                var userActivityConfirmationAskedStateId = userActivityStateId + "-asked";
-                                if (StateService.Exists(guild.Id, userActivityConfirmationAskedStateId))
+                                var user = guild.GetUser(userId);
+                                if (user != null)
                                 {
-                                    var askedOn = StateService.Get<DateTime>(guild.Id, userActivityConfirmationAskedStateId);
-                                    if (askedOn.AddMinutes(2) < now)
+                                    var userActivityConfirmationAskedStateId = userActivityStateId + "-asked";
+                                    if (StateService.Exists(guild.Id, userActivityConfirmationAskedStateId))
                                     {
-                                        await Rs.RemoveFromQueue(guild, channel, queue.Level, user, null);
-                                        repost = true;
-                                        break; // skip the check and removal of other users until next cycle
+                                        var askedOn = StateService.Get<DateTime>(guild.Id, userActivityConfirmationAskedStateId);
+                                        if (askedOn.AddMinutes(2) < now)
+                                        {
+                                            await Rs.RemoveFromQueue(guild, channel, queue.Level, user, null);
+                                            repost = true;
+                                            break; // skip the check and removal of other users until next cycle
+                                        }
+
+                                        continue;
                                     }
 
-                                    continue;
+                                    StateService.Set(guild.Id, userActivityConfirmationAskedStateId, DateTime.UtcNow);
+
+                                    var confirmTimeoutMinutes = 2;
+                                    CleanupService.RegisterForDeletion(confirmTimeoutMinutes * 60,
+                                        await channel.SendMessageAsync(":grey_question: " + user.Mention + ", still in for RS" + queue.Level.ToStr() + "? Type `" + CommandPrefix + "in " + queue.Level.ToStr() + "` to confirm within the next " + confirmTimeoutMinutes.ToStr() + " minutes."));
                                 }
-
-                                StateService.Set(guild.Id, userActivityConfirmationAskedStateId, DateTime.UtcNow);
-
-                                var confirmTimeoutMinutes = 2;
-                                CleanupService.RegisterForDeletion(confirmTimeoutMinutes * 60,
-                                    await channel.SendMessageAsync(":grey_question: " + user.Mention + ", still in for RS" + queue.Level.ToStr() + "? Type `" + CommandPrefix + "in " + queue.Level.ToStr() + "` to confirm within the next " + confirmTimeoutMinutes.ToStr() + " minutes."));
                             }
                         }
                     }
-                }
 
-                if (repost)
-                {
-                    await Rs.RefreshQueueList(guild, channel, false);
+                    if (repost)
+                    {
+                        await Rs.RefreshQueueList(guild, channel, false);
+                    }
                 }
+            }
+            catch (Exception)
+            {
             }
 
             Thread.Sleep(5000);

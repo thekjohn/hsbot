@@ -10,7 +10,33 @@ public class Ws : BaseModule
     public async Task Remind(string who, string when, [Remainder] string message)
     {
         await CleanupService.DeleteCommand(Context.Message);
-        await RemindLogic.Remind(Context.Guild, Context.Channel, CurrentUser, who, when, message);
+        if (string.Equals(who, "ws", StringComparison.InvariantCultureIgnoreCase))
+        {
+            await RemindLogic.AddReminderWS(Context.Guild, Context.Channel, CurrentUser, when, message);
+        }
+        else
+        {
+            await RemindLogic.AddReminder(Context.Guild, Context.Channel, CurrentUser, who, when, message);
+        }
+    }
+
+    [Command("remind")]
+    [Summary("remind <who> list|list of reminders\nex.: 'remind me list'")]
+    [RequireMinimumAllianceRole(AllianceRole.WSGuest)]
+    public async Task Remind(string who, string operation)
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+        if (string.Equals(operation, "list", StringComparison.InvariantCultureIgnoreCase))
+        {
+            if (string.Equals(who, "ws", StringComparison.InvariantCultureIgnoreCase))
+            {
+                await RemindLogic.RemindListWS(Context.Guild, Context.Channel, CurrentUser);
+            }
+            else
+            {
+                await RemindLogic.RemindList(Context.Guild, Context.Channel, CurrentUser, who);
+            }
+        }
     }
 
     [Command("afk")]

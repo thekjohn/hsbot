@@ -11,9 +11,11 @@ public static class HelpLogic
             .AddField("set your own timezone", "`" + DiscordBot.CommandPrefix + "timezone-set 55` where 55 is the # number of the timezone you looked up previously")
             .AddField("flag when you are AFK (mainly during WS)", "`" + DiscordBot.CommandPrefix + "afk 5h10m` During AFK, you lose access to the RS queue channel.")
             .AddField("flag when you are no longer AFK", "`" + DiscordBot.CommandPrefix + "back` You get back your RS queue access.")
+            .AddField("set your own RS roles", "`" + DiscordBot.CommandPrefix + "rsrole`")
+            .AddField("enter your highest RS queue", "`" + DiscordBot.CommandPrefix + "in`. Short form is `" + DiscordBot.CommandPrefix + "i`")
             .AddField("enter an RS queue", "`" + DiscordBot.CommandPrefix + "in 10` Where 10 is the RS level. Short form is `" + DiscordBot.CommandPrefix + "i 10`")
             .AddField("leave an RS queue", "`" + DiscordBot.CommandPrefix + "out 10` Where 10 is the RS level. Short form is `" + DiscordBot.CommandPrefix + "o 10`")
-            .AddField("leave all RS queue", "`" + DiscordBot.CommandPrefix + "out`. Short form is `" + DiscordBot.CommandPrefix + "o`")
+            .AddField("leave all RS queues", "`" + DiscordBot.CommandPrefix + "out`. Short form is `" + DiscordBot.CommandPrefix + "o`")
             .AddField("get the list of commands", "`" + DiscordBot.CommandPrefix + "help`")
             .AddField("get the defails of a commands", "`" + DiscordBot.CommandPrefix + "help sga`")
             .AddField("get the overview of the alliance (corps)", "`" + DiscordBot.CommandPrefix + "sga`")
@@ -21,6 +23,22 @@ public static class HelpLogic
             .AddField("get the list of the members of a corp", "`" + DiscordBot.CommandPrefix + "sga ge`")
             .AddField("get the list of the members of a role", "`" + DiscordBot.CommandPrefix + "sga ally`")
             .AddField("list your alts", "`" + DiscordBot.CommandPrefix + "alts`")
+            .WithFooter("This message will self-destruct in 60 seconds.");
+
+        CleanupService.RegisterForDeletion(60,
+            await channel.SendMessageAsync(null, embed: eb.Build()));
+    }
+
+    public static async Task ShowMostUsedRsCommands(SocketGuild guild, ISocketMessageChannel channel)
+    {
+        var eb = new EmbedBuilder()
+            .WithTitle("JARVIS ONBOARDING - RS COMMANDS")
+            .WithColor(Color.Green)
+            .AddField("set your own RS roles", "`" + DiscordBot.CommandPrefix + "rsrole`")
+            .AddField("enter your highest RS queue", "`" + DiscordBot.CommandPrefix + "in`. Short form is `" + DiscordBot.CommandPrefix + "i`")
+            .AddField("enter an RS queue", "`" + DiscordBot.CommandPrefix + "in 10` Where 10 is the RS level. Short form is `" + DiscordBot.CommandPrefix + "i 10`")
+            .AddField("leave an RS queue", "`" + DiscordBot.CommandPrefix + "out 10` Where 10 is the RS level. Short form is `" + DiscordBot.CommandPrefix + "o 10`")
+            .AddField("leave all RS queues", "`" + DiscordBot.CommandPrefix + "out`. Short form is `" + DiscordBot.CommandPrefix + "o`")
             .WithFooter("This message will self-destruct in 60 seconds.");
 
         CleanupService.RegisterForDeletion(60,

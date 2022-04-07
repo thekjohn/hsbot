@@ -18,22 +18,54 @@ internal static class SocketGuildUserExtensions
         return dn;
     }
 
-    public static IEnumerable<SocketRole> GetRsRolesDescending(this SocketGuildUser user)
+    public static IEnumerable<SocketRole> GetAllRsRolesDescending(this IEnumerable<SocketRole> roles)
     {
-        return user.Roles
+        return roles
             .Where(x =>
                 x.Name.StartsWith("RS", StringComparison.InvariantCultureIgnoreCase)
-                && int.TryParse(x.Name.Replace("RS", string.Empty, StringComparison.InvariantCultureIgnoreCase), out var num))
-            .OrderByDescending(x => int.Parse(x.Name.Replace("RS", string.Empty, StringComparison.InvariantCultureIgnoreCase)));
+                && int.TryParse(x.Name
+                    .Replace("RS", string.Empty, StringComparison.InvariantCultureIgnoreCase)
+                    .Replace("¾", string.Empty, StringComparison.InvariantCultureIgnoreCase), out var num))
+            .OrderByDescending(x => int.Parse(x.Name
+                    .Replace("RS", string.Empty, StringComparison.InvariantCultureIgnoreCase)
+                    .Replace("¾", string.Empty, StringComparison.InvariantCultureIgnoreCase)));
+    }
+
+    public static IEnumerable<SocketRole> GetMainRsRolesDescending(this IEnumerable<SocketRole> roles)
+    {
+        return roles
+            .Where(x =>
+                x.Name.StartsWith("RS", StringComparison.InvariantCultureIgnoreCase)
+                && !x.Name.EndsWith("¾", StringComparison.InvariantCultureIgnoreCase)
+                && int.TryParse(x.Name
+                    .Replace("RS", string.Empty, StringComparison.InvariantCultureIgnoreCase), out var num))
+            .OrderByDescending(x => int.Parse(x.Name
+                    .Replace("RS", string.Empty, StringComparison.InvariantCultureIgnoreCase)));
+    }
+
+    public static IEnumerable<SocketRole> GetThreeOfFourRsRolesDescending(this IEnumerable<SocketRole> roles)
+    {
+        return roles
+            .Where(x =>
+                x.Name.StartsWith("RS", StringComparison.InvariantCultureIgnoreCase)
+                && x.Name.EndsWith("¾", StringComparison.InvariantCultureIgnoreCase)
+                && int.TryParse(x.Name
+                    .Replace("RS", string.Empty, StringComparison.InvariantCultureIgnoreCase)
+                    .Replace("¾", string.Empty, StringComparison.InvariantCultureIgnoreCase), out var num))
+            .OrderByDescending(x => int.Parse(x.Name
+                    .Replace("RS", string.Empty, StringComparison.InvariantCultureIgnoreCase)
+                    .Replace("¾", string.Empty, StringComparison.InvariantCultureIgnoreCase)));
     }
 
     public static int? GetHighestRsRoleNumber(this SocketGuildUser user)
     {
-        var role = user.GetRsRolesDescending()
+        var role = user.Roles.GetAllRsRolesDescending()
             .FirstOrDefault();
 
         return role != null
-            ? int.Parse(role.Name.Replace("RS", string.Empty, StringComparison.InvariantCultureIgnoreCase))
+            ? int.Parse(role.Name
+                .Replace("RS", string.Empty, StringComparison.InvariantCultureIgnoreCase)
+                .Replace("¾", string.Empty, StringComparison.InvariantCultureIgnoreCase))
             : null;
     }
 }

@@ -106,9 +106,11 @@ public static class WsLogic
             t.Scanning = true;
         });
 
+        var teamSize = team.Members.Mains.Count + team.Members.Alts.Count;
+
         await (thread.ParentChannel as SocketTextChannel).SendMessageAsync(teamRole.Mention + " scan started, do not leave " + corp.FullName + "!");
         await thread.SendMessageAsync(":information_source: Type `" + DiscordBot.CommandPrefix + "wsmatched <ends_in> <opponent_name>` when scan is finished. Example: `" + DiscordBot.CommandPrefix + "wsmatched 4d23h12m Blue Star Order`");
-        await WsDraftLogic.AnnounceWS(guild, channel, team.Name + " started scanning in " + corp.FullName + "!");
+        await WsDraftLogic.AnnounceWS(guild, channel, team.Name + " started scanning " + teamSize.ToStr() + "v" + teamSize.ToStr() + " in " + corp.FullName + "!");
     }
 
     public static async Task WsTeamMatched(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string opponentName, string endsIn)
@@ -250,168 +252,174 @@ public static class WsLogic
     {
         while (true)
         {
-            var now = DateTime.UtcNow;
-            foreach (var guild in DiscordBot.Discord.Guilds)
+            try
             {
-                var ids = StateService.ListIds(guild.Id, "ws-team-");
-                foreach (var signupStateId in ids)
+                var now = DateTime.UtcNow;
+                foreach (var guild in DiscordBot.Discord.Guilds)
                 {
-                    var team = StateService.Get<WsTeam>(guild.Id, signupStateId);
-                    if (team == null || team.EndsOn == null)
-                        continue;
-
-                    var teamRole = guild.GetRole(team.RoleId);
-                    if (teamRole == null)
-                        continue;
-
-                    if (team.Opponent == null)
-                        continue;
-
-                    if (team.NotifyPreparationEndsMessageId == null)
+                    var ids = StateService.ListIds(guild.Id, "ws-team-");
+                    foreach (var signupStateId in ids)
                     {
-                        var timeInFuture = team.EndsOn.Value.AddDays(-4).AddHours(-12);
-                        if (now.AddHours(4) >= timeInFuture)
+                        var team = StateService.Get<WsTeam>(guild.Id, signupStateId);
+                        if (team == null || team.EndsOn == null)
+                            continue;
+
+                        var teamRole = guild.GetRole(team.RoleId);
+                        if (teamRole == null)
+                            continue;
+
+                        if (team.Opponent == null)
+                            continue;
+
+                        if (team.NotifyPreparationEndsMessageId == null)
                         {
-                            var msg = "Preparation ends in " + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".";
-                            if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel ch1)
-                                await ch1.SendMessageAsync(msg);
-
-                            if (guild.GetThreadChannel(team.OrdersChannelId) is SocketTextChannel ch2)
-                                await ch2.SendMessageAsync(msg);
-
-                            var channel = guild.GetTextChannel(team.BattleRoomChannelId);
-                            if (channel != null)
+                            var timeInFuture = team.EndsOn.Value.AddDays(-4).AddHours(-12);
+                            if (now.AddHours(4) >= timeInFuture)
                             {
-                                var sent = await channel.SendMessageAsync(teamRole.Mention + " preparation ends in "
+                                var msg = "Preparation ends in " + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".";
+                                if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel ch1)
+                                    await ch1.SendMessageAsync(msg);
+
+                                if (guild.GetThreadChannel(team.OrdersChannelId) is SocketTextChannel ch2)
+                                    await ch2.SendMessageAsync(msg);
+
+                                var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                                if (channel != null)
+                                {
+                                    var sent = await channel.SendMessageAsync(teamRole.Mention + " preparation ends in "
+                                        + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false)
+                                        + ". Make sure you read and scheduled all orders in " + (guild.GetThreadChannel(team.OrdersChannelId)?.Mention ?? "#orders") + "!");
+
+                                    ChangeWsTeam(guild.Id, ref team, t =>
+                                    {
+                                        t.NotifyPreparationEndsMessageId = sent.Id;
+                                    });
+                                }
+                            }
+                        }
+
+                        if (team.NotifySecondDayMessageId == null)
+                        {
+                            var timeInFuture = team.EndsOn.Value.AddDays(-3).AddHours(-12);
+                            if (now.AddHours(4) >= timeInFuture)
+                            {
+                                var msg = "Second day starts in " + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".";
+                                if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel ch1)
+                                    await ch1.SendMessageAsync(msg);
+
+                                if (guild.GetThreadChannel(team.OrdersChannelId) is SocketTextChannel ch2)
+                                    await ch2.SendMessageAsync(msg);
+
+                                var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                                if (channel != null)
+                                {
+                                    var sent = await channel.SendMessageAsync(teamRole.Mention + " second day starts in "
                                     + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false)
                                     + ". Make sure you read and scheduled all orders in " + (guild.GetThreadChannel(team.OrdersChannelId)?.Mention ?? "#orders") + "!");
-
-                                ChangeWsTeam(guild.Id, ref team, t =>
-                                {
-                                    t.NotifyPreparationEndsMessageId = sent.Id;
-                                });
+                                    ChangeWsTeam(guild.Id, ref team, t =>
+                                    {
+                                        t.NotifySecondDayMessageId = sent.Id;
+                                    });
+                                }
                             }
                         }
-                    }
 
-                    if (team.NotifySecondDayMessageId == null)
-                    {
-                        var timeInFuture = team.EndsOn.Value.AddDays(-3).AddHours(-12);
-                        if (now.AddHours(4) >= timeInFuture)
+                        if (team.NotifyThirdDayMessageId == null)
                         {
-                            var msg = "Second day starts in " + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".";
-                            if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel ch1)
-                                await ch1.SendMessageAsync(msg);
-
-                            if (guild.GetThreadChannel(team.OrdersChannelId) is SocketTextChannel ch2)
-                                await ch2.SendMessageAsync(msg);
-
-                            var channel = guild.GetTextChannel(team.BattleRoomChannelId);
-                            if (channel != null)
+                            var timeInFuture = team.EndsOn.Value.AddDays(-2).AddHours(-12);
+                            if (now.AddHours(4) >= timeInFuture)
                             {
-                                var sent = await channel.SendMessageAsync(teamRole.Mention + " second day starts in "
-                                + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false)
-                                + ". Make sure you read and scheduled all orders in " + (guild.GetThreadChannel(team.OrdersChannelId)?.Mention ?? "#orders") + "!");
-                                ChangeWsTeam(guild.Id, ref team, t =>
+                                var msg = "Third day starts in " + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".";
+                                if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel ch1)
+                                    await ch1.SendMessageAsync(msg);
+
+                                if (guild.GetThreadChannel(team.OrdersChannelId) is SocketTextChannel ch2)
+                                    await ch2.SendMessageAsync(msg);
+
+                                var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                                if (channel != null)
                                 {
-                                    t.NotifySecondDayMessageId = sent.Id;
-                                });
+                                    var sent = await channel.SendMessageAsync(teamRole.Mention + " third day starts in "
+                                        + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false)
+                                        + ". Make sure you read and scheduled all orders in " + (guild.GetThreadChannel(team.OrdersChannelId)?.Mention ?? "#orders") + "!");
+
+                                    ChangeWsTeam(guild.Id, ref team, t =>
+                                    {
+                                        t.NotifyThirdDayMessageId = sent.Id;
+                                    });
+                                }
                             }
                         }
-                    }
 
-                    if (team.NotifyThirdDayMessageId == null)
-                    {
-                        var timeInFuture = team.EndsOn.Value.AddDays(-2).AddHours(-12);
-                        if (now.AddHours(4) >= timeInFuture)
+                        if (team.NotifyFourthDayMessageId == null)
                         {
-                            var msg = "Third day starts in " + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".";
-                            if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel ch1)
-                                await ch1.SendMessageAsync(msg);
-
-                            if (guild.GetThreadChannel(team.OrdersChannelId) is SocketTextChannel ch2)
-                                await ch2.SendMessageAsync(msg);
-
-                            var channel = guild.GetTextChannel(team.BattleRoomChannelId);
-                            if (channel != null)
+                            var timeInFuture = team.EndsOn.Value.AddDays(-1).AddHours(-12);
+                            if (now.AddHours(4) >= timeInFuture)
                             {
-                                var sent = await channel.SendMessageAsync(teamRole.Mention + " third day starts in "
-                                    + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false)
-                                    + ". Make sure you read and scheduled all orders in " + (guild.GetThreadChannel(team.OrdersChannelId)?.Mention ?? "#orders") + "!");
+                                var msg = "Fourth day starts in " + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".";
+                                if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel ch1)
+                                    await ch1.SendMessageAsync(msg);
 
-                                ChangeWsTeam(guild.Id, ref team, t =>
+                                if (guild.GetThreadChannel(team.OrdersChannelId) is SocketTextChannel ch2)
+                                    await ch2.SendMessageAsync(msg);
+
+                                var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                                if (channel != null)
                                 {
-                                    t.NotifyThirdDayMessageId = sent.Id;
-                                });
+                                    var sent = await channel.SendMessageAsync(teamRole.Mention + " fourth day starts in "
+                                        + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false)
+                                        + ". Make sure you read and scheduled all orders in " + (guild.GetThreadChannel(team.OrdersChannelId)?.Mention ?? "#orders") + "!");
+
+                                    ChangeWsTeam(guild.Id, ref team, t =>
+                                    {
+                                        t.NotifyFourthDayMessageId = sent.Id;
+                                    });
+                                }
                             }
                         }
-                    }
 
-                    if (team.NotifyFourthDayMessageId == null)
-                    {
-                        var timeInFuture = team.EndsOn.Value.AddDays(-1).AddHours(-12);
-                        if (now.AddHours(4) >= timeInFuture)
+                        if (team.NotifyLastHalfDayMessageId == null)
                         {
-                            var msg = "Fourth day starts in " + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".";
-                            if (guild.GetThreadChannel(team.AdmiralChannelId) is SocketTextChannel ch1)
-                                await ch1.SendMessageAsync(msg);
-
-                            if (guild.GetThreadChannel(team.OrdersChannelId) is SocketTextChannel ch2)
-                                await ch2.SendMessageAsync(msg);
-
-                            var channel = guild.GetTextChannel(team.BattleRoomChannelId);
-                            if (channel != null)
+                            var timeInFuture = team.EndsOn.Value.AddHours(-12);
+                            if (now >= timeInFuture)
                             {
-                                var sent = await channel.SendMessageAsync(teamRole.Mention + " fourth day starts in "
-                                    + timeInFuture.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false)
-                                    + ". Make sure you read and scheduled all orders in " + (guild.GetThreadChannel(team.OrdersChannelId)?.Mention ?? "#orders") + "!");
-
-                                ChangeWsTeam(guild.Id, ref team, t =>
+                                var channel = guild.GetTextChannel(team.BattleRoomChannelId);
+                                if (channel != null)
                                 {
-                                    t.NotifyFourthDayMessageId = sent.Id;
-                                });
+                                    var sent = await channel.SendMessageAsync(teamRole.Mention + " WS ends in "
+                                        + team.EndsOn.Value.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".");
+
+                                    ChangeWsTeam(guild.Id, ref team, t =>
+                                    {
+                                        t.NotifyLastHalfDayMessageId = sent.Id;
+                                    });
+                                }
                             }
                         }
-                    }
 
-                    if (team.NotifyLastHalfDayMessageId == null)
-                    {
-                        var timeInFuture = team.EndsOn.Value.AddHours(-12);
-                        if (now >= timeInFuture)
+                        if (team.Notify2hMessageId == null)
                         {
-                            var channel = guild.GetTextChannel(team.BattleRoomChannelId);
-                            if (channel != null)
+                            var timeInFuture = team.EndsOn.Value.AddHours(-2);
+                            if (now >= timeInFuture)
                             {
-                                var sent = await channel.SendMessageAsync(teamRole.Mention + " WS ends in "
-                                    + team.EndsOn.Value.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ".");
-
-                                ChangeWsTeam(guild.Id, ref team, t =>
+                                var channel = guild.GetTextChannel(team.AdmiralChannelId);
+                                if (channel != null)
                                 {
-                                    t.NotifyLastHalfDayMessageId = sent.Id;
-                                });
-                            }
-                        }
-                    }
+                                    var sent = await channel.SendMessageAsync(teamRole.Mention + " WS ends in "
+                                        + team.EndsOn.Value.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ". Type `!wsclose <score> <opponentScore>` to close this WS and delete all related channels/threads!");
 
-                    if (team.Notify2hMessageId == null)
-                    {
-                        var timeInFuture = team.EndsOn.Value.AddHours(-2);
-                        if (now >= timeInFuture)
-                        {
-                            var channel = guild.GetTextChannel(team.AdmiralChannelId);
-                            if (channel != null)
-                            {
-                                var sent = await channel.SendMessageAsync(teamRole.Mention + " WS ends in "
-                                    + team.EndsOn.Value.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + ". Type `!wsclose <score> <opponentScore>` to close this WS and delete all related channels/threads!");
-
-                                ChangeWsTeam(guild.Id, ref team, t =>
-                                {
-                                    t.Notify2hMessageId = sent.Id;
-                                });
+                                    ChangeWsTeam(guild.Id, ref team, t =>
+                                    {
+                                        t.Notify2hMessageId = sent.Id;
+                                    });
+                                }
                             }
                         }
                     }
                 }
+            }
+            catch (Exception)
+            {
             }
 
             Thread.Sleep(10000);

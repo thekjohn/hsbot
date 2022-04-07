@@ -13,7 +13,7 @@ public static class WsModLogic
 
         if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out _))
         {
-            await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
+            await channel.BotResponse("You have to use this command in a WS battleroom!", ResponseType.error);
             return;
         }
 
@@ -85,7 +85,7 @@ public static class WsModLogic
 
         if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var _))
         {
-            await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
+            await channel.BotResponse("You have to use this command in a WS battleroom!", ResponseType.error);
             return;
         }
 
@@ -117,7 +117,7 @@ public static class WsModLogic
 
         if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
         {
-            await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
+            await channel.BotResponse("You have to use this command in a WS battleroom!", ResponseType.error);
             return;
         }
 
@@ -148,7 +148,7 @@ public static class WsModLogic
 
         if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
         {
-            await channel.BotResponse("You have to use this command in a WS team battleroom!", ResponseType.error);
+            await channel.BotResponse("You have to use this command in a WS battleroom!", ResponseType.error);
             return;
         }
 

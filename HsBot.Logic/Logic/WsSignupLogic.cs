@@ -91,117 +91,126 @@ public static class WsSignupLogic
     {
         while (true)
         {
-            var now = DateTime.UtcNow;
-            foreach (var guild in DiscordBot.Discord.Guilds)
+            try
             {
-                var ids = StateService.ListIds(guild.Id, "ws-signup-active-");
-                foreach (var signupStateId in ids)
+                var now = DateTime.UtcNow;
+                foreach (var guild in DiscordBot.Discord.Guilds)
                 {
-                    var signup = StateService.Get<WsSignup>(guild.Id, signupStateId);
-                    if (signup == null)
-                        continue;
-
-                    if (signup.EndsOn <= now.AddMinutes(-5))
+                    var ids = StateService.ListIds(guild.Id, "ws-signup-active-");
+                    foreach (var signupStateId in ids)
                     {
-                        var channel = guild.GetTextChannel(signup.ChannelId);
-                        if (channel != null)
-                        {
-                            var alliance = AllianceLogic.GetAlliance(guild.Id);
-                            if (alliance.WsDraftChannelId != 0)
-                            {
-                                var draft = new WsDraftLogic.WsDraft()
-                                {
-                                    OriginalSignup = signup,
-                                    ChannelId = alliance.WsDraftChannelId,
-                                    MessageId = 0,
-                                    Teams = new List<WsTeam>(),
-                                };
+                        var signup = StateService.Get<WsSignup>(guild.Id, signupStateId);
+                        if (signup == null)
+                            continue;
 
-                                WsDraftLogic.SaveWsDraft(guild.Id, draft);
-                                await WsDraftLogic.RepostDraft(guild);
-                            }
-
-                            await RefreshSignup(guild, channel, signup.MessageId);
-                        }
-
-                        var newId = signupStateId.Replace("active", "archive", StringComparison.InvariantCultureIgnoreCase);
-                        StateService.Rename(guild.Id, signupStateId, newId);
-                    }
-                    else
-                    {
-                        if (signup.Notify1dLeftMessageId == null
-                            && signup.EndsOn.AddDays(-1) <= now)
+                        if (signup.EndsOn <= now.AddMinutes(-5))
                         {
                             var channel = guild.GetTextChannel(signup.ChannelId);
                             if (channel != null)
                             {
                                 var alliance = AllianceLogic.GetAlliance(guild.Id);
-                                if (alliance != null)
+                                if (alliance.WsDraftChannelId != 0)
                                 {
-                                    var memberRole = guild.GetRole(alliance.RoleId);
-                                    var wsGuestRole = alliance.WsGuestRoleId != 0 ? guild.GetRole(alliance.WsGuestRoleId) : null;
-                                    if (memberRole != null)
+                                    var draft = new WsDraftLogic.WsDraft()
                                     {
-                                        var sent = await channel.SendMessageAsync(memberRole.Mention
-                                            + (wsGuestRole != null ? " " + wsGuestRole.Mention : "")
-                                            + " WS signup ends in "
-                                            + signup.EndsOn.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + "!");
-                                        signup.Notify1dLeftMessageId = sent.Id;
-                                        StateService.Set(guild.Id, signupStateId, signup);
+                                        OriginalSignup = signup,
+                                        ChannelId = alliance.WsDraftChannelId,
+                                        MessageId = 0,
+                                        Teams = new List<WsTeam>(),
+                                    };
+
+                                    WsDraftLogic.SaveWsDraft(guild.Id, draft);
+                                    await WsDraftLogic.RepostDraft(guild);
+                                }
+
+                                await RefreshSignup(guild, channel, signup.MessageId);
+                            }
+
+                            var newId = signupStateId.Replace("active", "archive", StringComparison.InvariantCultureIgnoreCase);
+                            StateService.Rename(guild.Id, signupStateId, newId);
+                        }
+                        else
+                        {
+                            if (signup.Notify1dLeftMessageId == null
+                                && signup.EndsOn.AddDays(-1) <= now)
+                            {
+                                var channel = guild.GetTextChannel(signup.ChannelId);
+                                if (channel != null)
+                                {
+                                    var alliance = AllianceLogic.GetAlliance(guild.Id);
+                                    if (alliance != null)
+                                    {
+                                        var memberRole = guild.GetRole(alliance.RoleId);
+                                        var wsGuestRole = alliance.WsGuestRoleId != 0 ? guild.GetRole(alliance.WsGuestRoleId) : null;
+                                        if (memberRole != null)
+                                        {
+                                            var sent = await channel.SendMessageAsync(memberRole.Mention
+                                                + (wsGuestRole != null ? " " + wsGuestRole.Mention : "")
+                                                + " WS signup ends in "
+                                                + signup.EndsOn.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + "!");
+                                            signup.Notify1dLeftMessageId = sent.Id;
+                                            StateService.Set(guild.Id, signupStateId, signup);
+                                            CleanupService.RegisterForDeletion(2 * 60 * 60, sent);
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        if (signup.Notify12hLeftMessageId == null
-                            && signup.EndsOn.AddHours(-12) <= now)
-                        {
-                            var channel = guild.GetTextChannel(signup.ChannelId);
-                            if (channel != null)
+                            if (signup.Notify12hLeftMessageId == null
+                                && signup.EndsOn.AddHours(-12) <= now)
                             {
-                                var alliance = AllianceLogic.GetAlliance(guild.Id);
-                                if (alliance != null)
+                                var channel = guild.GetTextChannel(signup.ChannelId);
+                                if (channel != null)
                                 {
-                                    var memberRole = guild.GetRole(alliance.RoleId);
-                                    var wsGuestRole = alliance.WsGuestRoleId != 0 ? guild.GetRole(alliance.WsGuestRoleId) : null;
-                                    if (memberRole != null)
+                                    var alliance = AllianceLogic.GetAlliance(guild.Id);
+                                    if (alliance != null)
                                     {
-                                        var sent = await channel.SendMessageAsync(memberRole.Mention
-                                            + (wsGuestRole != null ? " " + wsGuestRole.Mention : "")
-                                            + " WS signup ends in "
-                                            + signup.EndsOn.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + "!");
-                                        signup.Notify12hLeftMessageId = sent.Id;
-                                        StateService.Set(guild.Id, signupStateId, signup);
+                                        var memberRole = guild.GetRole(alliance.RoleId);
+                                        var wsGuestRole = alliance.WsGuestRoleId != 0 ? guild.GetRole(alliance.WsGuestRoleId) : null;
+                                        if (memberRole != null)
+                                        {
+                                            var sent = await channel.SendMessageAsync(memberRole.Mention
+                                                + (wsGuestRole != null ? " " + wsGuestRole.Mention : "")
+                                                + " WS signup ends in "
+                                                + signup.EndsOn.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + "!");
+                                            signup.Notify12hLeftMessageId = sent.Id;
+                                            StateService.Set(guild.Id, signupStateId, signup);
+                                            CleanupService.RegisterForDeletion(2 * 60 * 60, sent);
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        if (signup.Notify2hLeftMessageId == null
-                            && signup.EndsOn.AddHours(-2) <= now)
-                        {
-                            var channel = guild.GetTextChannel(signup.ChannelId);
-                            if (channel != null)
+                            if (signup.Notify2hLeftMessageId == null
+                                && signup.EndsOn.AddHours(-2) <= now)
                             {
-                                var alliance = AllianceLogic.GetAlliance(guild.Id);
-                                if (alliance != null)
+                                var channel = guild.GetTextChannel(signup.ChannelId);
+                                if (channel != null)
                                 {
-                                    var memberRole = guild.GetRole(alliance.RoleId);
-                                    var wsGuestRole = alliance.WsGuestRoleId != 0 ? guild.GetRole(alliance.WsGuestRoleId) : null;
-                                    if (memberRole != null)
+                                    var alliance = AllianceLogic.GetAlliance(guild.Id);
+                                    if (alliance != null)
                                     {
-                                        var sent = await channel.SendMessageAsync(memberRole.Mention
-                                            + (wsGuestRole != null ? " " + wsGuestRole.Mention : "")
-                                            + " WS signup ends in "
-                                            + signup.EndsOn.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + "!");
-                                        signup.Notify2hLeftMessageId = sent.Id;
-                                        StateService.Set(guild.Id, signupStateId, signup);
+                                        var memberRole = guild.GetRole(alliance.RoleId);
+                                        var wsGuestRole = alliance.WsGuestRoleId != 0 ? guild.GetRole(alliance.WsGuestRoleId) : null;
+                                        if (memberRole != null)
+                                        {
+                                            var sent = await channel.SendMessageAsync(memberRole.Mention
+                                                + (wsGuestRole != null ? " " + wsGuestRole.Mention : "")
+                                                + " WS signup ends in "
+                                                + signup.EndsOn.Subtract(now.AddSeconds(-15)).ToIntervalStr(true, false) + "!");
+                                            signup.Notify2hLeftMessageId = sent.Id;
+                                            StateService.Set(guild.Id, signupStateId, signup);
+                                            CleanupService.RegisterForDeletion(2 * 60 * 60, sent);
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
+            }
+            catch (Exception)
+            {
             }
 
             Thread.Sleep(10000);

@@ -169,6 +169,14 @@ public class HelpCommandModule : BaseModule
         await HelpLogic.ShowMostUsedCommands(Context.Guild, Context.Channel);
     }
 
+    [Command("rshelp")]
+    [Summary("rshelp|get some overview of the most commonly used RS-related commands")]
+    public async Task RsHelp()
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+        await HelpLogic.ShowMostUsedRsCommands(Context.Guild, Context.Channel);
+    }
+
     [Command("alliance")]
     [Alias("sga")]
     [Summary("alliance [alts/corpName/roleName]|display the information for the entire alliance, alts, a specific corp or a specific role")]

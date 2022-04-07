@@ -89,9 +89,15 @@ public static class AfkLogic
     {
         while (true)
         {
-            foreach (var guild in DiscordBot.Discord.Guilds)
+            try
             {
-                await GetAfkList(guild);
+                foreach (var guild in DiscordBot.Discord.Guilds)
+                {
+                    await GetAfkList(guild);
+                }
+            }
+            catch (Exception)
+            {
             }
 
             Thread.Sleep(10000);

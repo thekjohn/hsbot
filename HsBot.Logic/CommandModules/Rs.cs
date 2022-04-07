@@ -4,6 +4,15 @@
 [RequireContext(ContextType.Guild)]
 public class Rs : BaseModule
 {
+    [Command("rsrole")]
+    [Summary("rsrole|show RS role selector")]
+    [RequireMinimumAllianceRole(AllianceRole.Ally)]
+    public async Task SelectRsRole()
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+        await RsRoleSelectorLogic.ShowPanel(Context.Guild, Context.Channel, CurrentUser);
+    }
+
     [Command("in")]
     [Alias("i")]
     [Summary("in [level]|enqueue to your highest, or a specific level queue")]
@@ -65,6 +74,8 @@ public class Rs : BaseModule
     [Summary("in level user|debug only")]
     public async Task I(int level, SocketGuildUser targetUser)
     {
+        await CleanupService.DeleteCommand(Context.Message);
+
         if (!CurrentUser.Roles.Any(x => x.Permissions.Administrator))
         {
             await ReplyAsync("only administrators can use this command");
@@ -78,6 +89,8 @@ public class Rs : BaseModule
     [Summary("out level user|debug only")]
     public async Task O(int level, SocketGuildUser targetUser)
     {
+        await CleanupService.DeleteCommand(Context.Message);
+
         await RemoveFromQueue(Context.Guild, Context.Channel, level, targetUser, null);
         await RefreshQueueList(Context.Guild, Context.Channel, false);
     }
@@ -199,6 +212,8 @@ public class Rs : BaseModule
 
         queue.Users.Add(user.Id);
 
+        queue.Users.RemoveAll(x => Context.Guild.GetUser(x) == null);
+
         var runId = 0;
         if (queue.Users.Count == 4)
         {
@@ -246,6 +261,31 @@ public class Rs : BaseModule
         else
         {
             response = ":white_check_mark: " + role.Name;
+        }
+
+        if (queue.Users.Count == 3)
+        {
+            var threeOfFourRole = Context.Guild.Roles.FirstOrDefault(x => x.Name == "RS" + selectedLevel.ToStr() + "¾");
+            if (threeOfFourRole != null)
+                response += " " + threeOfFourRole.Mention;
+
+            var rsQueueRoleId = AfkLogic.GetRsQueueRole(Context.Guild.Id);
+            var users = Context.Guild.Users.Where(x =>
+                x.Id != user.Id
+                && x.Roles.Any(r => r.Id == threeOfFourRole.Id)
+                && x.Roles.Any(r => r.Id == rsQueueRoleId));
+
+            foreach (var usr in users)
+            {
+                await usr.SendMessageAsync("RS" + selectedLevel.ToStr() + " queue is 3/4 in https://discord.com/channels/" + Context.Guild.Id.ToStr() + "/" + Context.Channel.Id.ToStr()
+                    + "\n" + string.Join(" ", queue.Users.Select(x =>
+                    {
+                        var user = Context.Guild.GetUser(x);
+                        return user != null
+                            ? alliance.GetUserCorpIcon(user) + user.DisplayName
+                            : "<unknown discord user>";
+                    })));
+            }
         }
 
         response += " (" + queue.Users.Count.ToStr() + "/4), " + user.Mention + " joined.";
@@ -428,6 +468,8 @@ public class Rs : BaseModule
             .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "redstar")?.Url)
             .WithCurrentTimestamp();
 
+        var sb = new StringBuilder();
+
         for (var level = 1; level <= 12; level++)
         {
             var role = guild.Roles.FirstOrDefault(x => x.Name == "RS" + level.ToStr());
@@ -441,8 +483,13 @@ public class Rs : BaseModule
             var roleMentionStateId = StateService.GetId("rs-queue-last-role-mention", role.Id);
             var lastRsMention = StateService.Get<DateTime?>(guild.Id, roleMentionStateId);
 
-            eb.AddField("RS" + queue.Level.ToStr() + " (" + queue.Users.Count.ToStr() + "/4)",
-                string.Join("\n", queue.Users.Select(userId =>
+            sb
+                .Append("**")
+                .Append(role.Mention)
+                .Append(" (")
+                .Append(queue.Users.Count.ToStr())
+                .Append("/4)**\n")
+                .AppendJoin("\n", queue.Users.Select(userId =>
                 {
                     var user = guild.GetUser(userId);
                     var runCountStateId = StateService.GetId("rs-run-count", userId, (ulong)queue.Level);
@@ -466,22 +513,27 @@ public class Rs : BaseModule
                             modList += "💪";
                     }
 
-                    return alliance.GetUserCorpIcon(user) + user.DisplayName
-                        + modList
-                        + " [" + runCount + " runs]"
+                    return alliance.GetUserCorpIcon(user) + user.Mention
+                        + (!string.IsNullOrEmpty(modList) ? " " + modList : "")
+                        + " [" + runCount + "x]"
                         + " :watch: " + DateTime.UtcNow.Subtract(StateService.Get<DateTime>(guild.Id, "rs-queue-activity-" + userId.ToStr() + "-" + queue.Level.ToStr()))
-                                .ToIntervalStr();
-                }
-                )),
-                inline: false);
+                                .ToIntervalStr(true, false);
+                }))
+                .AppendLine()
+                .AppendLine();
         }
 
-        if (eb.Fields.Count == 0)
+        var description = sb.ToString();
+        if (string.IsNullOrEmpty(description))
         {
             if (ignoreEmpty)
                 return;
 
             eb.WithDescription("All queues are empty.");
+        }
+        else
+        {
+            eb.WithDescription(description);
         }
 
         panel.ChannelId = channel.Id;

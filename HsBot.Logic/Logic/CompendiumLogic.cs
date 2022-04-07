@@ -17,44 +17,50 @@ public static class CompendiumLogic
         Thread.Sleep(5 * 60 * 1000); // prevent downloading while debugging
         while (true)
         {
-            foreach (var guild in DiscordBot.Discord.Guilds)
+            try
             {
-                var alliance = AllianceLogic.GetAlliance(guild.Id);
-                if (alliance == null)
-                    return;
-
-                var client = new HttpClient();
-                var users = guild.Users
-                    .Where(x => x.Roles.Any(y => y.Id == alliance.CompendiumRoleId)
-                                && x.Roles.Any(y => y.Id == alliance.RoleId || y.Id == alliance.WsGuestRoleId))
-                    .ToList();
-
-                await LogService.LogToChannel(guild, "downloading compendium data for " + users.Count.ToStr() + " users.", null);
-
-                foreach (var guildUser in users)
+                foreach (var guild in DiscordBot.Discord.Guilds)
                 {
-                    var url = "https://bot.hs-compendium.com/compendium/api/tech?token=" + alliance.CompendiumApiKey + "&userid=" + guildUser.Id;
-                    try
-                    {
-                        var result = await client.GetStringAsync(url);
-                        var response = JsonSerializer.Deserialize<CompendiumResponse>(result);
-                        if (response.array?.Length >= 5)
-                        {
-                            StateService.Set(guild.Id, "compendium-" + guildUser.Id.ToStr(), response);
-                        }
+                    var alliance = AllianceLogic.GetAlliance(guild.Id);
+                    if (alliance == null)
+                        return;
 
-                        await LogService.LogToChannel(guild, "compendium data successfully downloaded from " + url, null);
-                        Thread.Sleep(15 * 1000);
-                    }
-                    catch (HttpRequestException ex)
+                    var client = new HttpClient();
+                    var users = guild.Users
+                        .Where(x => x.Roles.Any(y => y.Id == alliance.CompendiumRoleId)
+                                    && x.Roles.Any(y => y.Id == alliance.RoleId || y.Id == alliance.WsGuestRoleId))
+                        .ToList();
+
+                    await LogService.LogToChannel(guild, "downloading compendium data for " + users.Count.ToStr() + " users.", null);
+
+                    foreach (var guildUser in users)
                     {
-                        await LogService.LogToChannel(guild, "downloading compendium data failed with [" + ex.StatusCode.ToString() + "] from " + url, null);
-                        if (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                        var url = "https://bot.hs-compendium.com/compendium/api/tech?token=" + alliance.CompendiumApiKey + "&userid=" + guildUser.Id;
+                        try
                         {
-                            Thread.Sleep(5 * 60 * 1000);
+                            var result = await client.GetStringAsync(url);
+                            var response = JsonSerializer.Deserialize<CompendiumResponse>(result);
+                            if (response.array?.Length >= 5)
+                            {
+                                StateService.Set(guild.Id, "compendium-" + guildUser.Id.ToStr(), response);
+                            }
+
+                            await LogService.LogToChannel(guild, "compendium data successfully downloaded from " + url, null);
+                            Thread.Sleep(15 * 1000);
+                        }
+                        catch (HttpRequestException ex)
+                        {
+                            await LogService.LogToChannel(guild, "downloading compendium data failed with [" + ex.StatusCode.ToString() + "] from " + url, null);
+                            if (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                            {
+                                Thread.Sleep(5 * 60 * 1000);
+                            }
                         }
                     }
                 }
+            }
+            catch (Exception)
+            {
             }
 
             Thread.Sleep(60 * 60 * 1000);

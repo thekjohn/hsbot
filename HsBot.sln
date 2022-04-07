@@ -9,11 +9,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Global", "Global", "{DBE68C
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		.gitignore = .gitignore
-		HsBot.ruleset = HsBot.ruleset
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HsBot.Logic", "HsBot.Logic\HsBot.Logic.csproj", "{7C268C90-4548-4974-8BA7-93EB09BFD22D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HsBot.Logic", "HsBot.Logic\HsBot.Logic.csproj", "{7C268C90-4548-4974-8BA7-93EB09BFD22D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
