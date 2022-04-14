@@ -31,7 +31,7 @@ internal static class SocketGuildExtensions
         if (user == null)
         {
             var users = guild.Users
-                .Where(x => x.DisplayName
+                .Where(x => x.GetShortDisplayName()
                     .Replace(".", "", StringComparison.InvariantCultureIgnoreCase)
                     .StartsWith(userToFind, StringComparison.InvariantCultureIgnoreCase))
                 .ToArray();
@@ -43,7 +43,7 @@ internal static class SocketGuildExtensions
         if (user == null)
         {
             var users = guild.Users
-                .Where(x => x.DisplayName
+                .Where(x => x.GetShortDisplayName()
                     .Replace(".", "", StringComparison.InvariantCultureIgnoreCase)
                     .Contains(userToFind, StringComparison.InvariantCultureIgnoreCase))
                 .ToArray();

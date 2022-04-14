@@ -320,8 +320,7 @@ public static class WsSignupLogic
             .AddField(casualAltCnt.ToStr() + " Casual Alt", casualAlt != "" ? casualAlt : "-", true)
             .AddField(inactiveAltCnt.ToStr() + " Inactive Alt", inactiveAlt != "" ? inactiveAlt : "-", true)
             .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl())
-            .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "whitestar")?.Url)
-            .WithCurrentTimestamp();
+            .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "whitestar")?.Url);
 
         return eb.Build();
     }
@@ -521,8 +520,7 @@ public static class WsSignupLogic
             .WithTitle("WS signup info")
             .WithColor(Color.Magenta)
             .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl())
-            .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "whitestar")?.Url)
-            .WithCurrentTimestamp();
+            .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "whitestar")?.Url);
 
         var info = StateService.Get<SignupInfo>(guild.Id, "wssignup-info") ?? new SignupInfo();
         if (info != null)

@@ -4,7 +4,7 @@ public enum ResponseType { successStay, success, error, errorStay, question, inf
 
 internal static class ResponseService
 {
-    public static async Task BotResponse(this ISocketMessageChannel channel, string message, ResponseType type, Embed embed = null)
+    public static async Task BotResponse(this IMessageChannel channel, string message, ResponseType type, Embed embed = null)
     {
         switch (type)
         {

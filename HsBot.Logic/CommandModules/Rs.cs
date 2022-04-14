@@ -121,8 +121,8 @@ public class Rs : BaseModule
             return;
         }
 
-        var queueStateId = StateService.GetId("rs-queue", (ulong)level);
-        var queue = StateService.Get<RsQueueEntry>(guild.Id, queueStateId);
+        var panel = GetQueue(guild.Id);
+        var queue = panel.Queues.Find(x => x.Level == level);
         if (queue == null)
         {
             await channel.BotResponse("You can't ping an empty queue.", ResponseType.error);
@@ -404,7 +404,6 @@ public class Rs : BaseModule
             .WithColor(Color.Blue)
             .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl())
             .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "bs6")?.Url)
-            .WithCurrentTimestamp()
             .WithDescription(string.Join("\n",
                 queue.Users.Select(userId =>
                 {
@@ -465,8 +464,7 @@ public class Rs : BaseModule
             .WithTitle("Active Red Star queues")
             .WithColor(new Color(0, 255, 0))
             .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl())
-            .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "redstar")?.Url)
-            .WithCurrentTimestamp();
+            .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "redstar")?.Url);
 
         var sb = new StringBuilder();
 

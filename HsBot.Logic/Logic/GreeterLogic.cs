@@ -66,7 +66,6 @@ public static class GreeterLogic
                         .WithTitle(user.DisplayName + ", what brought you here on this beautiful day?")
                         .WithColor(Color.Red)
                         .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl())
-                        .WithCurrentTimestamp()
                         .WithDescription(
                               ":one: looking for a corp and I heard " + alliance.Name + " (" + alliance.Abbreviation + ") is the best of all!"
                               + "\n:two: looking for a Red Star queue"

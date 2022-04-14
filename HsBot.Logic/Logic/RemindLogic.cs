@@ -2,7 +2,7 @@
 
 public static class RemindLogic
 {
-    private static List<Entry> _entries = null;
+    private static List<Entry> _entries;
     private static readonly object _lock = new();
 
     internal static async Task RemindList(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string who)
@@ -19,7 +19,7 @@ public static class RemindLogic
 
     internal static async Task RemindListWS(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
     {
-        if (!WsLogic.GetWsTeamByChannel(guild, channel, out _, out var teamRole))
+        if (!WsLogic.GetWsTeamByChannel(guild, channel.Id, out _, out var teamRole))
         {
             await channel.BotResponse("You have to use this command in a WS battleroom!", ResponseType.error);
             return;
@@ -111,7 +111,7 @@ public static class RemindLogic
 
     internal static async Task AddReminderWS(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string when, string message)
     {
-        if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var teamRole) || team.BattleRoomChannelId != channel.Id)
+        if (!WsLogic.GetWsTeamByChannel(guild, channel.Id, out var team, out var teamRole) || team.BattleRoomChannelId != channel.Id)
         {
             await channel.BotResponse("You have to use this command in a WS battleroom!", ResponseType.error);
             return;
@@ -199,8 +199,7 @@ public static class RemindLogic
                                 .AddField("Alliance", alliance.Name)
                                 .AddField("Message", entry.Message)
                                 .WithColor(Color.Red)
-                                .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl())
-                                .WithCurrentTimestamp();
+                                .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl());
 
                             if (registrator != null)
                                 eb.AddField("Sender", registrator.DisplayName);
@@ -219,8 +218,7 @@ public static class RemindLogic
                                 .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "reminder")?.Url)
                                 .AddField((registrator?.DisplayName ?? "<unknown discord user>") + " wrote", entry.Message)
                                 .WithColor(Color.Red)
-                                .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl())
-                                .WithCurrentTimestamp();
+                                .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl());
 
                             var msg = ":point_down: " + role.Mention;
                             await channel.SendMessageAsync(msg, embed: eb.Build());

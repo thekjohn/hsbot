@@ -137,9 +137,6 @@ public static class RsRoleSelectorLogic
         if (reaction.User.Value.IsBot)
             return;
 
-        var msg = await reaction.Channel.GetMessageAsync(reaction.MessageId);
-        await msg.RemoveReactionAsync(reaction.Emote, reaction.UserId);
-
         var channel = reaction.Channel as SocketGuildChannel;
         var user = reaction.User.Value as SocketGuildUser;
 
@@ -147,6 +144,9 @@ public static class RsRoleSelectorLogic
         var panel = StateService.Get<RsRolePanel>(channel.Guild.Id, entryId);
         if (panel == null || (panel.MainRoleMessageId != reaction.MessageId && panel.ThreeOfFourRoleMessageId != reaction.MessageId))
             return;
+
+        var msg = await reaction.Channel.GetMessageAsync(reaction.MessageId);
+        await msg.RemoveReactionAsync(reaction.Emote, reaction.UserId);
 
         var alliance = AllianceLogic.GetAlliance(channel.Guild.Id);
         if (alliance == null)

@@ -5,13 +5,13 @@ public static class WsModLogic
     public static int[] MinerCapacity { get; } = new[] { 0, 50, 250, 600, 1200, 2000, 2500 };
     public static int[] HydroBayCapacity { get; } = new[] { 0, 50, 75, 110, 170, 250, 370, 550, 850, 1275, 2000 };
 
-    internal static async Task Classify(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
+    internal static async Task ClassifyTeam(SocketGuild guild, IMessageChannel channel)
     {
         var alliance = AllianceLogic.GetAlliance(guild.Id);
         if (alliance == null)
             return;
 
-        if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out _))
+        if (!WsLogic.GetWsTeamByChannel(guild, channel.Id, out var team, out _))
         {
             await channel.BotResponse("You have to use this command in a WS battleroom!", ResponseType.error);
             return;
@@ -26,7 +26,7 @@ public static class WsModLogic
             .Append("```")
             .Append("NAME".PadRight(longestName))
             .Append(' ')
-            .AppendLine("MATCHES");
+            .AppendLine("FILTER MATCHES");
 
         var filters = ModuleFilterLogic.GetAllModuleFilters(guild.Id).OrderBy(x => x.Name).ToList();
         foreach (var entry in entries)
@@ -83,7 +83,7 @@ public static class WsModLogic
         if (alliance == null)
             return;
 
-        if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var _))
+        if (!WsLogic.GetWsTeamByChannel(guild, channel.Id, out var team, out var _))
         {
             await channel.BotResponse("You have to use this command in a WS battleroom!", ResponseType.error);
             return;
@@ -97,7 +97,7 @@ public static class WsModLogic
             .Append("mining").Append(filterName != null ? " + " + filterName : "")
             .Append("```")
             .Append(GetModulesTable(guild, team,
-                new[] { "miner", "miningboost", "remote", "miningunity", "genesis", "enrich", "crunch", "teleport", "leap", "warp", "relicdrone", "mscap", "mscaphbe" }
+                new[] { "miner", "miningboost", "remote", "miningunity", "genesis", "enrich", "crunch", "teleport", "barrier", "suppress", "leap", "warp", "relicdrone", "mscap", "mscaphbe" }
                 , filterName))
             .Append("```");
 
@@ -115,7 +115,7 @@ public static class WsModLogic
         if (alliance == null)
             return;
 
-        if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
+        if (!WsLogic.GetWsTeamByChannel(guild, channel.Id, out var team, out var teamRole))
         {
             await channel.BotResponse("You have to use this command in a WS battleroom!", ResponseType.error);
             return;
@@ -146,7 +146,7 @@ public static class WsModLogic
         if (alliance == null)
             return;
 
-        if (!WsLogic.GetWsTeamByChannel(guild, channel, out var team, out var teamRole))
+        if (!WsLogic.GetWsTeamByChannel(guild, channel.Id, out var team, out var teamRole))
         {
             await channel.BotResponse("You have to use this command in a WS battleroom!", ResponseType.error);
             return;

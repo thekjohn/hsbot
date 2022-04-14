@@ -57,22 +57,13 @@ public class Ws : BaseModule
         await AfkLogic.RemoveAfk(Context.Guild, Context.Channel, CurrentUser);
     }
 
-    [Command("wsresults-team")]
-    [Summary("wsresults-team <teamName>|list the previous results of a WS team")]
+    [Command("wsresults")]
+    [Summary("wsresults <name>|list the previous results of a WS team/opponent/member")]
     [RequireMinimumAllianceRole(AllianceRole.Member)]
-    public async Task ShowWsResultsOfTeam(string teamName)
+    public async Task ShowWsResultsOfTeam(string name)
     {
         await CleanupService.DeleteCommand(Context.Message);
-        await WsResultsLogic.ShowWsResultsOfTeam(Context.Guild, Context.Channel, CurrentUser, teamName);
-    }
-
-    [Command("wsresults-opponent")]
-    [Summary("wsresults-opponent <opponentName>|list the previous results of an opponent")]
-    [RequireMinimumAllianceRole(AllianceRole.Member)]
-    public async Task ShowWsWesults(string opponentName)
-    {
-        await CleanupService.DeleteCommand(Context.Message);
-        await WsResultsLogic.ShowWsResultsOfOpponent(Context.Guild, Context.Channel, CurrentUser, opponentName);
+        await WsResultsLogic.ShowWsResults(Context.Guild, Context.Channel, name);
     }
 
     [Command("wsscan")]
@@ -173,7 +164,7 @@ public class Ws : BaseModule
     {
         await CleanupService.DeleteCommand(Context.Message);
 
-        await WsModLogic.Classify(Context.Guild, Context.Channel, CurrentUser);
+        await WsModLogic.ClassifyTeam(Context.Guild, Context.Channel);
     }
 
     [Command("mfadd")]

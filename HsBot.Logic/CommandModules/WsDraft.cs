@@ -89,11 +89,13 @@ public class WsDraft : BaseModule
             return;
         }
 
+        var names = userNames.Split(' ');
+
         var mains = new List<SocketGuildUser>();
         var alts = new List<AllianceLogic.Alt>();
         var unknownNames = new List<string>();
         var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-        foreach (var userName in userNames.Split(' '))
+        foreach (var userName in names)
         {
             SocketGuildUser main = null;
             AllianceLogic.Alt alt = null;

@@ -24,14 +24,14 @@ public static class WsLogic
         await thread.BotResponse("Team's commitment level is successfully changed to " + commitmentLevel.ToString(), ResponseType.successStay);
     }
 
-    public static bool GetWsTeamByChannel(SocketGuild guild, ISocketMessageChannel channel, out WsTeam team, out SocketRole role)
+    public static bool GetWsTeamByChannel(SocketGuild guild, ulong channelId, out WsTeam team, out SocketRole role)
     {
         foreach (var stateId in StateService.ListIds(guild.Id, "ws-team-"))
         {
             var t = StateService.Get<WsTeam>(guild.Id, stateId);
-            if (t.BattleRoomChannelId == channel.Id
-                || t.AdmiralChannelId == channel.Id
-                || t.OrdersChannelId == channel.Id)
+            if (t.BattleRoomChannelId == channelId
+                || t.AdmiralChannelId == channelId
+                || t.OrdersChannelId == channelId)
             {
                 var r = guild.GetRole(t.RoleId);
                 if (r != null)
@@ -125,7 +125,16 @@ public static class WsLogic
             return;
         }
 
-        if (!team.Scanning)
+        var now = DateTime.UtcNow;
+        var endsOn = endsIn.AddToDateTime(now);
+
+        if (opponentName.Any(c => char.IsDigit(c)))
+        {
+            await channel.BotResponse("Opponent name cannot contain numbers: " + opponentName, ResponseType.error);
+            return;
+        }
+
+        /*if (!team.Scanning)
         {
             await channel.BotResponse(team.Name + " is not scanning yet! You must start scanning with `" + DiscordBot.CommandPrefix + "wsscan` first.", ResponseType.error);
             return;
@@ -135,13 +144,13 @@ public static class WsLogic
         {
             await channel.BotResponse(team.Name + " is already matched against " + team.Opponent + "!", ResponseType.error);
             return;
-        }
+        }*/
 
         ChangeWsTeam(guild.Id, ref team, t =>
         {
             t.Scanning = false;
             t.Opponent = opponentName.Trim();
-            t.EndsOn = endsIn.AddToDateTime(DateTime.UtcNow);
+            t.EndsOn = endsOn;
         });
 
         await (thread.ParentChannel as SocketTextChannel).SendMessageAsync(teamRole.Mention + " scan finished, our opponent is `" + team.Opponent + "`. Good luck!");

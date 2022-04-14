@@ -34,9 +34,9 @@ public class Trade : BaseModule
         await TradeLogic.AddSeller(Context.Guild, Context.Channel, CurrentUser, rsLevel, seller);
     }
 
-    [Command("add-rate")]
-    [Summary("add-rate <sellerLevel> <buyerLevel> <blueRate> <orbRate> <tetraRate> <mixRate>|add rate to a specific seller and buyer level")]
-    public async Task AddRate(int sellerLevel, int buyerLevel, double blueRate, double orbRate, double tetraRate, double mixRate)
+    [Command("set-rate")]
+    [Summary("set-rate <sellerLevel> <buyerLevel> <blueRate> <orbRate> <tetraRate> <mixRate>|add rate to a specific seller and buyer level")]
+    public async Task SetRate(int sellerLevel, int buyerLevel, double blueRate, double orbRate, double tetraRate, double mixRate, double internalMixRate)
     {
         await CleanupService.DeleteCommand(Context.Message);
         if (sellerLevel < 4 || sellerLevel > 12)
@@ -51,6 +51,6 @@ public class Trade : BaseModule
             return;
         }
 
-        await TradeLogic.AddRate(Context.Guild, Context.Channel, CurrentUser, sellerLevel, buyerLevel, blueRate, orbRate, tetraRate, mixRate);
+        await TradeLogic.SetRate(Context.Guild, Context.Channel, CurrentUser, sellerLevel, buyerLevel, blueRate, orbRate, tetraRate, mixRate, internalMixRate);
     }
 }

@@ -32,7 +32,7 @@ public static class TradeLogic
         }
     }
 
-    internal static async Task AddRate(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, int sellerLevel, int buyerLevel, double b, double o, double t, double x)
+    internal static async Task SetRate(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser user, int sellerLevel, int buyerLevel, double b, double o, double t, double x, double ix)
     {
         var alliance = AllianceLogic.GetAlliance(guild.Id);
         if (alliance == null)
@@ -61,6 +61,9 @@ public static class TradeLogic
 
         if (rsLevel.XRates == null)
             rsLevel.XRates = new double[12];
+
+        if (rsLevel.IXRates == null)
+            rsLevel.IXRates = new double[12];
 
         if (rsLevel.BRates.Length < buyerLevel)
         {
@@ -97,6 +100,15 @@ public static class TradeLogic
         }
 
         rsLevel.XRates[buyerLevel] = x;
+
+        if (rsLevel.IXRates.Length < buyerLevel)
+        {
+            var r = rsLevel.IXRates;
+            Array.Resize(ref r, buyerLevel + 1);
+            rsLevel.IXRates = r;
+        }
+
+        rsLevel.IXRates[buyerLevel] = ix;
 
         await channel.BotResponse("R" + buyerLevel.ToStr() + " -> R" + sellerLevel.ToStr() + " is registered rates registered.", ResponseType.success);
         StateService.Set(guild.Id, "trade-info", info);
@@ -146,13 +158,15 @@ public static class TradeLogic
                 var o = rsInfo.ORates != null && i < rsInfo.ORates.Length ? rsInfo.ORates[i] : 0.0d;
                 var t = rsInfo.TRates != null && i < rsInfo.TRates.Length ? rsInfo.TRates[i] : 0.0d;
                 var x = rsInfo.XRates != null && i < rsInfo.XRates.Length ? rsInfo.XRates[i] : 0.0d;
-                if (b != 0 || o != 0 || t != 0 || x != 0)
+                var ix = rsInfo.IXRates != null && i < rsInfo.IXRates.Length ? rsInfo.IXRates[i] : 0.0d;
+                if (b != 0 || o != 0 || t != 0 || x != 0 || ix != 0)
                 {
                     if (!hasRates)
                     {
                         sb
                             .Append("```")
-                            .AppendLine("ARTIFACT |BLUE| ORB| TET| MIX");
+                            .Append("ARTIFACT |BLUE| ORB| TET| MIX| ")
+                            .AppendLine(alliance.Abbreviation);
                         hasRates = true;
                     }
 
@@ -161,7 +175,8 @@ public static class TradeLogic
                         .Append((b != 0 ? b.ToString("F1", CultureInfo.InvariantCulture) : "-").PadLeft(5))
                         .Append((o != 0 ? o.ToString("F1", CultureInfo.InvariantCulture) : "-").PadLeft(5))
                         .Append((t != 0 ? t.ToString("F1", CultureInfo.InvariantCulture) : "-").PadLeft(5))
-                        .AppendLine((x != 0 ? x.ToString("F1", CultureInfo.InvariantCulture) : "-").PadLeft(5));
+                        .Append((x != 0 ? x.ToString("F1", CultureInfo.InvariantCulture) : "-").PadLeft(5))
+                        .AppendLine((ix != 0 ? ix.ToString("F1", CultureInfo.InvariantCulture) : "-").PadLeft(5));
                 }
             }
 
@@ -193,5 +208,6 @@ public static class TradeLogic
         public double[] ORates { get; set; } = new double[12];
         public double[] TRates { get; set; } = new double[12];
         public double[] XRates { get; set; } = new double[12];
+        public double[] IXRates { get; set; } = new double[12];
     }
 }

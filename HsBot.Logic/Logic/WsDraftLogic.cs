@@ -217,6 +217,8 @@ public static class WsDraftLogic
             channelIndex++;
 
             WsLogic.AddWsTeam(guild.Id, team);
+
+            await WsModLogic.ClassifyTeam(guild, battleRoom);
         }
 
         await HelpLogic.ShowAllianceInfo(guild, ch, alliance);
@@ -291,8 +293,7 @@ public static class WsDraftLogic
                 + "\n:point_right: close draft and create teams, ready to scan: `" + DiscordBot.CommandPrefix + "close-draft`"
                 + "\nAdding users to a team will remove them from all other teams automatically.")
             .WithColor(new Color(0, 255, 0))
-            .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl())
-            .WithCurrentTimestamp();
+            .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl());
 
         var userList = draft.OriginalSignup.CompetitiveUsers.Where(x => !draft.Contains(x)).ToList();
         if (userList.Count > 0)
