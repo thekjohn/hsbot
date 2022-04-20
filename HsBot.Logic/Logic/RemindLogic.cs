@@ -146,7 +146,7 @@ public static class RemindLogic
 
         StateService.Set(guild.Id, entry.GetStateId(), entry);
 
-        await channel.BotResponse("I will ping **" + teamRole.Name + "** here in " + entry.When.Subtract(now).ToIntervalStr() + " with the following message: `" + message + "`", ResponseType.successStay);
+        await channel.BotResponse("I will ping active members of **" + teamRole.Name + "** here in " + entry.When.Subtract(now).ToIntervalStr() + " with the following message: `" + message + "`", ResponseType.successStay);
     }
 
     public static async void SendRemindersThreadWorker()
@@ -197,6 +197,7 @@ public static class RemindLogic
                             var eb = new EmbedBuilder()
                                 .WithTitle("REMINDER")
                                 .AddField("Alliance", alliance.Name)
+                                .AddField("Channel", "https://discord.com/channels/" + guild.Id.ToStr() + "/" + entry.ChannelId.ToStr())
                                 .AddField("Message", entry.Message)
                                 .WithColor(Color.Red)
                                 .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl());
@@ -213,6 +214,16 @@ public static class RemindLogic
                         var role = guild.GetRole(entry.RoleId.Value);
                         if (role != null)
                         {
+                            var mentions = guild.Users
+                                .Where(x => x.Roles.Any(r => r.Id == role.Id) && !AfkLogic.IsUserAfk(guild, x))
+                                .Select(x => x as IMentionable)
+                                .ToList();
+
+                            var afkNames = guild.Users
+                                .Where(x => x.Roles.Any(r => r.Id == role.Id) && AfkLogic.IsUserAfk(guild, x))
+                                .Select(x => x.DisplayName)
+                                .ToList();
+
                             var eb = new EmbedBuilder()
                                 .WithTitle("REMINDER")
                                 .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "reminder")?.Url)
@@ -220,7 +231,12 @@ public static class RemindLogic
                                 .WithColor(Color.Red)
                                 .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl());
 
-                            var msg = ":point_down: " + role.Mention;
+                            var msg = string.Join(' ', mentions.Select(x => x.Mention));
+                            if (afkNames.Count > 0)
+                            {
+                                msg += "\nAFK: " + string.Join(' ', afkNames);
+                            }
+
                             await channel.SendMessageAsync(msg, embed: eb.Build());
                         }
                     }

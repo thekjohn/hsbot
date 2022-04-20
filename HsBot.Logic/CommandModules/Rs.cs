@@ -274,6 +274,7 @@ public class Rs : BaseModule
                 x.Id != user.Id
                 && x.Roles.Any(r => r.Id == threeOfFourRole.Id)
                 && x.Roles.Any(r => r.Id == rsQueueRoleId
+                && !AfkLogic.IsUserAfk(Context.Guild, x)
                 && !queue.Users.Contains(x.Id)));
 
             foreach (var usr in users)

@@ -53,6 +53,15 @@ public static class AfkLogic
         return entry;
     }
 
+    public static bool IsUserAfk(SocketGuild guild, SocketGuildUser user)
+    {
+        var entry = StateService.Get<AfkEntry>(guild.Id, "afk-user-" + user.Id);
+        if (entry == null)
+            return false;
+
+        return entry.EndsOn > DateTime.UtcNow;
+    }
+
     public static async Task<List<AfkEntry>> GetAfkList(SocketGuild guild)
     {
         var ids = StateService.ListIds(guild.Id, "afk-user-");

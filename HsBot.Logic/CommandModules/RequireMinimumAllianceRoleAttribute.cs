@@ -19,15 +19,10 @@ public class RequireMinimumAllianceRoleAttribute : PreconditionAttribute
         if (alliance == null)
             return Task.FromResult(PreconditionResult.FromSuccess());
 
-        var roleId = AllianceRole switch
-        {
-            AllianceRole.Greeter => alliance.GreeterRoleId,
-            _ => 0UL,
-        };
+        var roleId = alliance.GetAllianceRoleId(AllianceRole);
 
         var role = guildUser.Guild.GetRole(roleId);
-        if (role == null
-            || guildUser.RoleIds.Any(x => guildUser.Guild.GetRole(x).Position >= role.Position))
+        if (role == null || guildUser.RoleIds.Any(x => guildUser.Guild.GetRole(x).Position >= role.Position))
         {
             return Task.FromResult(PreconditionResult.FromSuccess());
         }
