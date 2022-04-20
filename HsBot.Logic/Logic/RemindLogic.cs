@@ -106,7 +106,7 @@ public static class RemindLogic
 
         StateService.Set(guild.Id, entry.GetStateId(), entry);
 
-        await channel.BotResponse("I will DM **" + user.DisplayName + "** in " + entry.When.Subtract(now).ToIntervalStr() + " with the following message: `" + message + "`", ResponseType.successStay);
+        await channel.SendMessageAsync(guild.Emotes.FirstOrDefault(x => x.Name == "reminder").GetReference() + " **" + user.DisplayName + "** in " + entry.When.Subtract(now).ToIntervalStr() + ": `" + message + "`");
     }
 
     internal static async Task AddReminderWS(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string when, string message)
@@ -146,7 +146,7 @@ public static class RemindLogic
 
         StateService.Set(guild.Id, entry.GetStateId(), entry);
 
-        await channel.BotResponse("I will ping active members of **" + teamRole.Name + "** here in " + entry.When.Subtract(now).ToIntervalStr() + " with the following message: `" + message + "`", ResponseType.successStay);
+        await channel.SendMessageAsync(guild.Emotes.FirstOrDefault(x => x.Name == "reminder").GetReference() + " **" + teamRole.Name + "** in " + entry.When.Subtract(now).ToIntervalStr() + ": `" + message + "`");
     }
 
     public static async void SendRemindersThreadWorker()
