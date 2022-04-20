@@ -9,7 +9,7 @@ public class Admin : BaseModule
     [Command("setmyname")]
     [Summary("setmyname <ingameName>|Set the ingame name of a user.")]
     [RequireMinimumAllianceRole(AllianceRole.Ally)]
-    public async Task SetMyName(string ingameName)
+    public async Task SetMyName([Remainder] string ingameName)
     {
         await CleanupService.DeleteCommand(Context.Message);
         await RoleLogic.SetMyName(Context.Guild, Context.Channel, CurrentUser, ingameName);
@@ -18,7 +18,7 @@ public class Admin : BaseModule
     [Command("setmycorp")]
     [Summary("setmycorp <corpName>|Set the ingame name of a user.")]
     [RequireMinimumAllianceRole(AllianceRole.Ally)]
-    public async Task SetMyCorp(string corpName)
+    public async Task SetMyCorp([Remainder] string corpName)
     {
         await CleanupService.DeleteCommand(Context.Message);
         await RoleLogic.SetMyCorp(Context.Guild, Context.Channel, CurrentUser, corpName);

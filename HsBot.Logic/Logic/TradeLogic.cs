@@ -165,13 +165,13 @@ public static class TradeLogic
                     {
                         sb
                             .Append("```")
-                            .Append("ARTIFACT |BLUE| ORB| TET| MIX| ")
+                            .Append("ART |BLUE| ORB| TET| MIX| ")
                             .AppendLine(alliance.Abbreviation);
                         hasRates = true;
                     }
 
                     sb
-                        .Append(("R" + i.ToStr()).PadRight(9))
+                        .Append(("R" + i.ToStr()).PadRight(4))
                         .Append((b != 0 ? b.ToString("F1", CultureInfo.InvariantCulture) : "-").PadLeft(5))
                         .Append((o != 0 ? o.ToString("F1", CultureInfo.InvariantCulture) : "-").PadLeft(5))
                         .Append((t != 0 ? t.ToString("F1", CultureInfo.InvariantCulture) : "-").PadLeft(5))

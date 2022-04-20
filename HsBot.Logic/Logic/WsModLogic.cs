@@ -128,7 +128,7 @@ public static class WsModLogic
             .Append("defense").Append(filterName != null ? " + " + filterName : "")
             .Append("```")
             .Append(GetModulesTable(guild, team,
-                new[] { "bs", "laser", "barrage", "blast", "omega", "warp", "teleport", "leap", "barrage", "suppress", "bond", "fortify", "emp" }
+                new[] { "bs", "laser", "barrage", "blast", "omega", "warp", "teleport", "leap", "barrier", "suppress", "bond", "fortify", "emp" }
                 , filterName))
             .Append("```");
 

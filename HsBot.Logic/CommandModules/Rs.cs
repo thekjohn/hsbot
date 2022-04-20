@@ -273,7 +273,8 @@ public class Rs : BaseModule
             var users = Context.Guild.Users.Where(x =>
                 x.Id != user.Id
                 && x.Roles.Any(r => r.Id == threeOfFourRole.Id)
-                && x.Roles.Any(r => r.Id == rsQueueRoleId));
+                && x.Roles.Any(r => r.Id == rsQueueRoleId
+                && !queue.Users.Contains(x.Id)));
 
             foreach (var usr in users)
             {
