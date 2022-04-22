@@ -418,15 +418,15 @@ public class Rs : BaseModule
                     if (mods != null)
                     {
                         if (mods.Rse)
-                            modList += guild.Emotes.FirstOrDefault(x => x.Name == "rse").GetReference();
+                            modList += guild.GetEmoteReference("rse");
                         if (mods.NoSanc)
-                            modList += guild.Emotes.FirstOrDefault(x => x.Name == "nosanc").GetReference();
+                            modList += guild.GetEmoteReference("nosanc");
                         if (mods.NoTele)
-                            modList += guild.Emotes.FirstOrDefault(x => x.Name == "notele").GetReference();
+                            modList += guild.GetEmoteReference("notele");
                         if (mods.Dart)
-                            modList += guild.Emotes.FirstOrDefault(x => x.Name == "dart").GetReference();
+                            modList += guild.GetEmoteReference("dart");
                         if (mods.Vengeance)
-                            modList += guild.Emotes.FirstOrDefault(x => x.Name == "vengeance").GetReference();
+                            modList += guild.GetEmoteReference("vengeance");
                         if (mods.Strong)
                             modList += "💪";
                     }
@@ -500,15 +500,15 @@ public class Rs : BaseModule
                     if (mods != null)
                     {
                         if (mods.Rse)
-                            modList += guild.Emotes.FirstOrDefault(x => x.Name == "rse").GetReference();
+                            modList += guild.GetEmoteReference("rse");
                         if (mods.NoSanc)
-                            modList += guild.Emotes.FirstOrDefault(x => x.Name == "nosanc").GetReference();
+                            modList += guild.GetEmoteReference("nosanc");
                         if (mods.NoTele)
-                            modList += guild.Emotes.FirstOrDefault(x => x.Name == "notele").GetReference();
+                            modList += guild.GetEmoteReference("notele");
                         if (mods.Dart)
-                            modList += guild.Emotes.FirstOrDefault(x => x.Name == "dart").GetReference();
+                            modList += guild.GetEmoteReference("dart");
                         if (mods.Vengeance)
-                            modList += guild.Emotes.FirstOrDefault(x => x.Name == "vengeance").GetReference();
+                            modList += guild.GetEmoteReference("vengeance");
                         if (mods.Strong)
                             modList += "💪";
                     }
@@ -597,11 +597,11 @@ public class Rs : BaseModule
         var sent = await channel.SendMessageAsync(embed: eb.Build());
         await sent.AddReactionsAsync(new IEmote[]
         {
-            guild.Emotes.FirstOrDefault(x =>x.Name == "rse"),
-            guild.Emotes.FirstOrDefault(x =>x.Name == "nosanc"),
-            guild.Emotes.FirstOrDefault(x =>x.Name == "notele"),
-            guild.Emotes.FirstOrDefault(x =>x.Name == "dart"),
-            guild.Emotes.FirstOrDefault(x =>x.Name == "vengeance"),
+            guild.Emotes.FirstOrDefault(x => x.Name == "rse"),
+            guild.Emotes.FirstOrDefault(x => x.Name == "nosanc"),
+            guild.Emotes.FirstOrDefault(x => x.Name == "notele"),
+            guild.Emotes.FirstOrDefault(x => x.Name == "dart"),
+            guild.Emotes.FirstOrDefault(x => x.Name == "vengeance"),
             new Emoji("💪"),
         });
 

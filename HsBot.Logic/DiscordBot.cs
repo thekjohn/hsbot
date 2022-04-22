@@ -247,7 +247,7 @@ public class DiscordBot
                         {
                             if (message.MentionedUsers.FirstOrDefault(x => x.Id == afk.UserId) is SocketGuildUser muser)
                             {
-                                await textChannel.BotResponse(muser.DisplayName + " is AFK for " + afk.EndsOn.Subtract(DateTime.UtcNow).ToIntervalStr() + ".", ResponseType.info);
+                                await textChannel.BotResponse(muser.DisplayName + " is unavailable for " + afk.EndsOn.Subtract(DateTime.UtcNow).ToIntervalStr() + ".", ResponseType.afk);
                             }
                         }
                     }

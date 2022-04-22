@@ -2,6 +2,14 @@
 
 internal static class SocketGuildExtensions
 {
+    public static string GetEmoteReference(this SocketGuild guild, string name)
+    {
+        var emote = guild.Emotes.FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.InvariantCultureIgnoreCase));
+        return emote != null
+            ? "<:" + emote.Name + ":" + emote.Id.ToStr() + ">"
+            : "unknown emote: `" + name + "`";
+    }
+
     public static IEmote GetEmote(this SocketGuild guild, string name)
     {
         var emote = guild.Emotes.FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.InvariantCultureIgnoreCase));

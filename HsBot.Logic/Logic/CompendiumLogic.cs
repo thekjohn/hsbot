@@ -77,6 +77,71 @@ public class CompendiumResponse
 {
     public CompendiumResponseMap map { get; set; }
     public CompendiumResponseModuleWithName[] array { get; set; }
+
+    public bool TestFilter(ModuleFilter filter, out int score)
+    {
+        score = 0;
+
+        if (filter == null)
+            return true;
+
+        if (map == null)
+            return false;
+
+        if ((array?.Length ?? 0) < 5)
+            return false;
+
+        var mapTypeProperties = typeof(CompendiumResponseMap).GetProperties();
+        foreach (var module in filter.Modules)
+        {
+            var property = Array.Find(mapTypeProperties, p => string.Equals(p.Name, module.Name, StringComparison.InvariantCultureIgnoreCase));
+            if (property == null)
+                continue;
+
+            var value = (CompendiumResponseModule)property.GetValue(map);
+            if (value == null)
+                return false;
+
+            if (value.level < module.Level)
+                return false;
+
+            score += value.ws;
+        }
+
+        return true;
+    }
+
+    public string GetClassification(ModuleFilter filter)
+    {
+        if (map == null)
+            return null;
+
+        var needShortNames = filter.Modules.Count > 1;
+        var twoCharShortNames = false;
+        if (needShortNames)
+        {
+            var shortNames = filter.Modules.Select(m => CompendiumResponseMap.GetShortName(m.Name)[0]).ToArray();
+            twoCharShortNames = shortNames.Distinct().Count() != shortNames.Length;
+        }
+
+        var modLevels = string.Join('/', filter.Modules.Select(m =>
+        {
+            var property = CompendiumResponseMap.GetByName(m.Name);
+            var level = (property?.GetValue(map) as CompendiumResponseModule)?.level ?? 0;
+
+            var shortName = "";
+            if (needShortNames)
+            {
+                shortName = CompendiumResponseMap.GetShortName(m.Name);
+                if (shortName.Length > 0)
+                    shortName = shortName[..(twoCharShortNames ? 2 : 1)];
+            }
+
+            return shortName + level.ToEmptyStr();
+        }));
+
+        return filter.Name + " (" + modLevels + ")";
+    }
 }
 
 public class CompendiumResponseMap

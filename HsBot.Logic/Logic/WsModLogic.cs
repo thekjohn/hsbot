@@ -35,35 +35,8 @@ public static class WsModLogic
                 .Append(entry.Name.PadRight(longestName))
                 .Append(' ')
                 .AppendJoin(", ", filters
-                    .Where(x => FilterMatches(entry, x))
-                    .Select(x =>
-                    {
-                        var needShortNames = x.Modules.Count > 1;
-                        var twoCharShortNames = false;
-                        if (needShortNames)
-                        {
-                            var shortNames = x.Modules.Select(m => CompendiumResponseMap.GetShortName(m.Name)[0]).ToArray();
-                            twoCharShortNames = shortNames.Distinct().Count() != shortNames.Length;
-                        }
-
-                        var modLevels = string.Join('/', x.Modules.Select(m =>
-                        {
-                            var property = CompendiumResponseMap.GetByName(m.Name);
-                            var level = (property?.GetValue(entry.Response.map) as CompendiumResponseModule)?.level ?? 0;
-
-                            var shortName = "";
-                            if (needShortNames)
-                            {
-                                shortName = CompendiumResponseMap.GetShortName(m.Name);
-                                if (shortName.Length > 0)
-                                    shortName = shortName[..(twoCharShortNames ? 2 : 1)];
-                            }
-
-                            return shortName + level.ToEmptyStr();
-                        }));
-
-                        return x.Name + " (" + modLevels + ")";
-                    }))
+                    .Where(filter => entry.Response.TestFilter(filter, out _))
+                    .Select(filter => entry.Response.GetClassification(filter)))
                 .AppendLine();
         }
 
@@ -264,7 +237,15 @@ public static class WsModLogic
 
         var allEntry = mains
             .Concat(alts)
-            .Where(entry => entry?.Name != null && FilterMatches(entry, filter))
+            .Where(entry =>
+            {
+                if (entry?.Name != null && entry.Response != null && entry.Response.TestFilter(filter, out var score))
+                {
+                    entry.Score = score;
+                    return true;
+                }
+                return false;
+            })
             .OrderBy(x =>
             {
                 if (filter != null)
@@ -276,34 +257,6 @@ public static class WsModLogic
             .ToList();
 
         return allEntry;
-    }
-
-    private static bool FilterMatches(Entry entry, ModuleFilter filter)
-    {
-        if (filter == null)
-            return true;
-
-        if ((entry.Response?.array?.Length ?? 0) < 5)
-            return false;
-
-        var mapTypeProperties = typeof(CompendiumResponseMap).GetProperties();
-        foreach (var module in filter.Modules)
-        {
-            var property = Array.Find(mapTypeProperties, p => string.Equals(p.Name, module.Name, StringComparison.InvariantCultureIgnoreCase));
-            if (property == null)
-                continue;
-
-            var value = (CompendiumResponseModule)property.GetValue(entry.Response.map);
-            if (value == null)
-                return false;
-
-            if (value.level < module.Level)
-                return false;
-
-            entry.Score += value.ws;
-        }
-
-        return true;
     }
 
     private static async Task DeleteTeamsOpsPanel(SocketGuild guild, WsTeam team)

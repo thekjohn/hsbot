@@ -241,9 +241,10 @@ public static class HelpLogic
             if (afk != null)
             {
                 sb
-                    .Append(" (AFK for **")
-                    .Append(afk.EndsOn.Subtract(now).ToIntervalStr())
-                    .Append("**)");
+                    .Append(' ')
+                    .Append(guild.GetEmoteReference("afk"))
+                    .Append(' ')
+                    .Append(afk.EndsOn.Subtract(now).ToIntervalStr());
             }
 
             var alts = alliance.Alts.Where(x => x.OwnerUserId == user.Id).ToList();
@@ -303,9 +304,10 @@ public static class HelpLogic
                 if (afk != null)
                 {
                     sb
-                        .Append(" (AFK for **")
-                        .Append(afk.EndsOn.Subtract(now).ToIntervalStr())
-                        .Append("**)");
+                        .Append(' ')
+                        .Append(guild.GetEmoteReference("afk"))
+                        .Append(' ')
+                        .Append(afk.EndsOn.Subtract(now).ToIntervalStr());
                 }
 
                 var alts = alliance.Alts.Where(x => x.OwnerUserId == user.Id).ToList();
@@ -390,7 +392,7 @@ public static class HelpLogic
         }
 
         if (afk != null)
-            eb.AddField("afk", "AFK for " + afk.EndsOn.Subtract(now).ToIntervalStr());
+            eb.AddField("afk", guild.GetEmoteReference("afk") + " " + afk.EndsOn.Subtract(now).ToIntervalStr());
 
         if (timeZone != null)
         {
@@ -436,9 +438,50 @@ public static class HelpLogic
             eb.AddField("alts", altsText);
         }
 
+        var tech = CompendiumLogic.GetUserData(guild.Id, user.Id);
+        if (tech != null)
+        {
+            eb.AddField("trade modules", BuildModuleList(tech, nameof(tech.map.dispatch), nameof(tech.map.relicdrone)));
+            eb.AddField("mining modules", BuildModuleList(tech, nameof(tech.map.miningboost), nameof(tech.map.hydrobay), nameof(tech.map.enrich), nameof(tech.map.remote), nameof(tech.map.miningunity), nameof(tech.map.crunch), nameof(tech.map.genesis)));
+            eb.AddField("weapon modules", BuildModuleList(tech, nameof(tech.map.battery), nameof(tech.map.laser), nameof(tech.map.mass), nameof(tech.map.barrage), nameof(tech.map.dart)));
+            eb.AddField("shield modules", BuildModuleList(tech, nameof(tech.map.delta), nameof(tech.map.omega), nameof(tech.map.blast), nameof(tech.map.area)));
+            eb.AddField("support modules", BuildModuleList(tech, nameof(tech.map.emp), nameof(tech.map.teleport), nameof(tech.map.warp), nameof(tech.map.unity), nameof(tech.map.stealth), nameof(tech.map.fortify), nameof(tech.map.impulse), nameof(tech.map.rocket), nameof(tech.map.suppress), nameof(tech.map.destiny), nameof(tech.map.barrier), nameof(tech.map.vengeance), nameof(tech.map.deltarocket), nameof(tech.map.leap), nameof(tech.map.bond), nameof(tech.map.omegarocket)));
+
+            var matchingFilters = ModuleFilterLogic.GetAllModuleFilters(guild.Id)
+                .Where(filter => tech.TestFilter(filter, out _))
+                .OrderBy(filter => filter.Name)
+                .ToList();
+
+            if (matchingFilters.Count > 0)
+                eb.AddField("classification", string.Join(' ', matchingFilters.Select(filter => tech.GetClassification(filter))));
+        }
+
         eb.WithFooter("This message will self-destruct in 30 seconds.");
 
         CleanupService.RegisterForDeletion(30,
             await channel.SendMessageAsync(null, embed: eb.Build()));
+    }
+
+    private static string BuildModuleList(CompendiumResponse response, params string[] modules)
+    {
+        var sb = new StringBuilder();
+        foreach (var moduleName in modules)
+        {
+            var property = CompendiumResponseMap.GetByName(moduleName);
+            var level = (property?.GetValue(response.map) as CompendiumResponseModule)?.level;
+            if (level == null)
+                continue;
+
+            if (sb.Length > 0)
+                sb.Append(' ');
+
+            var name = CompendiumResponseMap.GetShortName(moduleName);
+            sb.Append(name);
+            sb.Append(" (");
+            sb.Append(level.ToString());
+            sb.Append(')');
+        }
+
+        return sb.ToString();
     }
 }

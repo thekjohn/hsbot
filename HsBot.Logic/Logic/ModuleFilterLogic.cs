@@ -24,7 +24,8 @@ public static class ModuleFilterLogic
                     );
             }
 
-            await channel.SendMessageAsync(null, embed: eb.Build());
+            CleanupService.RegisterForDeletion(60,
+                await channel.SendMessageAsync(null, embed: eb.Build()));
         }
     }
 

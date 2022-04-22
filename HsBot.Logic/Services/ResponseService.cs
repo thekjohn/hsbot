@@ -1,10 +1,15 @@
 ﻿namespace HsBot.Logic;
 
-public enum ResponseType { successStay, success, error, errorStay, question, info, infoStay }
+public enum ResponseType { successStay, success, error, errorStay, question, info, infoStay, afk, afkStay }
 
 internal static class ResponseService
 {
     public static async Task BotResponse(this IMessageChannel channel, string message, ResponseType type, Embed embed = null)
+    {
+        await BotResponse(channel as SocketTextChannel, message, type, embed);
+    }
+
+    public static async Task BotResponse(this SocketTextChannel channel, string message, ResponseType type, Embed embed = null)
     {
         switch (type)
         {
@@ -31,6 +36,13 @@ internal static class ResponseService
                 break;
             case ResponseType.question:
                 await channel.SendMessageAsync(":grey_question: " + message, embed: embed);
+                break;
+            case ResponseType.afk:
+                CleanupService.RegisterForDeletion(10,
+                    await channel.SendMessageAsync(channel.Guild.GetEmoteReference("afk") + ' ' + message, embed: embed));
+                break;
+            case ResponseType.afkStay:
+                await channel.SendMessageAsync(channel.Guild.GetEmoteReference("afk") + ' ' + message, embed: embed);
                 break;
         }
     }

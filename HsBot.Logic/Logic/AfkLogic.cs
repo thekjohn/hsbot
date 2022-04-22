@@ -30,11 +30,11 @@ public static class AfkLogic
         var timeZone = TimeZoneLogic.GetUserTimeZone(guild.Id, user.Id);
         if (timeZone == null)
         {
-            await channel.BotResponse(user.DisplayName + " is AFK for " + entry.EndsOn.Subtract(now).ToIntervalStr() + "." + postMessage, ResponseType.infoStay);
+            await channel.BotResponse(user.DisplayName + " is unavailable for " + entry.EndsOn.Subtract(now).ToIntervalStr() + "." + postMessage, ResponseType.afkStay);
         }
         else
         {
-            await channel.BotResponse(user.DisplayName + " is AFK for " + entry.EndsOn.Subtract(now).ToIntervalStr() + ". Local time will be " + TimeZoneInfo.ConvertTimeFromUtc(entry.EndsOn, timeZone).ToString("yyyy.MM.dd HH:mm", CultureInfo.InvariantCulture) + " (" + timeZone.StandardName + ")." + postMessage, ResponseType.infoStay);
+            await channel.BotResponse(user.DisplayName + " is unavailable for " + entry.EndsOn.Subtract(now).ToIntervalStr() + ". Local time will be " + TimeZoneInfo.ConvertTimeFromUtc(entry.EndsOn, timeZone).ToString("yyyy.MM.dd HH:mm", CultureInfo.InvariantCulture) + " (" + timeZone.StandardName + ")." + postMessage, ResponseType.afkStay);
         }
     }
 
@@ -117,7 +117,7 @@ public static class AfkLogic
     {
         await RemoveAfk(guild, user);
 
-        await channel.BotResponse(user.DisplayName + " is no longer AFK. RS access enabled.", ResponseType.infoStay);
+        await channel.BotResponse(user.DisplayName + " is available again", ResponseType.afk);
     }
 
     public static async Task RemoveAfk(SocketGuild guild, SocketGuildUser user)
