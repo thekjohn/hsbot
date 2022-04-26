@@ -143,7 +143,7 @@ public class Rs : BaseModule
         var alliance = AllianceLogic.GetAlliance(guild.Id);
 
         await channel.SendMessageAsync(
-            ":question: " + text + " anyone?\n  (" + queue.Users.Count.ToStr() + "/4) :point_right: "
+            ":grey_question: " + text + " anyone?\n  (" + queue.Users.Count.ToStr() + "/4) :point_right: "
             + string.Join(" ", queue.Users
                 .Select(x => guild.GetUser(x))
                 .Where(x => x != null)

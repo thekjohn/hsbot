@@ -473,4 +473,13 @@ public class Admin : BaseModule
         await CompendiumLogic.SetCompendiumApiKey(Context.Guild, Context.Channel, CurrentUser, apiKey);
         await Context.Channel.BotResponse("Compendium API key is changed.", ResponseType.success);
     }
+
+    [Command("create-backup")]
+    [Summary("create-backup|create and upload a backup")]
+    [RequireUserPermission(GuildPermission.Administrator)]
+    public async Task CreateBackup()
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+        await BackupLogic.UploadBackupToChannel(Context.Guild, Context.Channel);
+    }
 }

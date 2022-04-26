@@ -67,6 +67,7 @@ public class DiscordBot
     {
         new Thread(MessageCleanupThreadWorker).Start();
         new Thread(RsCleanupThreadWorker).Start();
+        new Thread(BackupThreadWorker).Start();
         new Thread(RemindLogic.SendRemindersThreadWorker).Start();
         new Thread(WsSignupLogic.AutomaticallyCloseThreadWorker).Start();
         new Thread(WsLogic.NotifyThreadWorker).Start();
@@ -102,6 +103,31 @@ public class DiscordBot
             }
 
             Thread.Sleep(100);
+        }
+    }
+
+    private async void BackupThreadWorker()
+    {
+        var lastBackup = DateTime.UtcNow;
+
+        while (true)
+        {
+            var now = DateTime.UtcNow;
+            if (now.Date > lastBackup.Date)
+            {
+                foreach (var guild in Discord.Guilds)
+                {
+                    var logChannel = guild.GetTextChannel(StateService.Get<ulong>(guild.Id, "bot-log-channel"));
+                    if (logChannel != null)
+                    {
+                        await BackupLogic.UploadBackupToChannel(guild, logChannel);
+                    }
+                }
+
+                lastBackup = now;
+            }
+
+            Thread.Sleep(60000);
         }
     }
 
@@ -241,6 +267,8 @@ public class DiscordBot
                 if (user != null && message.MentionedUsers?.Count > 0)
                 {
                     var afkList = await AfkLogic.GetAfkList(textChannel.Guild);
+                    //var content = message.Content;
+                    //var contentChanged = false;
                     if (afkList != null)
                     {
                         foreach (var afk in afkList)
@@ -248,9 +276,18 @@ public class DiscordBot
                             if (message.MentionedUsers.FirstOrDefault(x => x.Id == afk.UserId) is SocketGuildUser muser)
                             {
                                 await textChannel.BotResponse(muser.DisplayName + " is unavailable for " + afk.EndsOn.Subtract(DateTime.UtcNow).ToIntervalStr() + ".", ResponseType.afk);
+                                //content = content.Replace(muser.Mention, muser.DisplayName, StringComparison.InvariantCultureIgnoreCase);
+                                //contentChanged = true;
                             }
                         }
                     }
+                    /*if (contentChanged)
+                    {
+                        await message.ModifyAsync(x =>
+                        {
+                            x.Content = content;
+                        });
+                    }*/
                 }
             }
 

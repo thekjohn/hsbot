@@ -24,6 +24,40 @@ public static class WsLogic
         await thread.BotResponse("Team's commitment level is successfully changed to " + commitmentLevel.ToString(), ResponseType.successStay);
     }
 
+    internal static async Task AlertWsTeam(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string message)
+    {
+        if (!GetWsTeamByChannel(guild, channel.Id, out _, out var teamRole))
+        {
+            await channel.BotResponse("You have to use this command in a WS battleroom!", ResponseType.error);
+            return;
+        }
+
+        var mentions = guild.Users
+            .Where(x => x.Roles.Any(r => r.Id == teamRole.Id) && !AfkLogic.IsUserAfk(guild, x))
+            .Select(x => x as IMentionable)
+            .ToList();
+
+        var afkNames = guild.Users
+            .Where(x => x.Roles.Any(r => r.Id == teamRole.Id) && AfkLogic.IsUserAfk(guild, x))
+            .Select(x => x.DisplayName)
+            .ToList();
+
+        var eb = new EmbedBuilder()
+            .WithTitle("ALERT")
+            .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "alert")?.Url)
+            .AddField(currentUser.DisplayName + " wrote", message)
+            .WithColor(Color.Red)
+            .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl());
+
+        var msg = string.Join(' ', mentions.Select(x => x.Mention));
+        if (afkNames.Count > 0)
+        {
+            msg += "\nAFK: " + string.Join(' ', afkNames);
+        }
+
+        await channel.SendMessageAsync(msg, embed: eb.Build());
+    }
+
     public static bool GetWsTeamByChannel(SocketGuild guild, ulong channelId, out WsTeam team, out SocketRole role)
     {
         foreach (var stateId in StateService.ListIds(guild.Id, "ws-team-"))

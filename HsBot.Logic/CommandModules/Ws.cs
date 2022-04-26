@@ -4,6 +4,15 @@
 [RequireContext(ContextType.Guild)]
 public class Ws : BaseModule
 {
+    [Command("alert")]
+    [Summary("alert <message>|alert the entire WS team with a message")]
+    [RequireMinimumAllianceRole(AllianceRole.WSGuest)]
+    public async Task AlertWsTeam([Remainder] string message)
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+        await WsLogic.AlertWsTeam(Context.Guild, Context.Channel, CurrentUser, message);
+    }
+
     [Command("remind")]
     [Summary("remind <who> <when> <message>|remind you about something at a given time\nex.: 'remind me 25m drone' or 'remind @User 2h16m drone'")]
     [RequireMinimumAllianceRole(AllianceRole.WSGuest)]

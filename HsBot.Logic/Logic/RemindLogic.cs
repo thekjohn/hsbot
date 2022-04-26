@@ -196,14 +196,11 @@ public static class RemindLogic
                         {
                             var eb = new EmbedBuilder()
                                 .WithTitle("REMINDER")
-                                .AddField("Alliance", alliance.Name)
-                                .AddField("Channel", "https://discord.com/channels/" + guild.Id.ToStr() + "/" + entry.ChannelId.ToStr())
-                                .AddField("Message", entry.Message)
+                                .WithThumbnailUrl(guild.Emotes.FirstOrDefault(x => x.Name == "reminder")?.Url)
+                                .AddField(alliance.Name, "https://discord.com/channels/" + guild.Id.ToStr() + "/" + entry.ChannelId.ToStr())
+                                .AddField(registrator?.DisplayName ?? "Message", entry.Message)
                                 .WithColor(Color.Red)
                                 .WithFooter(DiscordBot.FunFooter, guild.CurrentUser.GetAvatarUrl());
-
-                            if (registrator != null)
-                                eb.AddField("Sender", registrator.DisplayName);
 
                             await user.SendMessageAsync(embed: eb.Build());
                         }
