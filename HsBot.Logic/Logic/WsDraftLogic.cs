@@ -76,7 +76,7 @@ public static class WsDraftLogic
         foreach (var team in draft.Teams)
         {
             var cnt = team.Members.Mains.Count + team.Members.Alts.Count;
-            if (cnt != 5 && cnt != 10 && cnt != 15)
+            if (cnt is not 5 and not 10 and not 15)
             {
                 await channel.BotResponse("Cannot close draft because all teams must have 5, 10 or 15 members.", ResponseType.error);
                 return;
@@ -188,7 +188,7 @@ public static class WsDraftLogic
             var maxDuration = ThreadArchiveDuration.OneDay;
             if (guild.PremiumTier == PremiumTier.Tier1)
                 maxDuration = ThreadArchiveDuration.ThreeDays;
-            else if (guild.PremiumTier == PremiumTier.Tier2 || guild.PremiumTier == PremiumTier.Tier3)
+            else if (guild.PremiumTier is PremiumTier.Tier2 or PremiumTier.Tier3)
                 maxDuration = ThreadArchiveDuration.OneWeek;
 
             var ordersMsg = await battleRoom.SendMessageAsync("Orders will be posted in the #orders thread."

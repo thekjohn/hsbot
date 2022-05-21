@@ -72,7 +72,7 @@ public static class CompendiumLogic
         return StateService.Get<CompendiumResponse>(guildId, "compendium-" + userId.ToStr());
     }
 }
-
+#pragma warning disable IDE1006 // Naming Styles
 public class CompendiumResponse
 {
     public CompendiumResponseMap map { get; set; }
@@ -339,3 +339,4 @@ public class ModuleNameAttribute : Attribute
         ShortName = shortName;
     }
 }
+#pragma warning restore IDE1006 // Naming Styles

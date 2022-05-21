@@ -4,15 +4,6 @@
 [RequireContext(ContextType.Guild)]
 public class Ws : BaseModule
 {
-    [Command("wssutest")]
-    [Summary("wssutest")]
-    [RequireMinimumAllianceRole(AllianceRole.WSGuest)]
-    public async Task wssutest()
-    {
-        await CleanupService.DeleteCommand(Context.Message);
-        await WsSignupLogic.RepostSignupWhenAllTeamsMatched(Context.Guild);
-    }
-
     [Command("alert")]
     [Summary("alert <message>|alert the entire WS team with a message")]
     [RequireMinimumAllianceRole(AllianceRole.WSGuest)]

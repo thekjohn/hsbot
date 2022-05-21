@@ -25,7 +25,7 @@ public class Trade : BaseModule
             return;
         }
 
-        if (rsLevel < 4 || rsLevel > 12)
+        if (rsLevel is < 4 or > 12)
         {
             await Context.Channel.BotResponse("Level must be between 4 and 12.", ResponseType.error);
             return;
@@ -39,13 +39,13 @@ public class Trade : BaseModule
     public async Task SetRate(int sellerLevel, int buyerLevel, double blueRate, double orbRate, double tetraRate, double mixRate, double internalMixRate)
     {
         await CleanupService.DeleteCommand(Context.Message);
-        if (sellerLevel < 4 || sellerLevel > 12)
+        if (sellerLevel is < 4 or > 12)
         {
             await Context.Channel.BotResponse("Seller level must be between 4 and 12.", ResponseType.error);
             return;
         }
 
-        if (buyerLevel < 4 || buyerLevel > 12)
+        if (buyerLevel is < 4 or > 12)
         {
             await Context.Channel.BotResponse("Buyer level must be between 4 and 12.", ResponseType.error);
             return;
