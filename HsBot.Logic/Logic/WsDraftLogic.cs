@@ -166,7 +166,7 @@ public static class WsDraftLogic
                     ));
             }
 
-            await AnnounceWS(guild, channel, teamRole.Name + " is ready, please head to " + corp.FullName + " (" + corp.Abbreviation + ") for scan!", embed: eb.Build());
+            await AnnounceWS(guild, channel, teamRole.Name + " is ready, please head to " + corp.FullName + " (" + corp.CurrentRelicCount.ToStr() + " relics) for scan!", embed: eb.Build());
 
             var battleRoom = await guild.CreateTextChannelAsync(teamRole.Name.ToLower(), f =>
             {
@@ -182,7 +182,7 @@ public static class WsDraftLogic
             if (compendiumRole != null)
                 await battleRoom.AddPermissionOverwriteAsync(compendiumRole, new OverwritePermissions(viewChannel: PermValue.Allow, sendMessages: PermValue.Allow));
 
-            await battleRoom.SendMessageAsync(teamRole.Name + " battleroom is ready, please head to " + corp.FullName + " (" + corp.Abbreviation + ") for scan!",
+            await battleRoom.SendMessageAsync(teamRole.Name + " battleroom is ready, please head to " + corp.FullName + " (" + corp.CurrentRelicCount.ToStr() + ") for scan!",
                 embed: eb.Build());
 
             var maxDuration = ThreadArchiveDuration.OneDay;

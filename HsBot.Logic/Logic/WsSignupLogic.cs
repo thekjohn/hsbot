@@ -4,11 +4,47 @@ public static class WsSignupLogic
 {
     private static readonly List<AccountSelectionEntry> _accountSelectionEntries = new();
 
-    internal static async Task StartNew(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, DateTime endsOn)
+    public static async Task RepostSignupWhenAllTeamsMatched(SocketGuild guild)
+    {
+        if (HasAnyActiveSignup(guild.Id))
+            return;
+
+        var teamIds = StateService.ListIds(guild.Id, "ws-team-");
+        foreach (var teamId in teamIds)
+        {
+            var team = StateService.Get<WsTeam>(guild.Id, teamId);
+            if (team != null && string.IsNullOrEmpty(team.Opponent))
+                return;
+        }
+
+        var alliance = AllianceLogic.GetAlliance(guild.Id);
+        if (alliance == null)
+            return;
+
+        var channel = guild.GetTextChannel(alliance.WsSignupChannelId);
+        if (channel == null)
+        {
+            // todo: log error
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var diff = (7 + (now.DayOfWeek - DayOfWeek.Monday)) % 7;
+        var endsOn = now
+            .AddDays(-1 * diff).Date // Monday 00:00
+            .AddDays(6) // Sunday 00:00
+            .AddHours(7); // Sunday 07:00
+
+        await StartNew(guild, endsOn);
+    }
+
+    internal static async Task StartNew(SocketGuild guild, DateTime endsOn)
     {
         var alliance = AllianceLogic.GetAlliance(guild.Id);
         if (alliance == null)
             return;
+
+        var channel = guild.GetTextChannel(alliance.WsSignupChannelId);
 
         var now = DateTime.UtcNow;
         var signup = new WsSignup()
@@ -28,20 +64,24 @@ public static class WsSignupLogic
             await channel.SendMessageAsync(memberRole.Mention + " New signup form is online, we count on you! :point_down:");
         }
 
-        await ShowSignupInfo(guild, channel, currentUser);
+        await ShowSignupInfo(guild);
 
-        await RepostSignups(guild, channel, currentUser);
+        await RepostSignups(guild);
     }
 
-    internal static async Task RepostSignups(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
+    internal static bool HasAnyActiveSignup(ulong guildId)
     {
-        if (currentUser != null && !AllianceLogic.IsMember(guild.Id, currentUser))
-        {
-            await channel.BotResponse("Only alliance members can use this command.", ResponseType.error);
-            return;
-        }
+        var signupStateIds = StateService.ListIds(guildId, "ws-signup-active-");
+        return signupStateIds.Length > 0;
+    }
 
+    internal static async Task RepostSignups(SocketGuild guild)
+    {
         var alliance = AllianceLogic.GetAlliance(guild.Id);
+        if (alliance == null)
+            return;
+
+        var channel = guild.GetTextChannel(alliance.WsSignupChannelId);
 
         var ids = StateService.ListIds(guild.Id, "ws-signup-active-");
         foreach (var signupStateId in ids)
@@ -228,12 +268,15 @@ public static class WsSignupLogic
             if (signup == null)
                 continue;
 
-            var content = BuildSignupContent(guild, signup, alliance);
-
             if (signup.MessageId != messageId)
                 continue;
 
+            var content = BuildSignupContent(guild, signup, alliance);
             var sent = await channel.ModifyMessageAsync(messageId, x => x.Embed = content);
+
+            if (signup.EndsOn < DateTime.UtcNow)
+                await sent.RemoveAllReactionsAsync();
+
             /*await sent.RemoveAllReactionsAsync();
             sent = await channel.GetMessageAsync(messageId) as IUserMessage;
             await sent.AddReactionsAsync(new IEmote[]
@@ -397,7 +440,7 @@ public static class WsSignupLogic
 
         if (signup.EndsOn <= DateTime.UtcNow)
         {
-            await RepostSignups(guild, reaction.Channel, guild.GetUser(reaction.UserId));
+            await RepostSignups(guild);
             await reaction.Channel.BotResponse("Signup is already closed!", ResponseType.error);
             return;
         }
@@ -514,8 +557,14 @@ public static class WsSignupLogic
         await RefreshSignup(guild, channel, signup.MessageId);
     }
 
-    internal static async Task ShowSignupInfo(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
+    internal static async Task ShowSignupInfo(SocketGuild guild)
     {
+        var alliance = AllianceLogic.GetAlliance(guild.Id);
+        if (alliance == null)
+            return;
+
+        var channel = guild.GetTextChannel(alliance.WsSignupChannelId);
+
         var eb = new EmbedBuilder()
             .WithTitle("WS signup info")
             .WithColor(Color.Magenta)
@@ -615,7 +664,7 @@ public static class WsSignupLogic
 
         var eb = new EmbedBuilder()
             .WithTitle(":point_right: " + user.DisplayName + "'s accounts")
-            .WithDescription("Use the reactions to sign up all or one of your accoutns.\n\n" + description.ToString())
+            .WithDescription("Use the reactions to sign up all or one of your accounts.\n\n" + description.ToString())
             .WithColor(Color.Red)
             .WithFooter("This message will self-destruct in 30 seconds.");
 

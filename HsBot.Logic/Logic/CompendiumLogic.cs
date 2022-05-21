@@ -92,20 +92,19 @@ public class CompendiumResponse
             return false;
 
         var mapTypeProperties = typeof(CompendiumResponseMap).GetProperties();
-        foreach (var module in filter.Modules)
+        foreach (var filterModule in filter.Modules)
         {
-            var property = Array.Find(mapTypeProperties, p => string.Equals(p.Name, module.Name, StringComparison.InvariantCultureIgnoreCase));
+            var property = Array.Find(mapTypeProperties, p => string.Equals(p.Name, filterModule.Name, StringComparison.InvariantCultureIgnoreCase));
             if (property == null)
                 continue;
 
             var value = (CompendiumResponseModule)property.GetValue(map);
-            if (value == null)
+            var level = value?.level ?? 0;
+
+            if (level < filterModule.Level)
                 return false;
 
-            if (value.level < module.Level)
-                return false;
-
-            score += value.ws;
+            score += value?.ws ?? 0;
         }
 
         return true;

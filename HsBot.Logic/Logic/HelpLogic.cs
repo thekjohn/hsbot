@@ -439,13 +439,23 @@ public static class HelpLogic
         }
 
         var tech = CompendiumLogic.GetUserData(guild.Id, user.Id);
-        if (tech != null)
+        if (tech?.map != null)
         {
-            eb.AddField("trade modules", BuildModuleList(tech, nameof(tech.map.dispatch), nameof(tech.map.relicdrone)));
-            eb.AddField("mining modules", BuildModuleList(tech, nameof(tech.map.miningboost), nameof(tech.map.hydrobay), nameof(tech.map.enrich), nameof(tech.map.remote), nameof(tech.map.miningunity), nameof(tech.map.crunch), nameof(tech.map.genesis)));
-            eb.AddField("weapon modules", BuildModuleList(tech, nameof(tech.map.battery), nameof(tech.map.laser), nameof(tech.map.mass), nameof(tech.map.barrage), nameof(tech.map.dart)));
-            eb.AddField("shield modules", BuildModuleList(tech, nameof(tech.map.delta), nameof(tech.map.omega), nameof(tech.map.blast), nameof(tech.map.area)));
-            eb.AddField("support modules", BuildModuleList(tech, nameof(tech.map.emp), nameof(tech.map.teleport), nameof(tech.map.warp), nameof(tech.map.unity), nameof(tech.map.stealth), nameof(tech.map.fortify), nameof(tech.map.impulse), nameof(tech.map.rocket), nameof(tech.map.suppress), nameof(tech.map.destiny), nameof(tech.map.barrier), nameof(tech.map.vengeance), nameof(tech.map.deltarocket), nameof(tech.map.leap), nameof(tech.map.bond), nameof(tech.map.omegarocket)));
+            var ml = BuildModuleList(tech, nameof(tech.map.dispatch), nameof(tech.map.relicdrone));
+            if (!string.IsNullOrEmpty(ml))
+                eb.AddField("trade modules", ml);
+            ml = BuildModuleList(tech, nameof(tech.map.miningboost), nameof(tech.map.hydrobay), nameof(tech.map.enrich), nameof(tech.map.remote), nameof(tech.map.miningunity), nameof(tech.map.crunch), nameof(tech.map.genesis));
+            if (!string.IsNullOrEmpty(ml))
+                eb.AddField("mining modules", ml);
+            ml = BuildModuleList(tech, nameof(tech.map.battery), nameof(tech.map.laser), nameof(tech.map.mass), nameof(tech.map.barrage), nameof(tech.map.dart));
+            if (!string.IsNullOrEmpty(ml))
+                eb.AddField("weapon modules", ml);
+            ml = BuildModuleList(tech, nameof(tech.map.delta), nameof(tech.map.omega), nameof(tech.map.blast), nameof(tech.map.area));
+            if (!string.IsNullOrEmpty(ml))
+                eb.AddField("shield modules", ml);
+            ml = BuildModuleList(tech, nameof(tech.map.emp), nameof(tech.map.teleport), nameof(tech.map.warp), nameof(tech.map.unity), nameof(tech.map.stealth), nameof(tech.map.fortify), nameof(tech.map.impulse), nameof(tech.map.rocket), nameof(tech.map.suppress), nameof(tech.map.destiny), nameof(tech.map.barrier), nameof(tech.map.vengeance), nameof(tech.map.deltarocket), nameof(tech.map.leap), nameof(tech.map.bond), nameof(tech.map.omegarocket));
+            if (!string.IsNullOrEmpty(ml))
+                eb.AddField("support modules", ml);
 
             var matchingFilters = ModuleFilterLogic.GetAllModuleFilters(guild.Id)
                 .Where(filter => tech.TestFilter(filter, out _))

@@ -10,7 +10,7 @@ public class WsDraft : BaseModule
     public async Task ShowSignup()
     {
         await CleanupService.DeleteCommand(Context.Message);
-        await WsSignupLogic.RepostSignups(Context.Guild, Context.Channel, CurrentUser);
+        await WsSignupLogic.RepostSignups(Context.Guild);
     }
 
     [Command("draft-add-team")]
@@ -76,7 +76,7 @@ public class WsDraft : BaseModule
     {
         await CleanupService.DeleteCommand(Context.Message);
 
-        if (operation != "add" && operation != "remove")
+        if (operation is not "add" and not "remove")
         {
             await Context.Channel.BotResponse("Operation must be `add` or `remove`.", ResponseType.error);
             return;
@@ -170,6 +170,6 @@ public class WsDraft : BaseModule
     public async Task ShowSignupInfo()
     {
         await CleanupService.DeleteCommand(Context.Message);
-        await WsSignupLogic.ShowSignupInfo(Context.Guild, Context.Channel, CurrentUser);
+        await WsSignupLogic.ShowSignupInfo(Context.Guild);
     }
 }

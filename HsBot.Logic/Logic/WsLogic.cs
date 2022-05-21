@@ -33,12 +33,12 @@ public static class WsLogic
         }
 
         var mentions = guild.Users
-            .Where(x => x.Roles.Any(r => r.Id == teamRole.Id) && !AfkLogic.IsUserAfk(guild, x))
+            .Where(x => x.Id != currentUser.Id && x.Roles.Any(r => r.Id == teamRole.Id) && !AfkLogic.IsUserAfk(guild, x))
             .Select(x => x as IMentionable)
             .ToList();
 
         var afkNames = guild.Users
-            .Where(x => x.Roles.Any(r => r.Id == teamRole.Id) && AfkLogic.IsUserAfk(guild, x))
+            .Where(x => x.Id != currentUser.Id && x.Roles.Any(r => r.Id == teamRole.Id) && AfkLogic.IsUserAfk(guild, x))
             .Select(x => x.DisplayName)
             .ToList();
 
@@ -186,6 +186,8 @@ public static class WsLogic
             t.Opponent = opponentName.Trim();
             t.EndsOn = endsOn;
         });
+
+        await WsSignupLogic.RepostSignupWhenAllTeamsMatched(guild);
 
         await (thread.ParentChannel as SocketTextChannel).SendMessageAsync(teamRole.Mention + " scan finished, our opponent is `" + team.Opponent + "`. Good luck!");
         await thread.SendMessageAsync(":information_source: Use the " + (thread.ParentChannel as SocketTextChannel).Threads.FirstOrDefault(x => x.Name == "orders").Mention + " channel to give orders to the team!");

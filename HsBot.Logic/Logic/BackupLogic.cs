@@ -17,6 +17,6 @@ public static class BackupLogic
             return;
         }
 
-        await channel.SendFileAsync(fileName, "jarvis_backup_" + now.ToString("yyyy_MM_dd_HH_mm_ss_fff", CultureInfo.InvariantCulture) + ".zip");
+        await channel.SendFileAsync(fileName, "jarvis backup");
     }
 }

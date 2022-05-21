@@ -288,6 +288,20 @@ public class Admin : BaseModule
         await Context.Channel.BotResponse("WS draft channel changed: " + channel.Name, ResponseType.success);
     }
 
+    [Command("set-ws-signup-channel")]
+    [Summary("set-ws-signup-channel <channel>|set ws signup chat channel")]
+    [RequireUserPermission(GuildPermission.Administrator)]
+    public async Task SetWsSignupChannel(SocketTextChannel channel)
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+
+        var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+        alliance.WsSignupChannelId = channel.Id;
+        AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+        await Context.Channel.BotResponse("WS signup channel changed: " + channel.Name, ResponseType.success);
+    }
+
     [Command("set-ws-announce-channel")]
     [Summary("set-ws-announce-channel <channel>|set ws announcement chat channel")]
     [RequireUserPermission(GuildPermission.Administrator)]
@@ -341,7 +355,7 @@ public class Admin : BaseModule
     public async Task StartWsSignup(string endsFromNow)
     {
         await CleanupService.DeleteCommand(Context.Message);
-        await WsSignupLogic.StartNew(Context.Guild, Context.Channel, CurrentUser, endsFromNow.AddToDateTime(DateTime.UtcNow));
+        await WsSignupLogic.StartNew(Context.Guild, endsFromNow.AddToDateTime(DateTime.UtcNow));
     }
 
     [Command("timezone-list")]

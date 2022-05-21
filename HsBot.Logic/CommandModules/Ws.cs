@@ -4,6 +4,15 @@
 [RequireContext(ContextType.Guild)]
 public class Ws : BaseModule
 {
+    [Command("wssutest")]
+    [Summary("wssutest")]
+    [RequireMinimumAllianceRole(AllianceRole.WSGuest)]
+    public async Task wssutest()
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+        await WsSignupLogic.RepostSignupWhenAllTeamsMatched(Context.Guild);
+    }
+
     [Command("alert")]
     [Summary("alert <message>|alert the entire WS team with a message")]
     [RequireMinimumAllianceRole(AllianceRole.WSGuest)]
@@ -153,17 +162,6 @@ public class Ws : BaseModule
     {
         await CleanupService.DeleteCommand(Context.Message);
         await WsModLogic.WsModDefense(Context.Guild, Context.Channel, CurrentUser, filterName);
-    }
-
-    [Command("wsmod-rocket")]
-    [Alias("rocket")]
-    [Summary("rocket [filterName]|list the rocket modules of the team. filter is optional.")]
-    [RequireMinimumAllianceRole(AllianceRole.Admiral)]
-    public async Task WsModRocket(string filterName = null)
-    {
-        await CleanupService.DeleteCommand(Context.Message);
-
-        await WsModLogic.WsModRocket(Context.Guild, Context.Channel, CurrentUser, filterName);
     }
 
     [Command("wsclassify")]

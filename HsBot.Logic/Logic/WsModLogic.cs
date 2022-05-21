@@ -35,7 +35,7 @@ public static class WsModLogic
                 .Append(entry.Name.PadRight(longestName))
                 .Append(' ')
                 .AppendJoin(", ", filters
-                    .Where(filter => entry.Response.TestFilter(filter, out _))
+                    .Where(filter => filter.Modules.Any(x => x.Level > 0) && entry.Response.TestFilter(filter, out _))
                     .Select(filter => entry.Response.GetClassification(filter)))
                 .AppendLine();
         }
@@ -113,37 +113,6 @@ public static class WsModLogic
         });
     }
 
-    internal static async Task WsModRocket(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, string filterName)
-    {
-        var alliance = AllianceLogic.GetAlliance(guild.Id);
-        if (alliance == null)
-            return;
-
-        if (!WsLogic.GetWsTeamByChannel(guild, channel.Id, out var team, out var teamRole))
-        {
-            await channel.BotResponse("You have to use this command in a WS battleroom!", ResponseType.error);
-            return;
-        }
-
-        await DeleteTeamsOpsPanel(guild, team);
-
-        var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
-        var sb = new StringBuilder()
-            .Append("rocket").Append(filterName != null ? " + " + filterName : "")
-            .Append("```")
-            .Append(GetModulesTable(guild, team,
-                new[] { "bs", "rocket", "deltarocket", "omegarocket", "warp", "delta", "omega", "blast", "impulse", "teleport" }
-                , filterName))
-            .Append("```");
-
-        var sent = await channel.SendMessageAsync(sb.ToString());
-        WsLogic.ChangeWsTeam(guild.Id, ref team, t =>
-        {
-            t.OpsPanelChannelId = channel.Id;
-            t.OpsPanelMessageId = sent.Id;
-        });
-    }
-
     internal static string GetModulesTable(SocketGuild guild, WsTeam team, string[] moduleNames, string filterName)
     {
         var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
@@ -163,6 +132,13 @@ public static class WsModLogic
                 moduleNames.Where(x => !filter.Modules.Any(m => string.Equals(m.Name, x, StringComparison.InvariantCultureIgnoreCase)))
                 )
                 .ToArray();
+        }
+
+        if (filter != null)
+        {
+            sb
+                .Append("score")
+                .Append(' ');
         }
 
         foreach (var moduleName in moduleNames)
@@ -185,6 +161,13 @@ public static class WsModLogic
             {
                 sb.AppendLine();
                 continue;
+            }
+
+            if (filter != null)
+            {
+                sb
+                    .Append(entry.Score.ToStr().PadLeft(5))
+                    .Append(' ');
             }
 
             foreach (var moduleName in moduleNames)
@@ -246,13 +229,8 @@ public static class WsModLogic
                 }
                 return false;
             })
-            .OrderBy(x =>
-            {
-                if (filter != null)
-                    return -x.Score;
-
-                return (x.Response?.array?.Length ?? 0) >= 5 ? 0 : 1;
-            })
+            .OrderBy(x => (x.Response?.array?.Length ?? 0) >= 5 ? 0 : 1)
+            .ThenBy(x => -x.Score)
             .ThenBy(x => x.Name)
             .ToList();
 
