@@ -69,7 +69,7 @@ public class Ws : BaseModule
     [Command("wsresults")]
     [Summary("wsresults <name>|list the previous results of a WS team/opponent/member")]
     [RequireMinimumAllianceRole(AllianceRole.Member)]
-    public async Task ShowWsResultsOfTeam(string name)
+    public async Task ShowWsResultsOfTeam([Remainder] string name)
     {
         await CleanupService.DeleteCommand(Context.Message);
         await WsResultsLogic.ShowWsResults(Context.Guild, Context.Channel, name);

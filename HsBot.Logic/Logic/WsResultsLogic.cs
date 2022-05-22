@@ -54,6 +54,14 @@ public static class WsResultsLogic
 
     private static async Task ShowWsResults(ISocketMessageChannel channel, List<WsResult> results, string displayName)
     {
+        if (results.Count == 0)
+        {
+            CleanupService.RegisterForDeletion(60,
+                await channel.SendMessageAsync("No WS records found for `" + displayName + "`"));
+
+            return;
+        }
+
         var batchSize = 20;
         var batchCount = (results.Count / batchSize) + (results.Count % batchSize == 0 ? 0 : 1);
         for (var batch = 0; batch < batchCount; batch++)

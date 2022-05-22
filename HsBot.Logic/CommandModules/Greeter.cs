@@ -57,7 +57,7 @@ public class Greeter : BaseModule
     [Command("demote")]
     [Summary("demote <userName>|remove all roles and add guest role")]
     [RequireMinimumAllianceRole(AllianceRole.Greeter)]
-    public async Task DemoteToGuest(string userName)
+    public async Task DemoteToGuest([Remainder] string userName)
     {
         await CleanupService.DeleteCommand(Context.Message);
 
