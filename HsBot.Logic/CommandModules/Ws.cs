@@ -155,14 +155,29 @@ public class Ws : BaseModule
         await WsModLogic.WsModDefense(Context.Guild, Context.Channel, CurrentUser, filterName);
     }
 
-    [Command("wsclassify")]
-    [Summary("wsclassify|list members of the WS team and all the module filters they match")]
+    [Command("classify")]
+    [Summary("classify|list members of the WS team and all the module filters they match")]
     [RequireMinimumAllianceRole(AllianceRole.Admiral)]
     public async Task WsClassify()
     {
         await CleanupService.DeleteCommand(Context.Message);
-
         await WsModLogic.ClassifyTeam(Context.Guild, Context.Channel);
+    }
+
+    [Command("classify")]
+    [Summary("classify <roleName>|list members of a role and all the module filters they match")]
+    [RequireMinimumAllianceRole(AllianceRole.Admiral)]
+    public async Task RoleClassify(string roleName)
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+        var role = Context.Guild.FindRole(roleName);
+        if (role == null)
+        {
+            await Context.Channel.BotResponse("Unknown role: " + role, ResponseType.error);
+            return;
+        }
+
+        await WsModLogic.ClassifyRole(Context.Guild, Context.Channel, role);
     }
 
     [Command("mfadd")]

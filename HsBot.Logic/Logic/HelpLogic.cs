@@ -415,7 +415,10 @@ public static class HelpLogic
                     var altUser = guild.GetUser(alt.AltUserId.Value);
                     if (altUser != null)
                     {
-                        altsText += altUser.Mention;
+                        altsText += altUser.GetPermissions(channel as IGuildChannel).ViewChannel
+                            ? altUser.Mention
+                            : altUser.DisplayName;
+
                         var relevantAltRoles = GetRelevantRsWsRoles(altUser);
                         if (relevantAltRoles.Count > 0)
                         {

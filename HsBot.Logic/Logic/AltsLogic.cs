@@ -58,7 +58,7 @@ public static class AltsLogic
                 (alts.Count > 0
                     ? "React with a number to remove an alt, or use "
                     : "Use ")
-                + "`" + DiscordBot.CommandPrefix + "addalt <altname>` to add a new alt. If your alt has a discord account, you should use `.addalt @<altdiscordaccount>` mention for better bot experience in the future."
+                + "`" + DiscordBot.CommandPrefix + "addalt <altname>` to add a new alt. If your alt has a discord account, you should use `" + DiscordBot.CommandPrefix + "addalt @<altdiscordaccount>` mention for better bot experience in the future."
                 + "\n\n" + description.ToString())
             : eb.WithDescription(description.ToString());
 

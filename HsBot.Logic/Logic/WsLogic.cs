@@ -104,6 +104,18 @@ public static class WsLogic
         return false;
     }
 
+    public static WsTeam GetWsTeamByRole(ulong guildId, SocketRole role)
+    {
+        foreach (var stateId in StateService.ListIds(guildId, "ws-team-"))
+        {
+            var t = StateService.Get<WsTeam>(guildId, stateId);
+            if (t.RoleId == role.Id)
+                return t;
+        }
+
+        return null;
+    }
+
     public static async Task WsTeamScanning(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser)
     {
         var alliance = AllianceLogic.GetAlliance(guild.Id);
