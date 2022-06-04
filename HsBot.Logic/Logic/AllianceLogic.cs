@@ -44,6 +44,7 @@ public static class AllianceLogic
         public ulong WsSignupChannelId { get; set; }
         public ulong WsDraftChannelId { get; set; }
         public ulong WsAnnounceChannelId { get; set; }
+        public ulong RsEventLogChannelId { get; set; }
         public string GuestIcon { get; set; } = ":bust_in_silhouette:";
         public ulong LeaderRoleId { get; set; }
         public ulong OfficerRoleId { get; set; }

@@ -400,6 +400,8 @@ public class Rs : BaseModule
         var roleMentionStateId = StateService.GetId("rs-queue-last-role-mention", role.Id);
         var lastRsMention = StateService.Get<DateTime?>(guild.Id, roleMentionStateId);
 
+        var rsEvent = RsEventLogic.GetRsEventInfo(guild.Id);
+
         var eb = new EmbedBuilder();
         eb
             .WithTitle("RS" + queue.Level.ToStr() + " run (" + queue.Users.Count.ToStr() + "/" + queue.Users.Count.ToStr() + ")")
@@ -438,6 +440,9 @@ public class Rs : BaseModule
                                 .ToIntervalStr();
                 }))
                  + "\n\n#" + runId.ToStr() + " started after " + DateTime.UtcNow.Subtract(queue.StartedOn).ToIntervalStr() + "."
+                 + (rsEvent.Active ?
+                    "\n\nType `!logrs " + runId.ToStr() + " 123456` after you finished!"
+                    : "")
             );
 
         await channel.SendMessageAsync(embed: eb.Build());
@@ -683,6 +688,7 @@ public class Rs : BaseModule
         public List<ulong> Users { get; init; } = new();
         public DateTime StartedOn { get; init; }
         public DateTime? FalseStart { get; set; }
+        public int? RsEventScore { get; set; }
     }
 
     internal class RsQueue

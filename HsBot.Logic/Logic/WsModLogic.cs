@@ -20,6 +20,9 @@ public static class WsModLogic
         await DeleteTeamsOpsPanel(guild, team);
 
         var entries = GetRoleEntries(guild, teamRole, null);
+        if (entries.Count == 0)
+            return;
+
         var longestName = entries.Max(x => x.Name.Length);
 
         var sb = new StringBuilder()
@@ -238,10 +241,6 @@ public static class WsModLogic
 
     private static List<Entry> GetRoleEntries(SocketGuild guild, SocketRole role, ModuleFilter filter)
     {
-        var alliance = AllianceLogic.GetAlliance(guild.Id);
-        if (alliance == null)
-            return null;
-
         var team = WsLogic.GetWsTeamByRole(guild.Id, role);
 
         var mains = guild.Users

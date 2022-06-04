@@ -275,7 +275,7 @@ public class Admin : BaseModule
     }
 
     [Command("set-ws-draft-channel")]
-    [Summary("set-ws-draft-channel <channel>|set ws draft chat channel")]
+    [Summary("set-ws-draft-channel <channel>|set WS draft channel")]
     [RequireUserPermission(GuildPermission.Administrator)]
     public async Task SetWsDraftChannel(SocketTextChannel channel)
     {
@@ -289,7 +289,7 @@ public class Admin : BaseModule
     }
 
     [Command("set-ws-signup-channel")]
-    [Summary("set-ws-signup-channel <channel>|set ws signup chat channel")]
+    [Summary("set-ws-signup-channel <channel>|set WS signup channel")]
     [RequireUserPermission(GuildPermission.Administrator)]
     public async Task SetWsSignupChannel(SocketTextChannel channel)
     {
@@ -303,7 +303,7 @@ public class Admin : BaseModule
     }
 
     [Command("set-ws-announce-channel")]
-    [Summary("set-ws-announce-channel <channel>|set ws announcement chat channel")]
+    [Summary("set-ws-announce-channel <channel>|set WS announcements channel")]
     [RequireUserPermission(GuildPermission.Administrator)]
     public async Task SetWsAnnounceChannel(SocketTextChannel channel)
     {
@@ -313,7 +313,21 @@ public class Admin : BaseModule
         alliance.WsAnnounceChannelId = channel.Id;
         AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
 
-        await Context.Channel.BotResponse("WS announce channel changed: " + channel.Name, ResponseType.success);
+        await Context.Channel.BotResponse("WS announcements channel changed: " + channel.Name, ResponseType.success);
+    }
+
+    [Command("set-rs-event-log-channel")]
+    [Summary("set-rs-event-log-channel <channel>|set RS Event log channel")]
+    [RequireUserPermission(GuildPermission.Administrator)]
+    public async Task SetRsEventLogChannel(SocketTextChannel channel)
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+
+        var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+        alliance.RsEventLogChannelId = channel.Id;
+        AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+        await Context.Channel.BotResponse("RS Event log channel changed: " + channel.Name, ResponseType.success);
     }
 
     [Command("falsestart")]
@@ -328,23 +342,23 @@ public class Admin : BaseModule
     private static async Task FalseStartRun(SocketGuild guild, ISocketMessageChannel channel, int runNumber)
     {
         var queueStateId = StateService.GetId("rs-log", (ulong)runNumber);
-        var queue = StateService.Get<Rs.RsQueueEntry>(guild.Id, queueStateId);
-        if (queue == null)
+        var run = StateService.Get<Rs.RsQueueEntry>(guild.Id, queueStateId);
+        if (run == null)
         {
             await channel.BotResponse("Can't find run #" + runNumber.ToStr(), ResponseType.error);
             return;
         }
 
-        foreach (var userId in queue.Users)
+        foreach (var userId in run.Users)
         {
-            var runCountStateId = StateService.GetId("rs-run-count", userId, (ulong)queue.Level);
+            var runCountStateId = StateService.GetId("rs-run-count", userId, (ulong)run.Level);
             var runCount = StateService.Get<int>(guild.Id, runCountStateId);
             runCount--;
             StateService.Set(guild.Id, runCountStateId, runCount);
         }
 
-        queue.FalseStart = DateTime.UtcNow;
-        StateService.Set(guild.Id, queueStateId, queue);
+        run.FalseStart = DateTime.UtcNow;
+        StateService.Set(guild.Id, queueStateId, run);
 
         await channel.BotResponse("Run #" + runNumber.ToStr() + " is successfuly reset.", ResponseType.success);
     }

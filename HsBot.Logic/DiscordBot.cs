@@ -222,6 +222,7 @@ public class DiscordBot
 
         await Commands.AddModuleAsync(typeof(HelpCommandModule), null);
         await Commands.AddModuleAsync(typeof(Rs), null);
+        await Commands.AddModuleAsync(typeof(RsEvent), null);
         await Commands.AddModuleAsync(typeof(Ws), null);
         await Commands.AddModuleAsync(typeof(WsDraft), null);
         await Commands.AddModuleAsync(typeof(Trade), null);

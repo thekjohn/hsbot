@@ -218,7 +218,7 @@ public static class WsDraftLogic
 
             WsLogic.AddWsTeam(guild.Id, team);
 
-            await WsModLogic.ClassifyTeam(guild, battleRoom);
+            //await WsModLogic.ClassifyTeam(guild, battleRoom);
         }
 
         await HelpLogic.ShowAllianceInfo(guild, ch, alliance);
