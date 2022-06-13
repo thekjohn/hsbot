@@ -73,6 +73,14 @@ public static class WsDraftLogic
 
         var alliance = AllianceLogic.GetAlliance(guild.Id);
 
+
+        var existingTeams = StateService.ListIds(guild.Id, "ws-team-");
+        if (existingTeams.Length > 0)
+        {
+            await channel.BotResponse("Cannot close draft because all existing teams must be closed first.", ResponseType.error);
+            return;
+        }
+
         foreach (var team in draft.Teams)
         {
             var cnt = team.Members.Mains.Count + team.Members.Alts.Count;

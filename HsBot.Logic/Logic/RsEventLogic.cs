@@ -16,6 +16,7 @@ public static class RsEventLogic
     public class RsEventInfo
     {
         public bool Active { get; set; }
+        public int Season { get; set; }
         public DateTime StartedOn { get; set; }
         public DateTime EndsOn { get; set; }
     }
@@ -47,7 +48,7 @@ public static class RsEventLogic
             return;
         }
 
-        if (run.RsEventScore != null && !leader)
+        if (run.RsEventSeason != null && !leader)
         {
             await channel.BotResponse("RS Event score is already recorded for run #" + runNumber.ToStr() + ". Ask an administrator to use `" + DiscordBot.CommandPrefix + "logrsfix` command to overwrite it.", ResponseType.error);
             return;
@@ -58,6 +59,7 @@ public static class RsEventLogic
             return;
 
         var oldScore = run.RsEventScore;
+        run.RsEventSeason = rsEvent.Season;
         run.RsEventScore = score;
         StateService.Set(guild.Id, runStateId, run);
 
@@ -73,10 +75,11 @@ public static class RsEventLogic
         }
     }
 
-    internal static async Task SetRsEvent(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, bool active, string startsIn, string endsIn)
+    internal static async Task SetRsEvent(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, int season, string startsIn, string endsIn)
     {
         var rsEvent = GetRsEventInfo(guild.Id);
-        rsEvent.Active = active;
+        rsEvent.Active = true;
+        rsEvent.Season = season;
         rsEvent.StartedOn = startsIn.AddToDateTime(DateTime.UtcNow);
         rsEvent.EndsOn = endsIn.AddToDateTime(DateTime.UtcNow);
         SetRsEventInfo(guild.Id, rsEvent);

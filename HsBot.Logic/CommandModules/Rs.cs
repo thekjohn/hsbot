@@ -71,27 +71,53 @@ public class Rs : BaseModule
     }
 
     [Command("in")]
-    [Summary("in level user|debug only")]
-    public async Task I(int level, SocketGuildUser targetUser)
+    [Alias("i")]
+    [Summary("in <level> <altName>|enqueue an alt with a discord account to a specific queue")]
+    public async Task I(int level, string altName)
     {
         await CleanupService.DeleteCommand(Context.Message);
 
-        if (!CurrentUser.Roles.Any(x => x.Permissions.Administrator))
+        var user = Context.Guild.FindUser(CurrentUser, altName);
+        if (user == null)
         {
-            await ReplyAsync("only administrators can use this command");
+            await Context.Channel.BotResponse("Can't find alt: " + altName, ResponseType.error);
             return;
         }
 
-        await AddQueue(level, targetUser);
+        var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+        var alt = alliance.Alts.Find(x => x.AltUserId == user.Id && x.OwnerUserId == Context.User.Id);
+        if (alt == null)
+        {
+            await Context.Channel.BotResponse("Discord user `" + user.DisplayName + "` is not a registered alt of `" + CurrentUser.DisplayName + "`", ResponseType.error);
+            return;
+        }
+
+        await AddQueue(level, user);
     }
 
     [Command("out")]
-    [Summary("out level user|debug only")]
-    public async Task O(int level, SocketGuildUser targetUser)
+    [Alias("o")]
+    [Summary("out <level> <altName>|dequeue an alt with a discord account from a specific queue")]
+    public async Task O(int level, string altName)
     {
         await CleanupService.DeleteCommand(Context.Message);
 
-        await RemoveFromQueue(Context.Guild, Context.Channel, level, targetUser, null);
+        var user = Context.Guild.FindUser(CurrentUser, altName);
+        if (user == null)
+        {
+            await Context.Channel.BotResponse("Can't find alt: " + altName, ResponseType.error);
+            return;
+        }
+
+        var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+        var alt = alliance.Alts.Find(x => x.AltUserId == user.Id && x.OwnerUserId == Context.User.Id);
+        if (alt == null)
+        {
+            await Context.Channel.BotResponse("Discord user `" + user.DisplayName + "` is not a registered alt of `" + CurrentUser.DisplayName + "`", ResponseType.error);
+            return;
+        }
+
+        await RemoveFromQueue(Context.Guild, Context.Channel, level, user, null);
         await RefreshQueueList(Context.Guild, Context.Channel, false);
     }
 
@@ -226,11 +252,15 @@ public class Rs : BaseModule
 
         StateService.Set(Context.Guild.Id, "rs-queue", panel);
 
+        var alt = alliance.Alts.Find(x => x.AltUserId == user.Id);
+
         if (queue.Users.Count == 4)
         {
             foreach (var userId in queue.Users)
             {
-                var runCountStateId = StateService.GetId("rs-run-count", userId, (ulong)queue.Level);
+                var uid = alliance.Alts.Find(x => x.AltUserId == userId)?.OwnerUserId ?? userId;
+
+                var runCountStateId = StateService.GetId("rs-run-count", uid, (ulong)queue.Level);
                 var cnt = StateService.Get<int>(Context.Guild.Id, runCountStateId);
                 cnt++;
                 StateService.Set(Context.Guild.Id, runCountStateId, cnt);
@@ -280,17 +310,29 @@ public class Rs : BaseModule
             foreach (var usr in users)
             {
                 await usr.SendMessageAsync("RS" + selectedLevel.ToStr() + " queue is 3/4 in https://discord.com/channels/" + Context.Guild.Id.ToStr() + "/" + Context.Channel.Id.ToStr()
-                    + "\n" + string.Join(" ", queue.Users.Select(x =>
+                    + "\n" + string.Join(" ", queue.Users.Select(userId =>
                     {
-                        var user = Context.Guild.GetUser(x);
+                        var alt = alliance.Alts.Find(x => x.AltUserId == userId);
+                        var uid = alt?.OwnerUserId ?? userId;
+                        var user = Context.Guild.GetUser(uid);
                         return user != null
                             ? alliance.GetUserCorpIcon(user) + user.DisplayName
+                                + (alt != null ? " playing with " + Context.Guild.GetUser(userId).DisplayName : "")
                             : "<unknown discord user>";
                     })));
             }
         }
 
-        response += " (" + queue.Users.Count.ToStr() + "/4), " + user.Mention + " joined.";
+        if (alt != null)
+        {
+            var owner = Context.Guild.GetUser(alt.OwnerUserId);
+            response += " (" + queue.Users.Count.ToStr() + "/4), " + owner.Mention + " joined with " + user.Mention;
+        }
+        else
+        {
+            response += " (" + queue.Users.Count.ToStr() + "/4), " + user.Mention + " joined.";
+        }
+
         await ReplyAsync(response);
 
         await RefreshQueueList(Context.Guild, Context.Channel, true);
@@ -301,9 +343,10 @@ public class Rs : BaseModule
             StateService.Set(Context.Guild.Id, "rs-log-" + runId.ToStr(), queue);
 
             response = "RS" + selectedLevel.ToStr() + " ready! Meet where? (4/4)"
-                + "\n" + string.Join(" ", queue.Users.Select(x =>
+                + "\n" + string.Join(" ", queue.Users.Select(userId =>
                     {
-                        var user = Context.Guild.GetUser(x);
+                        var uid = alliance.Alts.Find(x => x.AltUserId == userId)?.OwnerUserId ?? userId;
+                        var user = Context.Guild.GetUser(uid);
                         return user != null
                             ? alliance.GetUserCorpIcon(user) + user.Mention
                             : "<unknown discord user>";
@@ -314,13 +357,15 @@ public class Rs : BaseModule
 
             foreach (var queueUserId in queue.Users)
             {
-                var usr = Context.Guild.GetUser(queueUserId);
+                var uid = alliance.Alts.Find(x => x.AltUserId == queueUserId)?.OwnerUserId ?? queueUserId;
+                var usr = Context.Guild.GetUser(uid);
                 if (usr != null)
                 {
                     await usr.SendMessageAsync("RS" + selectedLevel.ToStr() + " is ready! (4/4) in https://discord.com/channels/" + Context.Guild.Id.ToStr() + "/" + Context.Channel.Id.ToStr()
-                        + "\n" + string.Join(" ", queue.Users.Select(x =>
+                        + "\n" + string.Join(" ", queue.Users.Select(userId =>
                         {
-                            var user = Context.Guild.GetUser(x);
+                            var uid = alliance.Alts.Find(x => x.AltUserId == userId)?.OwnerUserId ?? userId;
+                            var user = Context.Guild.GetUser(uid);
                             return user != null
                                 ? alliance.GetUserCorpIcon(user) + user.DisplayName
                                 : "<unknown discord user>";
@@ -346,6 +391,8 @@ public class Rs : BaseModule
             return;
         }
 
+        var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+
         var runCountStateId = "rs-run-count";
         var runId = StateService.Get<int>(Context.Guild.Id, runCountStateId) + 1;
         StateService.Set(Context.Guild.Id, runCountStateId, runId);
@@ -355,7 +402,9 @@ public class Rs : BaseModule
 
         foreach (var userId in queue.Users)
         {
-            runCountStateId = StateService.GetId("rs-run-count", userId, (ulong)queue.Level);
+            var uid = alliance.Alts.Find(x => x.AltUserId == userId)?.OwnerUserId ?? userId;
+
+            runCountStateId = StateService.GetId("rs-run-count", uid, (ulong)queue.Level);
             var cnt = StateService.Get<int>(Context.Guild.Id, runCountStateId);
             cnt++;
             StateService.Set(Context.Guild.Id, runCountStateId, cnt);
@@ -367,8 +416,6 @@ public class Rs : BaseModule
         await PostStartedQueue(Context.Guild, Context.Channel, queue, runId);
         StateService.Set(Context.Guild.Id, "rs-log-" + runId.ToStr(), queue);
 
-        var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
-
         var response = "RS" + level.ToStr() + " force started!";
         if (queue.Users.Count > 1)
         {
@@ -376,9 +423,10 @@ public class Rs : BaseModule
         }
 
         response += " (" + queue.Users.Count.ToStr() + "/" + queue.Users.Count.ToStr() + ")"
-            + "\n" + string.Join(" ", queue.Users.Select(x =>
+            + "\n" + string.Join(" ", queue.Users.Select(userId =>
             {
-                var user = Context.Guild.GetUser(x);
+                var uid = alliance.Alts.Find(x => x.AltUserId == userId)?.OwnerUserId ?? userId;
+                var user = Context.Guild.GetUser(uid);
                 return alliance.GetUserCorpIcon(user) + user.Mention;
             }));
 
@@ -411,12 +459,19 @@ public class Rs : BaseModule
             .WithDescription(string.Join("\n",
                 queue.Users.Select(userId =>
                 {
-                    var user = guild.GetUser(userId);
-                    var runCountStateId = StateService.GetId("rs-run-count", userId, (ulong)queue.Level);
+                    var queuedUser = guild.GetUser(userId);
+                    var realUser = queuedUser;
+                    var alt = alliance.Alts.Find(x => x.AltUserId == userId);
+                    if (alt != null)
+                    {
+                        realUser = guild.GetUser(alt.OwnerUserId);
+                    }
+
+                    var runCountStateId = StateService.GetId("rs-run-count", realUser.Id, (ulong)queue.Level);
                     var runCount = StateService.Get<int>(guild.Id, runCountStateId);
 
                     var modList = "";
-                    var mods = StateService.Get<UserRsMod>(guild.Id, StateService.GetId("rs-mod", user.Id));
+                    var mods = StateService.Get<UserRsMod>(guild.Id, StateService.GetId("rs-mod", queuedUser.Id));
                     if (mods != null)
                     {
                         if (mods.Rse)
@@ -433,15 +488,16 @@ public class Rs : BaseModule
                             modList += "💪";
                     }
 
-                    return alliance.GetUserCorpIcon(user) + user.DisplayName
+                    return alliance.GetUserCorpIcon(realUser) + realUser.DisplayName
+                        + (alt != null ? " playing with " + queuedUser.DisplayName : "")
                         + modList
-                        + " [" + runCount + " runs]"
-                        + " :watch: " + DateTime.UtcNow.Subtract(StateService.Get<DateTime>(guild.Id, "rs-queue-activity-" + userId.ToStr() + "-" + queue.Level.ToStr()))
+                        + " [" + runCount + "x]"
+                        + " :watch: " + DateTime.UtcNow.Subtract(StateService.Get<DateTime>(guild.Id, "rs-queue-activity-" + queuedUser.Id.ToStr() + "-" + queue.Level.ToStr()))
                                 .ToIntervalStr();
                 }))
                  + "\n\n#" + runId.ToStr() + " started after " + DateTime.UtcNow.Subtract(queue.StartedOn).ToIntervalStr() + "."
                  + (rsEvent.Active ?
-                    "\n\nType `!logrs " + runId.ToStr() + " 123456` after you finished!"
+                    "\n\nType `!logrs " + runId.ToStr() + " <score>` after you finished!"
                     : "")
             );
 
@@ -496,12 +552,19 @@ public class Rs : BaseModule
                 .Append("/4)**\n")
                 .AppendJoin("\n", queue.Users.Select(userId =>
                 {
-                    var user = guild.GetUser(userId);
-                    var runCountStateId = StateService.GetId("rs-run-count", userId, (ulong)queue.Level);
+                    var queuedUser = guild.GetUser(userId);
+                    var realUser = queuedUser;
+                    var alt = alliance.Alts.Find(x => x.AltUserId == userId);
+                    if (alt != null)
+                    {
+                        realUser = guild.GetUser(alt.OwnerUserId);
+                    }
+
+                    var runCountStateId = StateService.GetId("rs-run-count", realUser.Id, (ulong)queue.Level);
                     var runCount = StateService.Get<int>(guild.Id, runCountStateId);
 
                     var modList = "";
-                    var mods = StateService.Get<UserRsMod>(guild.Id, StateService.GetId("rs-mod", user.Id));
+                    var mods = StateService.Get<UserRsMod>(guild.Id, StateService.GetId("rs-mod", queuedUser.Id));
                     if (mods != null)
                     {
                         if (mods.Rse)
@@ -518,10 +581,11 @@ public class Rs : BaseModule
                             modList += "💪";
                     }
 
-                    return alliance.GetUserCorpIcon(user) + user.Mention
+                    return alliance.GetUserCorpIcon(realUser) + realUser.Mention
+                        + (alt != null ? " playing with " + queuedUser.Mention : "")
                         + (!string.IsNullOrEmpty(modList) ? " " + modList : "")
                         + " [" + runCount + "x]"
-                        + " :watch: " + DateTime.UtcNow.Subtract(StateService.Get<DateTime>(guild.Id, "rs-queue-activity-" + userId.ToStr() + "-" + queue.Level.ToStr()))
+                        + " :watch: " + DateTime.UtcNow.Subtract(StateService.Get<DateTime>(guild.Id, "rs-queue-activity-" + queuedUser.Id.ToStr() + "-" + queue.Level.ToStr()))
                                 .ToIntervalStr(true, false);
                 }))
                 .AppendLine()
@@ -688,6 +752,7 @@ public class Rs : BaseModule
         public List<ulong> Users { get; init; } = new();
         public DateTime StartedOn { get; init; }
         public DateTime? FalseStart { get; set; }
+        public int? RsEventSeason { get; set; }
         public int? RsEventScore { get; set; }
     }
 

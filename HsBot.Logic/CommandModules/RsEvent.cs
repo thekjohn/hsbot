@@ -25,9 +25,9 @@ public class RsEvent : BaseModule
     [Command("set-rs-event")]
     [Summary("set-rs-event <active> <startsIn> <endsIn>|set the state of the current RS event")]
     [RequireMinimumAllianceRole(AllianceRole.Leader)]
-    public async Task SetRsEvent(bool active, string startsIn, string endsIn)
+    public async Task SetRsEvent(int season, string startsIn, string endsIn)
     {
         await CleanupService.DeleteCommand(Context.Message);
-        await RsEventLogic.SetRsEvent(Context.Guild, Context.Channel, CurrentUser, active, startsIn, endsIn);
+        await RsEventLogic.SetRsEvent(Context.Guild, Context.Channel, CurrentUser, season, startsIn, endsIn);
     }
 }
