@@ -330,7 +330,7 @@ public class Rs : BaseModule
         }
         else
         {
-            response += " (" + queue.Users.Count.ToStr() + "/4), " + user.Mention + " joined.";
+            response += " (" + queue.Users.Count.ToStr() + "/4), " + user.Mention + " joined";
         }
 
         await ReplyAsync(response);
@@ -345,11 +345,15 @@ public class Rs : BaseModule
             response = "RS" + selectedLevel.ToStr() + " ready! Meet where? (4/4)"
                 + "\n" + string.Join(" ", queue.Users.Select(userId =>
                     {
-                        var uid = alliance.Alts.Find(x => x.AltUserId == userId)?.OwnerUserId ?? userId;
+                        var alt = alliance.Alts.Find(x => x.AltUserId == userId);
+                        var uid = alt?.OwnerUserId ?? userId;
                         var user = Context.Guild.GetUser(uid);
-                        return user != null
+                        return (user != null
                             ? alliance.GetUserCorpIcon(user) + user.Mention
-                            : "<unknown discord user>";
+                            : "<unknown discord user>")
+                            + (alt != null
+                                ? " playing with " + Context.Guild.GetUser(userId).Mention
+                                : "");
                     }));
 
             CleanupService.RegisterForDeletion(10 * 60,
@@ -364,11 +368,15 @@ public class Rs : BaseModule
                     await usr.SendMessageAsync("RS" + selectedLevel.ToStr() + " is ready! (4/4) in https://discord.com/channels/" + Context.Guild.Id.ToStr() + "/" + Context.Channel.Id.ToStr()
                         + "\n" + string.Join(" ", queue.Users.Select(userId =>
                         {
-                            var uid = alliance.Alts.Find(x => x.AltUserId == userId)?.OwnerUserId ?? userId;
+                            var alt = alliance.Alts.Find(x => x.AltUserId == userId);
+                            var uid = alt?.OwnerUserId ?? userId;
                             var user = Context.Guild.GetUser(uid);
-                            return user != null
-                                ? alliance.GetUserCorpIcon(user) + user.DisplayName
-                                : "<unknown discord user>";
+                            return (user != null
+                            ? alliance.GetUserCorpIcon(user) + user.Mention
+                            : "<unknown discord user>")
+                            + (alt != null
+                                ? " playing with " + Context.Guild.GetUser(userId).Mention
+                                : "");
                         })));
                 }
             }
@@ -425,9 +433,16 @@ public class Rs : BaseModule
         response += " (" + queue.Users.Count.ToStr() + "/" + queue.Users.Count.ToStr() + ")"
             + "\n" + string.Join(" ", queue.Users.Select(userId =>
             {
-                var uid = alliance.Alts.Find(x => x.AltUserId == userId)?.OwnerUserId ?? userId;
+                var alt = alliance.Alts.Find(x => x.AltUserId == userId);
+                var uid = alt?.OwnerUserId ?? userId;
                 var user = Context.Guild.GetUser(uid);
-                return alliance.GetUserCorpIcon(user) + user.Mention;
+                return (user != null
+                    ? alliance.GetUserCorpIcon(user) + user.Mention
+                    : "<unknown discord user>")
+                    + (alt != null
+                        ? " playing with " + Context.Guild.GetUser(userId).Mention
+                        : "")
+                    ;
             }));
 
         CleanupService.RegisterForDeletion(10 * 60,

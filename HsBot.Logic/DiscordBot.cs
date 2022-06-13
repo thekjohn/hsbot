@@ -183,9 +183,22 @@ public class DiscordBot
 
                                     StateService.Set(guild.Id, userActivityConfirmationAskedStateId, DateTime.UtcNow);
 
+                                    var alliance = AllianceLogic.GetAlliance(guild.Id);
+                                    var alt = alliance.Alts.Find(x => x.AltUserId == user.Id);
+
                                     var confirmTimeoutMinutes = 2;
-                                    CleanupService.RegisterForDeletion(confirmTimeoutMinutes * 60,
-                                        await channel.SendMessageAsync(":grey_question: " + user.Mention + ", still in for RS" + queue.Level.ToStr() + "? Type `" + CommandPrefix + "in " + queue.Level.ToStr() + "` to confirm within the next " + confirmTimeoutMinutes.ToStr() + " minutes."));
+
+                                    if (alt == null)
+                                    {
+                                        CleanupService.RegisterForDeletion(confirmTimeoutMinutes * 60,
+                                            await channel.SendMessageAsync(":grey_question: " + user.Mention + ", still in for RS" + queue.Level.ToStr() + "? Type `" + CommandPrefix + "in " + queue.Level.ToStr() + "` to confirm within the next " + confirmTimeoutMinutes.ToStr() + " minutes."));
+                                    }
+                                    else
+                                    {
+                                        var ownerUser = guild.GetUser(alt.OwnerUserId);
+                                        CleanupService.RegisterForDeletion(confirmTimeoutMinutes * 60,
+                                            await channel.SendMessageAsync(":grey_question: " + ownerUser.Mention + ", still in for RS" + queue.Level.ToStr() + " with " + user.Mention + "? Type `" + CommandPrefix + "in " + queue.Level.ToStr() + " " + user.DisplayName + "` to confirm within the next " + confirmTimeoutMinutes.ToStr() + " minutes."));
+                                    }
                                 }
                             }
                         }
