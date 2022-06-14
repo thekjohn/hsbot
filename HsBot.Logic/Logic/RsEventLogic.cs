@@ -26,6 +26,15 @@ public static class RsEventLogic
         public ulong? Day5EndedMessageId { get; set; }
         public ulong? Day6EndedMessageId { get; set; }
         public ulong? Day7EndedMessageId { get; set; }
+        public List<RsEventMessageGroup> MessageGroups { get; set; } = new List<RsEventMessageGroup>();
+    }
+
+    public class RsEventMessageGroup
+    {
+        public string Id { get; set; }
+        public ulong ChannelId { get; set; }
+        public List<ulong> MessageIds { get; set; }
+        public DateTime LastPosted { get; set; }
     }
 
     internal static async Task LogRsScore(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, int runNumber, int score, bool leader)
@@ -183,7 +192,7 @@ public static class RsEventLogic
             await announceChannel.SendMessageAsync(msg);
     }
 
-    internal static async Task PostLeaderboard(SocketGuild guild, ISocketMessageChannel channel, string title, int startDayIndex, int endDayIndex, int limitCount)
+    internal static async Task PostLeaderboard(SocketGuild guild, ISocketMessageChannel channel, string title, int startDayIndex, int endDayIndex, int limitCount, string messageGroupId)
     {
         var rsEvent = GetRsEventInfo(guild.Id);
         if (rsEvent == null)
@@ -233,10 +242,29 @@ public static class RsEventLogic
             return;
         }
 
+        if (messageGroupId != null)
+        {
+            try
+            {
+                var group = rsEvent.MessageGroups.Find(x => x.Id == messageGroupId);
+                if (group != null)
+                {
+                    var groupChannel = guild.GetTextChannel(group.ChannelId);
+                    if (groupChannel != null)
+                    {
+                        foreach (var msgId in group.MessageIds)
+                            await groupChannel.DeleteMessageAsync(msgId);
+                    }
+                }
+            }
+            catch (Exception) { }
+        }
+
         var alliance = AllianceLogic.GetAlliance(guild.Id);
         var batchSize = 20;
         var batchCount = (results.Count / batchSize) + (results.Count % batchSize == 0 ? 0 : 1);
         var index = 0;
+        var msgIds = new List<ulong>();
         for (var batch = 0; batch < batchCount; batch++)
         {
             var sb = new StringBuilder();
@@ -264,7 +292,26 @@ public static class RsEventLogic
             }
 
             sb.Append("```");
-            await channel.SendMessageAsync(sb.ToString());
+
+            var sent = await channel.SendMessageAsync(sb.ToString());
+            msgIds.Add(sent.Id);
+        }
+
+        if (messageGroupId != null)
+        {
+            rsEvent = GetRsEventInfo(guild.Id);
+            if (rsEvent == null)
+                return;
+            rsEvent.MessageGroups.RemoveAll(x => x.Id == messageGroupId);
+            rsEvent.MessageGroups.Add(new RsEventMessageGroup()
+            {
+                Id = messageGroupId,
+                LastPosted = DateTime.UtcNow,
+                ChannelId = channel.Id,
+                MessageIds = msgIds,
+            });
+
+            SetRsEventInfo(guild.Id, rsEvent);
         }
     }
 

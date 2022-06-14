@@ -37,7 +37,7 @@ public class RsEvent : BaseModule
     public async Task FullRsEventLeaderboard()
     {
         await CleanupService.DeleteCommand(Context.Message);
-        await RsEventLogic.PostLeaderboard(Context.Guild, Context.Channel, "Leaderboard - Private RS Event Season {season}, page {page} of {pageCount}", -365, 365, 100000);
+        await RsEventLogic.PostLeaderboard(Context.Guild, Context.Channel, "Leaderboard - Private RS Event Season {season} [{page}/{pageCount}]", -365, 365, 100000, "current-full");
     }
 
     [Command("rs-event-leaderboard-day")]
@@ -46,6 +46,6 @@ public class RsEvent : BaseModule
     public async Task SpecificDayRsEventLeaderboard(int day)
     {
         await CleanupService.DeleteCommand(Context.Message);
-        await RsEventLogic.PostLeaderboard(Context.Guild, Context.Channel, "Leaderboard - Private RS Event Season {season} / day " + day.ToStr() + ", page {page} of {pageCount}", day, day, 100000);
+        await RsEventLogic.PostLeaderboard(Context.Guild, Context.Channel, "Leaderboard - Private RS Event Season {season} / day " + day.ToStr() + " [{page}/{pageCount}]", day, day, 100000, "current-day-" + day.ToStr());
     }
 }
