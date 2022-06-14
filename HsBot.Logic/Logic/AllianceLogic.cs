@@ -44,6 +44,7 @@ public static class AllianceLogic
         public ulong WsSignupChannelId { get; set; }
         public ulong WsDraftChannelId { get; set; }
         public ulong WsAnnounceChannelId { get; set; }
+        public ulong RsEventAnnounceChannelId { get; set; }
         public ulong RsEventLogChannelId { get; set; }
         public string GuestIcon { get; set; } = ":bust_in_silhouette:";
         public ulong LeaderRoleId { get; set; }
@@ -90,6 +91,21 @@ public static class AllianceLogic
                     + (corpName ? " guest" : "")
                     + (extraSpace ? " " : "");
             }
+
+            return null;
+        }
+
+        public string GetUserCorpName(SocketGuildUser user, bool abbreviation)
+        {
+            var corp = Corporations.Find(c => user.Roles.Any(r => r.Id == c.RoleId));
+            if (corp != null && !string.IsNullOrEmpty(corp.IconMention))
+                return abbreviation ? corp.Abbreviation : corp.FullName;
+
+            if (user.Roles.Any(r => r.Id == AllyRoleId))
+                return "ally";
+
+            if (user.Roles.Any(r => r.Id == GuestRoleId))
+                return "guest";
 
             return null;
         }

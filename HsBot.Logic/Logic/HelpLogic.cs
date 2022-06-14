@@ -29,6 +29,25 @@ public static class HelpLogic
             await channel.SendMessageAsync(null, embed: eb.Build()));
     }
 
+    public static async Task ShowMostUsedWsCommands(SocketGuild guild, ISocketMessageChannel channel)
+    {
+        var eb = new EmbedBuilder()
+            .WithTitle("JARVIS ONBOARDING - WS COMMANDS")
+            .WithColor(Color.Green)
+            .AddField("alert the entire WS team", "`" + DiscordBot.CommandPrefix + "alert incoming enemies!!!`")
+            .AddField("register a reminder for yourself", "`" + DiscordBot.CommandPrefix + "remind me 2h15m send drone`")
+            .AddField("register a reminder for somebody", "`" + DiscordBot.CommandPrefix + "remind {name} 18h send your BS back`")
+            .AddField("flag when you are AFK", "`" + DiscordBot.CommandPrefix + "afk 5h10m` During AFK, you lose access to the RS queue channel.")
+            .AddField("flag when you are no longer AFK", "`" + DiscordBot.CommandPrefix + "back` You get back your RS queue access.")
+            .AddField("display of the classification table of the WS team", "`" + DiscordBot.CommandPrefix + "classify`")
+            .AddField("display of the classification table of the members of a role", "`" + DiscordBot.CommandPrefix + "classify rs10`")
+            .AddField("show the list of the registered module filters", "`" + DiscordBot.CommandPrefix + "mflist`")
+            .WithFooter("This message will self-destruct in 60 seconds.");
+
+        CleanupService.RegisterForDeletion(60,
+            await channel.SendMessageAsync(null, embed: eb.Build()));
+    }
+
     public static async Task ShowMostUsedRsCommands(SocketGuild guild, ISocketMessageChannel channel)
     {
         var eb = new EmbedBuilder()

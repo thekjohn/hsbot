@@ -330,6 +330,20 @@ public class Admin : BaseModule
         await Context.Channel.BotResponse("RS Event log channel changed: " + channel.Name, ResponseType.success);
     }
 
+    [Command("set-rs-event-announce-channel")]
+    [Summary("set-rs-event-announce-channel <channel>|set RS Event announce channel")]
+    [RequireUserPermission(GuildPermission.Administrator)]
+    public async Task SetRsEventAnnounceChannel(SocketTextChannel channel)
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+
+        var alliance = AllianceLogic.GetAlliance(Context.Guild.Id);
+        alliance.RsEventAnnounceChannelId = channel.Id;
+        AllianceLogic.SaveAlliance(Context.Guild.Id, alliance);
+
+        await Context.Channel.BotResponse("RS Event announce channel changed: " + channel.Name, ResponseType.success);
+    }
+
     [Command("falsestart")]
     [Summary("falsestart <runNumber>|invalidate an RS run")]
     [RequireMinimumAllianceRole(AllianceRole.Officer)]

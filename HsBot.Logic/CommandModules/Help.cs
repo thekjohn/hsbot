@@ -169,6 +169,15 @@ public class HelpCommandModule : BaseModule
         await HelpLogic.ShowMostUsedCommands(Context.Guild, Context.Channel);
     }
 
+    [Command("wshelp")]
+    [Summary("wshelp|get some overview of the most commonly used WS-related commands")]
+    public async Task WsHelp()
+    {
+        await CleanupService.DeleteCommand(Context.Message);
+        await HelpLogic.ShowMostUsedWsCommands(Context.Guild, Context.Channel);
+    }
+
+
     [Command("rshelp")]
     [Summary("rshelp|get some overview of the most commonly used RS-related commands")]
     public async Task RsHelp()
