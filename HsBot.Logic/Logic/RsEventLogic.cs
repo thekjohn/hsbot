@@ -58,7 +58,7 @@ public static class RsEventLogic
             return;
         }
 
-        if (!run.Users.Any(x => x == currentUser.Id))
+        if (!leader && !run.Users.Any(x => x == currentUser.Id))
         {
             await channel.BotResponse("You are not a participant of run #" + runNumber.ToStr() + " so you can't record the score.", ResponseType.error);
             return;
@@ -89,6 +89,8 @@ public static class RsEventLogic
             await logChannel.SendMessageAsync("RS" + run.Level.ToStr() + " run #" + runNumber.ToStr() + " score successfully recorded: " + score.ToStr() + ". "
                 + string.Join(" ", run.Users.Select(x => guild.GetUser(x).Mention)) + " [by " + currentUser.DisplayName + "]");
         }
+
+        await PostLeaderboard(guild, logChannel, "Leaderboard - Private RS Event Season {season} [{page}/{pageCount}]", -365, 365, 100000, "auto-log-full");
     }
 
     internal static async void NotifyThreadWorker(object obj)
@@ -170,6 +172,9 @@ public static class RsEventLogic
         {
             msg = "Private Red Star Event Season " + rsEvent.Season.ToStr() + " Day " + dayIndex.ToStr() + " ended.";
             var sent = await announceChannel.SendMessageAsync(msg);
+
+            await PostLeaderboard(guild, announceChannel, "Day " + dayIndex.ToStr() + " Leaderboard - Private RS Event Season {season} [{page}/{pageCount}]", dayIndex, dayIndex, 100000, null);
+
             return sent.Id;
         }
 
@@ -265,6 +270,7 @@ public static class RsEventLogic
         var batchCount = (results.Count / batchSize) + (results.Count % batchSize == 0 ? 0 : 1);
         var index = 0;
         var msgIds = new List<ulong>();
+
         for (var batch = 0; batch < batchCount; batch++)
         {
             var sb = new StringBuilder();
@@ -278,13 +284,26 @@ public static class RsEventLogic
             foreach (var userStat in results.Skip(batch * batchSize).Take(batchSize))
             {
                 sb
-                    .Append('#').Append((index + 1).ToStr().PadLeft(3, ' '))
-                    .Append(' ').Append(Convert.ToInt32(Math.Round(userStat.Score)).ToStr().PadLeft(7))
-                    .Append(' ').Append(userStat.User.DisplayName);
+                    .Append('#').Append((index + 1).ToStr().PadRight(3, ' '))
+                    .Append("  ").Append(userStat.RunCount.ToStr().PadLeft(3)).Append('x')
+                    .Append("  ").Append(Convert.ToInt32(Math.Round(userStat.Score)).ToStr().PadLeft(7));
+
+                sb.Append("  ");
+                var highestRsRole = HelpLogic.GetHighestRsRole(userStat.User);
+                if (highestRsRole.Count > 0)
+                {
+                    sb.Append(highestRsRole[0].Name.PadRight(4));
+                }
+                else
+                {
+                    sb.Append("    ");
+                }
+
+                sb.Append("  ").Append(userStat.User.DisplayName);
 
                 var corpName = alliance.GetUserCorpName(userStat.User, true);
                 if (corpName != null)
-                    sb.Append(" (").Append(corpName).Append(')');
+                    sb.Append(" [").Append(corpName).Append(']');
 
                 sb.AppendLine();
 

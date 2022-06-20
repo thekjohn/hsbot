@@ -56,8 +56,10 @@ public static class HelpLogic
             .AddField("set your own RS roles", "`" + DiscordBot.CommandPrefix + "rsrole`")
             .AddField("enter your highest RS queue", "`" + DiscordBot.CommandPrefix + "in`. Short form is `" + DiscordBot.CommandPrefix + "i`")
             .AddField("enter an RS queue", "`" + DiscordBot.CommandPrefix + "in 10` Where 10 is the RS level. Short form is `" + DiscordBot.CommandPrefix + "i 10`")
+            .AddField("enter an RS queue with your alt", "`" + DiscordBot.CommandPrefix + "in 10 x` Where 10 is the RS level and x is the name of your alt. Short form is `" + DiscordBot.CommandPrefix + "i 10 x`")
             .AddField("leave an RS queue", "`" + DiscordBot.CommandPrefix + "out 10` Where 10 is the RS level. Short form is `" + DiscordBot.CommandPrefix + "o 10`")
             .AddField("leave all RS queues", "`" + DiscordBot.CommandPrefix + "out`. Short form is `" + DiscordBot.CommandPrefix + "o`")
+            .AddField("close and start a queue before it is full (4/4)", "`" + DiscordBot.CommandPrefix + "start 10` Where 10 is the RS level.")
             .WithFooter("This message will self-destruct in 60 seconds.");
 
         CleanupService.RegisterForDeletion(60,
@@ -210,7 +212,7 @@ public static class HelpLogic
     public static List<SocketRole> GetHighestRsRole(SocketGuildUser user)
     {
         return user.Roles
-            .Where(x => x.Name.StartsWith("rs", StringComparison.InvariantCultureIgnoreCase))
+            .Where(x => x.Name.StartsWith("rs", StringComparison.InvariantCultureIgnoreCase) && !x.Name.Contains('¾', StringComparison.InvariantCultureIgnoreCase))
             .OrderByDescending(x => x.Position)
             .Take(1)
             .ToList();
@@ -220,7 +222,8 @@ public static class HelpLogic
     {
         return user.Roles
             .Where(x => x.Name.StartsWith("ws", StringComparison.InvariantCultureIgnoreCase)
-                     || x.Name.StartsWith("rs", StringComparison.InvariantCultureIgnoreCase))
+                     || (x.Name.StartsWith("rs", StringComparison.InvariantCultureIgnoreCase)
+                     && !x.Name.Contains('¾', StringComparison.InvariantCultureIgnoreCase)))
             .OrderByDescending(x => x.Position)
             .ToList();
     }

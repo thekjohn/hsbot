@@ -7,12 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Discord.Net" Version="3.6.1" />
+    <PackageReference Include="Discord.Net" Version="3.7.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\HsBot.Logic\HsBot.Logic.csproj" />
-    <PackageReference Include="Roslynator.Formatting.Analyzers" Version="4.1.0">
+    <PackageReference Include="Roslynator.Formatting.Analyzers" Version="4.1.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
