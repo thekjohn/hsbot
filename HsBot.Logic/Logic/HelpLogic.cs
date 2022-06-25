@@ -212,7 +212,7 @@ public static class HelpLogic
     public static List<SocketRole> GetHighestRsRole(SocketGuildUser user)
     {
         return user.Roles
-            .Where(x => x.Name.StartsWith("rs", StringComparison.InvariantCultureIgnoreCase) && !x.Name.Contains('¾', StringComparison.InvariantCultureIgnoreCase))
+            .Where(x => x.Name.StartsWith("rs", StringComparison.InvariantCultureIgnoreCase))
             .OrderByDescending(x => x.Position)
             .Take(1)
             .ToList();
@@ -222,8 +222,7 @@ public static class HelpLogic
     {
         return user.Roles
             .Where(x => x.Name.StartsWith("ws", StringComparison.InvariantCultureIgnoreCase)
-                     || (x.Name.StartsWith("rs", StringComparison.InvariantCultureIgnoreCase)
-                     && !x.Name.Contains('¾', StringComparison.InvariantCultureIgnoreCase)))
+                     || x.Name.StartsWith("rs", StringComparison.InvariantCultureIgnoreCase))
             .OrderByDescending(x => x.Position)
             .ToList();
     }

@@ -73,6 +73,7 @@ public class DiscordBot
         new Thread(WsLogic.NotifyThreadWorker).Start();
         new Thread(AfkLogic.AutomaticallyRemoveAfkThreadWorker).Start();
         new Thread(CompendiumLogic.ImportThreadWorker).Start();
+        new Thread(RsEventLogic.NotifyThreadWorker).Start();
     }
 
     private async void MessageCleanupThreadWorker()

@@ -58,7 +58,14 @@ public static class RsEventLogic
             return;
         }
 
-        if (!leader && !run.Users.Any(x => x == currentUser.Id))
+        if (!leader && !run.Users.Any(userId =>
+        {
+            if (userId == currentUser.Id)
+                return true;
+
+            var alt = alliance.Alts.Find(alt => alt.AltUserId == userId);
+            return alt != null && alt.OwnerUserId == currentUser.Id;
+        }))
         {
             await channel.BotResponse("You are not a participant of run #" + runNumber.ToStr() + " so you can't record the score.", ResponseType.error);
             return;
@@ -90,7 +97,8 @@ public static class RsEventLogic
                 + string.Join(" ", run.Users.Select(x => guild.GetUser(x).Mention)) + " [by " + currentUser.DisplayName + "]");
         }
 
-        await PostLeaderboard(guild, logChannel, "Leaderboard - Private RS Event Season {season} [{page}/{pageCount}]", -365, 365, 100000, "auto-log-full");
+        await PostSummaryLeaderboard(guild, logChannel, "LIVE SUMMARY - S{season}", "auto-log-summary");
+        await PostLeaderboard(guild, logChannel, "LIVE Leaderboard - S{season} [{page}/{pageCount}]", -365, 365, 100000, null, "auto-log-full");
     }
 
     internal static async void NotifyThreadWorker(object obj)
@@ -173,7 +181,13 @@ public static class RsEventLogic
             msg = "Private Red Star Event Season " + rsEvent.Season.ToStr() + " Day " + dayIndex.ToStr() + " ended.";
             var sent = await announceChannel.SendMessageAsync(msg);
 
-            await PostLeaderboard(guild, announceChannel, "Day " + dayIndex.ToStr() + " Leaderboard - Private RS Event Season {season} [{page}/{pageCount}]", dayIndex, dayIndex, 100000, null);
+            await PostSummaryLeaderboard(guild, announceChannel, "SUMMARY - S{season}", null);
+            await PostLeaderboard(guild, announceChannel, "DAY " + dayIndex.ToStr() + " Leaderboard - S{season} [{page}/{pageCount}]", dayIndex, dayIndex, 100000, null, null);
+
+            /*for (var rsLevel = 4; rsLevel <= 12; rsLevel++)
+            {
+                await PostLeaderboard(guild, announceChannel, "DAY " + dayIndex.ToStr() + " RS" + rsLevel.ToStr() + " Leaderboard - S{season} [{page}/{pageCount}]", dayIndex, dayIndex, 100000, rsLevel, null);
+            }*/
 
             return sent.Id;
         }
@@ -197,7 +211,7 @@ public static class RsEventLogic
             await announceChannel.SendMessageAsync(msg);
     }
 
-    internal static async Task PostLeaderboard(SocketGuild guild, ISocketMessageChannel channel, string title, int startDayIndex, int endDayIndex, int limitCount, string messageGroupId)
+    internal static async Task PostLeaderboard(SocketGuild guild, ISocketMessageChannel channel, string title, int startDayIndex, int endDayIndex, int limitCount, int? userRsLevelFilter, string messageGroupId)
     {
         var rsEvent = GetRsEventInfo(guild.Id);
         if (rsEvent == null)
@@ -217,10 +231,24 @@ public static class RsEventLogic
 
         var users = runs.SelectMany(x => x.Users)
             .Distinct()
-            .Select(x => new UserStat
+            .Select(userId =>
             {
-                UserId = x,
-                User = guild.GetUser(x),
+                var user = guild.GetUser(userId);
+                var rsLevel = 0;
+                var highestRsRole = HelpLogic.GetHighestRsRole(user);
+                if (highestRsRole.Count > 0)
+                {
+                    rsLevel = int.Parse(highestRsRole[0].Name
+                        .Replace("RS", "", StringComparison.InvariantCultureIgnoreCase)
+                        .Replace("¾", "", StringComparison.InvariantCultureIgnoreCase));
+                }
+
+                return new UserStat
+                {
+                    UserId = userId,
+                    User = user,
+                    RsLevel = rsLevel,
+                };
             })
             .Where(x => x.User != null)
             .ToDictionary(x => x.UserId);
@@ -236,6 +264,7 @@ public static class RsEventLogic
         }
 
         var results = users.Values
+            .Where(x => userRsLevelFilter == null || x.RsLevel == userRsLevelFilter.Value)
             .OrderByDescending(x => x.Score)
             .ThenBy(x => x.RunCount)
             .Take(limitCount)
@@ -243,7 +272,9 @@ public static class RsEventLogic
 
         if (results.Count == 0)
         {
-            await channel.BotResponse("Leaderboard is empty yet.", ResponseType.error);
+            if (userRsLevelFilter == null)
+                await channel.BotResponse("Leaderboard is empty yet.", ResponseType.error);
+
             return;
         }
 
@@ -266,7 +297,7 @@ public static class RsEventLogic
         }
 
         var alliance = AllianceLogic.GetAlliance(guild.Id);
-        var batchSize = 20;
+        var batchSize = 30;
         var batchCount = (results.Count / batchSize) + (results.Count % batchSize == 0 ? 0 : 1);
         var index = 0;
         var msgIds = new List<ulong>();
@@ -286,20 +317,9 @@ public static class RsEventLogic
                 sb
                     .Append('#').Append((index + 1).ToStr().PadRight(3, ' '))
                     .Append("  ").Append(userStat.RunCount.ToStr().PadLeft(3)).Append('x')
-                    .Append("  ").Append(Convert.ToInt32(Math.Round(userStat.Score)).ToStr().PadLeft(7));
-
-                sb.Append("  ");
-                var highestRsRole = HelpLogic.GetHighestRsRole(userStat.User);
-                if (highestRsRole.Count > 0)
-                {
-                    sb.Append(highestRsRole[0].Name.PadRight(4));
-                }
-                else
-                {
-                    sb.Append("    ");
-                }
-
-                sb.Append("  ").Append(userStat.User.DisplayName);
+                    .Append("  ").Append(Convert.ToInt32(Math.Round(userStat.Score)).ToStr().PadLeft(7))
+                    .Append("  ").Append(userStat.RsLevel.ToStr().PadRight(4))
+                    .Append("  ").Append(userStat.User.DisplayName);
 
                 var corpName = alliance.GetUserCorpName(userStat.User, true);
                 if (corpName != null)
@@ -334,10 +354,121 @@ public static class RsEventLogic
         }
     }
 
+    internal static async Task PostSummaryLeaderboard(SocketGuild guild, ISocketMessageChannel channel, string title, string messageGroupId)
+    {
+        var rsEvent = GetRsEventInfo(guild.Id);
+        if (rsEvent == null)
+            return;
+
+        var runIds = StateService.ListIds(guild.Id, "rs-log-");
+        var runs = runIds
+            .Select(runStateId => StateService.Get<Rs.RsQueueEntry>(guild.Id, runStateId))
+            .Where(x => x.RsEventSeason == rsEvent.Season && x.RsEventScore != null)
+            .OrderBy(x => x.StartedOn)
+            .ToList();
+
+        var days = runs
+            .Select(run => (int)Math.Floor(run.StartedOn.Subtract(rsEvent.StartedOn).TotalDays) + 1)
+            .Distinct()
+            .Select(dayIndex =>
+            {
+                return new DayStat
+                {
+                    DayIndex = dayIndex,
+                };
+            })
+            .ToDictionary(x => x.DayIndex);
+
+        foreach (var run in runs)
+        {
+            var dayIndex = (int)Math.Floor(run.StartedOn.Subtract(rsEvent.StartedOn).TotalDays) + 1;
+            var dayStat = days[dayIndex];
+            dayStat.RunCount++;
+            dayStat.Score += run.RsEventScore.Value;
+        }
+
+        var results = days.Values
+            .OrderBy(x => x.DayIndex)
+            .ToList();
+
+        if (results.Count == 0)
+        {
+            await channel.BotResponse("Leaderboard is empty yet.", ResponseType.error);
+            return;
+        }
+
+        if (messageGroupId != null)
+        {
+            try
+            {
+                var group = rsEvent.MessageGroups.Find(x => x.Id == messageGroupId);
+                if (group != null)
+                {
+                    var groupChannel = guild.GetTextChannel(group.ChannelId);
+                    if (groupChannel != null)
+                    {
+                        foreach (var msgId in group.MessageIds)
+                            await groupChannel.DeleteMessageAsync(msgId);
+                    }
+                }
+            }
+            catch (Exception) { }
+        }
+
+        var alliance = AllianceLogic.GetAlliance(guild.Id);
+        var msgIds = new List<ulong>();
+
+        var sb = new StringBuilder();
+        sb
+            .Append(title
+                .Replace("{season}", rsEvent.Season.ToStr(), StringComparison.InvariantCultureIgnoreCase))
+                .Append("```");
+
+        foreach (var dayStat in results)
+        {
+            sb
+                .Append("day #").Append(dayStat.DayIndex.ToStr().PadRight(3, ' '))
+                .Append("  ").Append(dayStat.RunCount.ToStr().PadLeft(3)).Append('x')
+                .Append("  ").Append(Convert.ToInt32(Math.Round(dayStat.Score)).ToStr().PadLeft(7));
+
+            sb.AppendLine();
+        }
+
+        sb.Append("```");
+
+        var sent = await channel.SendMessageAsync(sb.ToString());
+        msgIds.Add(sent.Id);
+
+        if (messageGroupId != null)
+        {
+            rsEvent = GetRsEventInfo(guild.Id);
+            if (rsEvent == null)
+                return;
+            rsEvent.MessageGroups.RemoveAll(x => x.Id == messageGroupId);
+            rsEvent.MessageGroups.Add(new RsEventMessageGroup()
+            {
+                Id = messageGroupId,
+                LastPosted = DateTime.UtcNow,
+                ChannelId = channel.Id,
+                MessageIds = msgIds,
+            });
+
+            SetRsEventInfo(guild.Id, rsEvent);
+        }
+    }
+
     private class UserStat
     {
         public ulong UserId { get; set; }
         public SocketGuildUser User { get; set; }
+        public int RsLevel { get; set; }
+        public int RunCount { get; set; }
+        public double Score { get; set; }
+    }
+
+    private class DayStat
+    {
+        public int DayIndex { get; set; }
         public int RunCount { get; set; }
         public double Score { get; set; }
     }
