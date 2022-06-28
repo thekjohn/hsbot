@@ -25,6 +25,7 @@ public static class RsEventLogic
         public ulong? Day4EndedMessageId { get; set; }
         public ulong? Day5EndedMessageId { get; set; }
         public ulong? Day6EndedMessageId { get; set; }
+        public ulong? FinalSpotsMessageId { get; set; }
         public ulong? Day7EndedMessageId { get; set; }
         public List<RsEventMessageGroup> MessageGroups { get; set; } = new List<RsEventMessageGroup>();
     }
@@ -153,6 +154,12 @@ public static class RsEventLogic
                         SetRsEventInfo(guild.Id, rsEvent);
                     }
 
+                    if (rsEvent.FinalSpotsMessageId == null && now >= rsEvent.StartedOn.AddDays(6).AddHours(12))
+                    {
+                        rsEvent.FinalSpotsMessageId = await RsEventFinalSpots(guild, rsEvent);
+                        SetRsEventInfo(guild.Id, rsEvent);
+                    }
+
                     if (rsEvent.Day7EndedMessageId == null && now >= rsEvent.StartedOn.AddDays(7))
                     {
                         rsEvent.Day7EndedMessageId = await RsEventDayEnded(guild, rsEvent, 7);
@@ -193,6 +200,120 @@ public static class RsEventLogic
         }
 
         return ulong.MaxValue;
+    }
+
+    private static async Task<ulong> RsEventFinalSpots(SocketGuild guild, RsEventInfo rsEvent)
+    {
+        var alliance = AllianceLogic.GetAlliance(guild.Id);
+
+        var announceChannel = guild.GetTextChannel(alliance.RsEventAnnounceChannelId);
+        if (announceChannel == null)
+            return 0;
+
+        var msg = "Private Red Star Event Season " + rsEvent.Season.ToStr() + " ends soon. Here is the list of the final spots";
+        var sent = await announceChannel.SendMessageAsync(msg);
+
+        var runIds = StateService.ListIds(guild.Id, "rs-log-");
+        var runs = runIds
+            .Select(runStateId => StateService.Get<Rs.RsQueueEntry>(guild.Id, runStateId))
+            .Where(x => x.RsEventSeason == rsEvent.Season && x.RsEventScore != null)
+            .OrderBy(x => x.StartedOn)
+            .ToList();
+
+        var users = runs.SelectMany(x => x.Users)
+            .Distinct()
+            .Select(userId => new UserStat
+            {
+                UserId = userId,
+                User = guild.GetUser(userId),
+            })
+            .Where(x => x.User != null)
+            .ToDictionary(x => x.UserId);
+
+        foreach (var run in runs)
+        {
+            foreach (var user in run.Users)
+            {
+                var userStat = users[user];
+                userStat.RunCount++;
+                userStat.Score += run.RsEventScore.Value / (double)run.Users.Count;
+            }
+        }
+
+        // todo: hardcoded
+        var corp1 = alliance.Corporations.Find(x => x.Abbreviation == "TF");
+        var corp1size = 37;
+        var corp2 = alliance.Corporations.Find(x => x.Abbreviation == "RST");
+        var corp2size = 36;
+
+        var results = users.Values
+            .OrderByDescending(x => x.Score)
+            .ThenBy(x => x.RunCount)
+            .ToList();
+
+        var results1 = results.Take(corp1size).ToList();
+        var results2 = results.Skip(corp1size).Take(corp2size).ToList();
+        var index = 0;
+
+        var sb = new StringBuilder();
+        sb
+            .Append("The following pilots should join ").Append(corp1.FullName).Append(" (").Append(corp1.CurrentRelicCount.ToStr()).Append(" relics) before the event ends:")
+            .Append("```");
+
+        foreach (var userStat in results1)
+        {
+            sb
+                .Append('#').Append((index + 1).ToStr().PadRight(3, ' '))
+                .Append("  ").Append(Convert.ToInt32(Math.Round(userStat.Score)).ToStr().PadLeft(7))
+                .Append("  ").Append(userStat.User.DisplayName);
+
+            var corpName = alliance.GetUserCorpName(userStat.User, true);
+            if (corpName != null)
+                sb.Append(" [").Append(corpName).Append(']');
+
+            sb.AppendLine();
+            index++;
+        }
+
+        sb.Append("```");
+        await announceChannel.SendMessageAsync(sb.ToString());
+
+        sb = new StringBuilder();
+        foreach (var userStat in results1)
+            sb.AppendJoin(' ', userStat.User.Mention);
+
+        await announceChannel.SendMessageAsync(sb.ToString());
+
+        sb = new StringBuilder();
+        sb
+            .Append("The following pilots should join ").Append(corp2.FullName).Append(" (").Append(corp2.CurrentRelicCount.ToStr()).Append(" relics) before the event ends:")
+            .Append("```");
+
+        foreach (var userStat in results2)
+        {
+            sb
+                .Append('#').Append((index + 1).ToStr().PadRight(3, ' '))
+                .Append("  ").Append(Convert.ToInt32(Math.Round(userStat.Score)).ToStr().PadLeft(7))
+                .Append("  ").Append(userStat.User.DisplayName);
+
+            var corpName = alliance.GetUserCorpName(userStat.User, true);
+            if (corpName != null)
+                sb.Append(" [").Append(corpName).Append(']');
+
+            sb.AppendLine();
+            index++;
+        }
+
+        sb.Append("```");
+        await announceChannel.SendMessageAsync(sb.ToString());
+
+        sb = new StringBuilder();
+        foreach (var userStat in results2)
+            sb.AppendJoin(' ', userStat.User.Mention);
+
+        await announceChannel.SendMessageAsync(sb.ToString());
+
+        return sent.Id;
     }
 
     internal static async Task SetRsEvent(SocketGuild guild, ISocketMessageChannel channel, SocketGuildUser currentUser, int season, string startsIn)
@@ -444,6 +565,7 @@ public static class RsEventLogic
             rsEvent = GetRsEventInfo(guild.Id);
             if (rsEvent == null)
                 return;
+
             rsEvent.MessageGroups.RemoveAll(x => x.Id == messageGroupId);
             rsEvent.MessageGroups.Add(new RsEventMessageGroup()
             {
