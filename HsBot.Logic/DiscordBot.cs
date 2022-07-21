@@ -45,7 +45,7 @@ public class DiscordBot
 
         Commands.CommandExecuted += CommandExecutedAsync;
 
-        CommandPrefix = File.ReadAllText(@"c:\HsBot\Bot.CommandPrefix.txt")[0];
+        CommandPrefix = File.ReadAllText(@"s:\HsBot\Bot.CommandPrefix.txt")[0];
 
         AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
         {
@@ -229,7 +229,7 @@ public class DiscordBot
             }
         };
 
-        var token = File.ReadAllText(@"c:\HsBot\Bot.Token.txt");
+        var token = File.ReadAllText(@"s:\HsBot\Bot.Token.txt");
 
         await Discord.LoginAsync(TokenType.Bot, token);
         await Discord.StartAsync();

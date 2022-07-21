@@ -8,7 +8,7 @@ internal static class StateService
     static StateService()
     {
         //Folder = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Uri.UnescapeDataString(new Uri(Assembly.GetExecutingAssembly().Location).AbsolutePath)), ".."));
-        Folder = @"c:\HsBot";
+        Folder = @"s:\HsBot";
     }
 
     public static string[] ListIds(ulong guildId, string idPrefix)

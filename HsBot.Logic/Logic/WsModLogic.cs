@@ -110,7 +110,7 @@ public static class WsModLogic
         var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
         var entries = GetRoleEntries(guild, teamRole, filter);
         var sb = new StringBuilder()
-            .Append("mining").Append(filterName != null ? " + " + filterName : "")
+            .Append("mining").AppendLine(filterName != null ? " + " + filterName : "")
             .Append("```")
             .Append(GetModulesTable(guild, team,
                 new[] { "miner", "miningboost", "remote", "miningunity", "genesis", "enrich", "crunch", "teleport", "barrier", "suppress", "leap", "warp", "relicdrone", "mscap", "mscaphbe" }
@@ -141,7 +141,7 @@ public static class WsModLogic
 
         var filter = filterName != null ? ModuleFilterLogic.GetModuleFilter(guild.Id, filterName) : null;
         var sb = new StringBuilder()
-            .Append("defense").Append(filterName != null ? " + " + filterName : "")
+            .Append("defense").AppendLine(filterName != null ? " + " + filterName : "")
             .Append("```")
             .Append(GetModulesTable(guild, team,
                 new[] { "bs", "laser", "barrage", "blast", "omega", "warp", "teleport", "leap", "barrier", "suppress", "bond", "fortify", "emp" }
